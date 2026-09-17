@@ -32,6 +32,16 @@ Elasticsearch is the primary search store. Embeddings are generated offline and 
 
 The recommended A1 subset is **5,000–10,000 products**; the examples use `8000`.
 
+## A1 web interface
+
+The React interface lives in the sibling `test-ui` repository. Start the complete local stack and open `http://localhost:5173`:
+
+```bash
+docker compose up --build
+```
+
+The UI compares two text retrieval modes side by side and provides SigLIP2 image search. Product images are served read-only from `data/raw/images` at `/media/products`.
+
 ## Exact local workflow
 
 Run these commands from the repository root in this order:
