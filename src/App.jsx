@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
-import { checkReadiness, resolveImageUrl, searchImage, searchText } from './api.js'
+import { checkReadiness, cleanFilters, getFilterOptions, resolveImageUrl, searchImage, searchText } from './api.js'
 
 const MODES = {
   bm25: ['BM25', 'Exact-term ranking across titles, brands, categories, and descriptions.'],
@@ -8,10 +8,101 @@ const MODES = {
   cross_modal: ['Cross-modal', 'A text embedding searches the visual product embedding space.'],
   hybrid: ['Hybrid RRF', 'BM25 and dense rankings are fused with Reciprocal Rank Fusion.'],
   image_dense: ['Image dense', 'The uploaded image is embedded with SigLIP2 and matched against product images.'],
+  filter_only: ['Filtered catalog', 'BM25 lists catalog products that satisfy the selected filters.'],
 }
 
 const EMPTY_RUN = { status: 'idle', results: [], durationMs: null, error: null }
 const NO_SHARED_IDS = new Set()
+const FILTER_FIELDS = {
+  brand: { label: 'Brand', placeholder: 'Any brand', multiple: true },
+  category: { label: 'Category', placeholder: 'Any category', multiple: true },
+  product_id: { label: 'Product ID', placeholder: 'Paste or type an ID', multiple: false },
+}
+
+function humanizeOption(field, value) {
+  if (field !== 'category') return value
+  return value.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
+function FilterField({ field, value, draft, options, loading, error, onFocus, onDraftChange, onSelect, onRemove }) {
+  const config = FILTER_FIELDS[field]
+  const fieldRef = useRef(null)
+  const [open, setOpen] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(-1)
+  const selected = config.multiple ? value : value ? [value] : []
+  const visibleOptions = options.filter((option) => !selected.includes(option.value))
+
+  useEffect(() => {
+    if (!open) return undefined
+    const closeWhenOutside = (event) => {
+      if (!fieldRef.current?.contains(event.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', closeWhenOutside)
+    return () => document.removeEventListener('mousedown', closeWhenOutside)
+  }, [open])
+
+  function choose(option) {
+    onSelect(field, option.value)
+    setOpen(false)
+    setActiveIndex(-1)
+  }
+
+  function handleKeyDown(event) {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      setOpen(true)
+      setActiveIndex((index) => Math.min(index + 1, visibleOptions.length - 1))
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      setActiveIndex((index) => Math.max(index - 1, 0))
+    } else if (event.key === 'Enter') {
+      event.preventDefault()
+      if (open && visibleOptions[activeIndex]) choose(visibleOptions[activeIndex])
+      else if (draft.trim()) choose({ value: draft.trim() })
+    } else if (event.key === 'Escape') {
+      setOpen(false)
+      setActiveIndex(-1)
+    }
+  }
+
+  return <div className="filter-field" ref={fieldRef}>
+    <label>
+      <span>{config.label}</span>
+      <input
+        value={draft}
+        placeholder={config.placeholder}
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={`${field}-filter-options`}
+        aria-autocomplete="list"
+        onFocus={() => { onFocus(field); setOpen(true) }}
+        onChange={(event) => { onDraftChange(field, event.target.value); setOpen(true); setActiveIndex(-1) }}
+        onKeyDown={handleKeyDown}
+      />
+    </label>
+    {selected.length > 0 && <div className="filter-chips" aria-label={`Selected ${config.label}`}>
+      {selected.map((item) => <button className="filter-chip" type="button" key={item} onClick={() => onRemove(field, item)} title={`Remove ${item}`}>
+        {humanizeOption(field, item)} <span aria-hidden="true">×</span>
+      </button>)}
+    </div>}
+    {open && <div className="filter-options" id={`${field}-filter-options`} role="listbox">
+      {loading && <span className="filter-status">Loading options…</span>}
+      {!loading && error && <span className="filter-status error">{error}</span>}
+      {!loading && !error && visibleOptions.length === 0 && <span className="filter-status">No suggestions</span>}
+      {!loading && !error && visibleOptions.map((option, index) => <button
+        className={index === activeIndex ? 'filter-option active' : 'filter-option'}
+        type="button"
+        role="option"
+        aria-selected={false}
+        key={option.value}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => choose(option)}
+      >
+        <span>{humanizeOption(field, option.value)}</span><small>{option.count}</small>
+      </button>)}
+    </div>}
+  </div>
+}
 
 function ProductCard({ product, shared }) {
   const image = resolveImageUrl(product.image_url)
@@ -45,10 +136,10 @@ function ResultPanel({ mode, run, sharedIds }) {
         </dl>
       </header>
       <div className="result-list" aria-live="polite">
-        {run.status === 'idle' && <div className="empty"><b>{mode === 'image_dense' ? 'Ready for an image' : 'Ready to compare'}</b><span>{mode === 'image_dense' ? 'Choose a product image to search the visual index.' : 'Run the same query through both retrieval strategies.'}</span></div>}
+        {run.status === 'idle' && <div className="empty"><b>{mode === 'image_dense' ? 'Ready for an image' : mode === 'filter_only' ? 'Choose a filter' : 'Ready to compare'}</b><span>{mode === 'image_dense' ? 'Choose a product image to search the visual index.' : mode === 'filter_only' ? 'Select a Brand, Category, or Product ID to browse the catalog.' : 'Run the same query through both retrieval strategies.'}</span></div>}
         {run.status === 'loading' && <div className="empty pulse"><b>Searching the index</b><span>Ranking candidates…</span></div>}
         {run.status === 'error' && <div className="empty error"><b>Search failed</b><span>{run.error}</span></div>}
-        {run.status === 'success' && !run.results.length && <div className="empty"><b>No matches</b><span>Try a broader query or remove a filter.</span></div>}
+        {run.status === 'success' && !run.results.length && <div className="empty"><b>{mode === 'filter_only' || mode === 'image_dense' ? 'No products match these filters' : 'No matches'}</b><span>{mode === 'filter_only' || mode === 'image_dense' ? 'Try a different value or remove a filter.' : 'Try a broader query or remove a filter.'}</span></div>}
         {run.results.map((product) => <ProductCard key={product.product_id} product={product} shared={sharedIds.has(product.product_id)} />)}
       </div>
     </section>
@@ -62,8 +153,15 @@ export default function App() {
   const [modeA, setModeA] = useState('bm25')
   const [modeB, setModeB] = useState('hybrid')
   const [topK, setTopK] = useState(10)
-  const [filters, setFilters] = useState({ brand: '', category: '', product_id: '' })
+  const [filters, setFilters] = useState({ brand: [], category: [], product_id: '' })
+  const [filterDrafts, setFilterDrafts] = useState({ brand: '', category: '', product_id: '' })
+  const [filterOptions, setFilterOptions] = useState({ brand: [], category: [], product_id: [] })
+  const [filterLoading, setFilterLoading] = useState({ brand: false, category: false, product_id: false })
+  const [filterErrors, setFilterErrors] = useState({ brand: null, category: null, product_id: null })
+  const [activeFilterField, setActiveFilterField] = useState(null)
   const [runs, setRuns] = useState([EMPTY_RUN, EMPTY_RUN])
+  const [textFilterOnly, setTextFilterOnly] = useState(false)
+  const [formError, setFormError] = useState(null)
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [imageRun, setImageRun] = useState(EMPTY_RUN)
@@ -86,6 +184,27 @@ export default function App() {
     }
   }, [])
 
+  const activeFilterPrefix = activeFilterField ? filterDrafts[activeFilterField] : ''
+
+  useEffect(() => {
+    if (!activeFilterField) return undefined
+    const abortController = new AbortController()
+    const timer = setTimeout(() => {
+      setFilterLoading((current) => ({ ...current, [activeFilterField]: true }))
+      setFilterErrors((current) => ({ ...current, [activeFilterField]: null }))
+      getFilterOptions({ field: activeFilterField, prefix: activeFilterPrefix, limit: 20, signal: abortController.signal })
+        .then((response) => { if (!abortController.signal.aborted) setFilterOptions((current) => ({ ...current, [activeFilterField]: response.data.options })) })
+        .catch((error) => {
+          if (error.name !== 'AbortError') setFilterErrors((current) => ({ ...current, [activeFilterField]: error.message }))
+        })
+        .finally(() => { if (!abortController.signal.aborted) setFilterLoading((current) => ({ ...current, [activeFilterField]: false })) })
+    }, activeFilterPrefix ? 250 : 0)
+    return () => {
+      clearTimeout(timer)
+      abortController.abort()
+    }
+  }, [activeFilterField, activeFilterPrefix])
+
   useEffect(() => {
     if (!imageFile) {
       setImagePreview(null)
@@ -101,18 +220,57 @@ export default function App() {
     return new Set(runs[1].results.filter((result) => left.has(result.product_id)).map((result) => result.product_id))
   }, [runs])
 
+  function effectiveFilters() {
+    return cleanFilters({
+      brand: [...filters.brand, filterDrafts.brand],
+      category: [...filters.category, filterDrafts.category],
+      product_id: filterDrafts.product_id || filters.product_id,
+    })
+  }
+
+  function updateFilterDraft(field, value) {
+    setFilterDrafts((current) => ({ ...current, [field]: value }))
+    if (field === 'product_id') setFilters((current) => ({ ...current, product_id: '' }))
+  }
+
+  function selectFilter(field, value) {
+    setFilters((current) => {
+      if (!FILTER_FIELDS[field].multiple) return { ...current, [field]: value }
+      return current[field].includes(value) ? current : { ...current, [field]: [...current[field], value] }
+    })
+    setFilterDrafts((current) => ({ ...current, [field]: '' }))
+  }
+
+  function removeFilter(field, value) {
+    setFilters((current) => ({ ...current, [field]: FILTER_FIELDS[field].multiple ? current[field].filter((item) => item !== value) : '' }))
+  }
+
+  function clearFilters() {
+    setFilters({ brand: [], category: [], product_id: '' })
+    setFilterDrafts({ brand: '', category: '', product_id: '' })
+  }
+
   async function compare(event) {
     event.preventDefault()
-    if (!query.trim()) return
+    const selectedFilters = effectiveFilters()
+    if (!query.trim() && !Object.keys(selectedFilters).length) {
+      setFormError('Enter a product query or choose at least one filter.')
+      return
+    }
+    setFormError(null)
     controller.current?.abort()
     const requestController = new AbortController()
     controller.current = requestController
-    setRuns([{ ...EMPTY_RUN, status: 'loading' }, { ...EMPTY_RUN, status: 'loading' }])
-    const settled = await Promise.allSettled([modeA, modeB].map((mode) => searchText({ query, mode, topK, filters, signal: requestController.signal })))
+    const filterOnly = !query.trim()
+    setTextFilterOnly(filterOnly)
+    setRuns(filterOnly ? [{ ...EMPTY_RUN, status: 'loading' }, EMPTY_RUN] : [{ ...EMPTY_RUN, status: 'loading' }, { ...EMPTY_RUN, status: 'loading' }])
+    const modes = filterOnly ? ['bm25'] : [modeA, modeB]
+    const settled = await Promise.allSettled(modes.map((mode) => searchText({ query, mode, topK, filters: selectedFilters, signal: requestController.signal })))
     if (controller.current !== requestController) return
-    setRuns(settled.map((result) => result.status === 'fulfilled'
+    const nextRuns = settled.map((result) => result.status === 'fulfilled'
       ? { status: 'success', results: result.value.data.results, durationMs: result.value.durationMs, error: null }
-      : { ...EMPTY_RUN, status: 'error', error: result.reason.name === 'AbortError' ? 'Search cancelled.' : result.reason.message }))
+      : { ...EMPTY_RUN, status: 'error', error: result.reason.name === 'AbortError' ? 'Search cancelled.' : result.reason.message })
+    setRuns(filterOnly ? [nextRuns[0], EMPTY_RUN] : nextRuns)
   }
 
   async function findSimilar(event) {
@@ -123,7 +281,7 @@ export default function App() {
     controller.current = requestController
     setImageRun({ ...EMPTY_RUN, status: 'loading' })
     try {
-      const result = await searchImage({ file: imageFile, topK, filters, signal: requestController.signal })
+      const result = await searchImage({ file: imageFile, topK, filters: effectiveFilters(), signal: requestController.signal })
       if (controller.current !== requestController) return
       setImageRun({ status: 'success', results: result.data.results, durationMs: result.durationMs, error: null })
     } catch (error) {
@@ -159,18 +317,20 @@ export default function App() {
       {activeTab === 'text' ? <>
         <form className="search-console" onSubmit={compare}>
           <div className="query-row">
-            <label><span>Product query</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Try “black running shoes”" required /></label>
-            <button type="submit" disabled={runs.some((run) => run.status === 'loading')}>Compare modes <span aria-hidden="true">↗</span></button>
+            <label><span>Product query <small>(optional when filters are selected)</small></span><input value={query} onChange={(event) => { setQuery(event.target.value); setFormError(null) }} placeholder="Try “black running shoes”" /></label>
+            <button type="submit" disabled={runs.some((run) => run.status === 'loading') || (!query.trim() && !Object.keys(effectiveFilters()).length)}>{query.trim() ? 'Compare modes' : 'Search catalog'} <span aria-hidden="true">↗</span></button>
           </div>
           <div className="control-grid">
-            <label><span>Mode A</span><select value={modeA} onChange={(event) => setModeA(event.target.value)}>{Object.entries(MODES).filter(([value]) => value !== 'image_dense').map(([value, [label]]) => <option key={value} value={value} disabled={value === modeB}>{label}</option>)}</select></label>
-            <label><span>Mode B</span><select value={modeB} onChange={(event) => setModeB(event.target.value)}>{Object.entries(MODES).filter(([value]) => value !== 'image_dense').map(([value, [label]]) => <option key={value} value={value} disabled={value === modeA}>{label}</option>)}</select></label>
+            <label><span>Mode A</span><select value={modeA} disabled={!query.trim()} onChange={(event) => setModeA(event.target.value)}>{Object.entries(MODES).filter(([value]) => !['image_dense', 'filter_only'].includes(value)).map(([value, [label]]) => <option key={value} value={value} disabled={value === modeB}>{label}</option>)}</select></label>
+            <label><span>Mode B</span><select value={modeB} disabled={!query.trim()} onChange={(event) => setModeB(event.target.value)}>{Object.entries(MODES).filter(([value]) => !['image_dense', 'filter_only'].includes(value)).map(([value, [label]]) => <option key={value} value={value} disabled={value === modeA}>{label}</option>)}</select></label>
             <label><span>Top K</span><select value={topK} onChange={(event) => setTopK(Number(event.target.value))}>{[5, 10, 20].map((value) => <option key={value}>{value}</option>)}</select></label>
-            {Object.entries({ brand: 'Brand', category: 'Category', product_id: 'Product ID' }).map(([key, label]) => <label key={key}><span>{label}</span><input value={filters[key]} onChange={(event) => setFilters({ ...filters, [key]: event.target.value })} placeholder="Any" /></label>)}
+            {Object.keys(FILTER_FIELDS).map((field) => <FilterField key={field} field={field} value={filters[field]} draft={filterDrafts[field]} options={filterOptions[field]} loading={filterLoading[field]} error={filterErrors[field]} onFocus={setActiveFilterField} onDraftChange={updateFilterDraft} onSelect={selectFilter} onRemove={removeFilter} />)}
           </div>
+          <div className="filter-toolbar"><span>Filters apply across the catalog.</span>{Object.keys(effectiveFilters()).length > 0 && <button type="button" onClick={clearFilters}>Clear all</button>}</div>
+          {formError && <p className="form-error" role="alert">{formError}</p>}
         </form>
-        <p className="score-note"><span>i</span> Scores are native to each retrieval method and should not be compared directly across columns.</p>
-        <div className="comparison-grid"><ResultPanel mode={modeA} run={runs[0]} sharedIds={sharedIds} /><ResultPanel mode={modeB} run={runs[1]} sharedIds={sharedIds} /></div>
+        <p className="score-note"><span>i</span> {textFilterOnly ? 'Filter-only catalog search uses deterministic BM25 ordering.' : 'Scores are native to each retrieval method and should not be compared directly across columns.'}</p>
+        <div className={textFilterOnly ? 'comparison-grid single-result' : 'comparison-grid'}><ResultPanel mode={textFilterOnly ? 'filter_only' : modeA} run={runs[0]} sharedIds={sharedIds} />{!textFilterOnly && <ResultPanel mode={modeB} run={runs[1]} sharedIds={sharedIds} />}</div>
       </> : <>
         <form className="search-console image-console" onSubmit={findSimilar}>
           <label className={`drop-zone${imagePreview ? ' has-image' : ''}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); chooseImage(event.dataTransfer.files) }}>
@@ -183,8 +343,9 @@ export default function App() {
             <div><p className="eyebrow">Visual similarity</p><h2>Find products that look like this.</h2><p>SigLIP2 places your image in the same embedding space as the indexed catalog.</p></div>
             <div className="image-filter-grid">
               <label><span>Top K</span><select value={topK} onChange={(event) => setTopK(Number(event.target.value))}>{[5, 10, 20].map((value) => <option key={value}>{value}</option>)}</select></label>
-              {Object.entries({ brand: 'Brand', category: 'Category', product_id: 'Product ID' }).map(([key, label]) => <label key={key}><span>{label}</span><input value={filters[key]} onChange={(event) => setFilters({ ...filters, [key]: event.target.value })} placeholder="Any" /></label>)}
+              {Object.keys(FILTER_FIELDS).map((field) => <FilterField key={field} field={field} value={filters[field]} draft={filterDrafts[field]} options={filterOptions[field]} loading={filterLoading[field]} error={filterErrors[field]} onFocus={setActiveFilterField} onDraftChange={updateFilterDraft} onSelect={selectFilter} onRemove={removeFilter} />)}
             </div>
+            <div className="filter-toolbar"><span>Optional filters narrow visual matches.</span>{Object.keys(effectiveFilters()).length > 0 && <button type="button" onClick={clearFilters}>Clear all</button>}</div>
             <button className="image-submit" type="submit" disabled={!imageFile || imageRun.status === 'loading'}>Find similar products <span aria-hidden="true">↗</span></button>
           </div>
         </form>
