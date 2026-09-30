@@ -50,6 +50,15 @@ export function searchImage({ file, topK, filters, signal, fetchImpl = fetch }) 
   return request(`/api/v1/search/image?${params}`, { method: 'POST', body, signal }, fetchImpl)
 }
 
+export function askProduct({ question, productId, sources = ['product'], signal, fetchImpl = fetch }) {
+  return request('/api/v1/rag/ask', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ question: question.trim(), product_id: productId, sources }),
+    signal,
+  }, fetchImpl)
+}
+
 export function getFilterOptions({ field, prefix = '', limit = 20, signal, fetchImpl = fetch }) {
   const params = new URLSearchParams({ field, prefix: prefix.trim(), limit: String(limit) })
   return request(`/api/v1/search/filter-options?${params}`, { signal }, fetchImpl)
