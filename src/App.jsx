@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
-import { checkReadiness, cleanFilters, getFilterOptions, resolveImageUrl, searchImage, searchText } from './api.js'
+import { askProduct, checkReadiness, cleanFilters, getFilterOptions, resolveImageUrl, searchImage, searchText } from './api.js'
 
 const MODES = {
   bm25: ['BM25', 'Exact-term ranking across titles, brands, categories, and descriptions.'],
@@ -104,11 +104,11 @@ function FilterField({ field, value, draft, options, loading, error, onFocus, on
   </div>
 }
 
-function ProductCard({ product, shared }) {
+function ProductCard({ product, shared, selected, onSelect }) {
   const image = resolveImageUrl(product.image_url)
   const [broken, setBroken] = useState(false)
   return (
-    <article className={`product-card${shared ? ' shared' : ''}`}>
+    <article className={`product-card${shared ? ' shared' : ''}${selected ? ' selected' : ''}`}>
       <div className="product-visual">
         {image && !broken ? <img src={image} alt={product.title} onError={() => setBroken(true)} /> : <span aria-hidden="true">◇</span>}
         <b>#{product.rank}</b>
@@ -118,12 +118,13 @@ function ProductCard({ product, shared }) {
         <p className="eyebrow">{product.category || 'Uncategorised'} · {product.product_id}</p>
         <h3>{product.title}</h3>
         <div className="product-meta"><span>{product.brand || 'Unknown brand'}</span><strong>{product.score.toFixed(4)}</strong></div>
+        <button className="ask-product-button" type="button" onClick={() => onSelect(product)} aria-pressed={selected}>{selected ? 'Selected for questions' : 'Ask about this product'} <span aria-hidden="true">↗</span></button>
       </div>
     </article>
   )
 }
 
-function ResultPanel({ mode, run, sharedIds }) {
+function ResultPanel({ mode, run, sharedIds, selectedProductId, onSelectProduct }) {
   const [label, description] = MODES[mode]
   return (
     <section className="result-panel" aria-busy={run.status === 'loading'}>
@@ -140,10 +141,48 @@ function ResultPanel({ mode, run, sharedIds }) {
         {run.status === 'loading' && <div className="empty pulse"><b>Searching the index</b><span>Ranking candidates…</span></div>}
         {run.status === 'error' && <div className="empty error"><b>Search failed</b><span>{run.error}</span></div>}
         {run.status === 'success' && !run.results.length && <div className="empty"><b>{mode === 'filter_only' || mode === 'image_dense' ? 'No products match these filters' : 'No matches'}</b><span>{mode === 'filter_only' || mode === 'image_dense' ? 'Try a different value or remove a filter.' : 'Try a broader query or remove a filter.'}</span></div>}
-        {run.results.map((product) => <ProductCard key={product.product_id} product={product} shared={sharedIds.has(product.product_id)} />)}
+        {run.results.map((product) => <ProductCard key={product.product_id} product={product} shared={sharedIds.has(product.product_id)} selected={selectedProductId === product.product_id} onSelect={onSelectProduct} />)}
       </div>
     </section>
   )
+}
+
+function SourceCard({ source }) {
+  const experimentalPolicy = source.source === 'policy' && source.metadata?.provenance === 'shopmind_curated_experimental'
+  const sourceUrl = /^https?:\/\//i.test(source.source_url || '') ? source.source_url : null
+  return <li className="answer-source">
+    <div className="source-heading"><span className="source-type">{source.source}</span>{experimentalPolicy && <span className="experimental-label">Experimental policy</span>}<span className="source-score">Score {Number.isFinite(source.score) ? source.score.toFixed(4) : '—'}</span></div>
+    <strong>{source.title}</strong>
+    <small>{source.document_id}{source.policy_version ? ` · version ${source.policy_version}` : ''}{source.metadata?.score_type ? ` · ${source.metadata.score_type} score` : ''}</small>
+    {experimentalPolicy && <p>Curated for this experiment; not actual store terms.</p>}
+    {sourceUrl && <a href={sourceUrl} target="_blank" rel="noopener noreferrer">Open source ↗</a>}
+  </li>
+}
+
+function AnswerPanel({ product, question, onQuestionChange, onSubmit, sources, onToggleSource, answers, status, error }) {
+  return <section className="ask-panel" id="ask-product" aria-label="Ask about a product">
+    <div className="ask-intro"><p className="eyebrow">A3 · Grounded answers</p><h2>Ask about a product.</h2><p>{product ? <>Selected: <strong>{product.title}</strong> <span>({product.product_id})</span></> : 'Search by text or image, then choose a result above.'}</p></div>
+    {product && <div className="ask-content">
+      {answers.length > 0 && <ol className="answer-history" aria-label="Questions and answers">{answers.map((item, index) => <li className="answer-turn" key={index}>
+        <p className="asked-question"><span>Question {index + 1}</span>{item.question}</p>
+        <div className="answer-text">{item.answer}</div>
+        {item.insufficient_evidence && <p className="evidence-warning">The indexed sources did not provide enough evidence for a reliable answer.</p>}
+        {item.sources.length > 0 && <div className="answer-sources"><h3>Cited sources</h3><ol>{item.sources.map((source) => <SourceCard key={source.document_id} source={source} />)}</ol></div>}
+      </li>)}</ol>}
+      <form className="ask-form" onSubmit={onSubmit}>
+        <label htmlFor="product-question">{answers.length ? 'Ask another question about this product' : 'Your question'}</label>
+        <textarea id="product-question" value={question} onChange={(event) => onQuestionChange(event.target.value)} placeholder="How does it fit? What do reviews say?" rows="3" maxLength="2000" required />
+        <fieldset className="ask-source-options" disabled={status === 'loading'}><legend>Evidence sources</legend>
+          <span className="source-required">Product details included</span>
+          <label><input type="checkbox" checked={sources.includes('review')} onChange={() => onToggleSource('review')} /> Reviews</label>
+          <label><input type="checkbox" checked={sources.includes('policy')} onChange={() => onToggleSource('policy')} /> Experimental policies</label>
+        </fieldset>
+        <div><span>Choose the evidence to use for this answer.</span><button type="submit" disabled={!question.trim() || status === 'loading'}>{status === 'loading' ? 'Finding evidence…' : 'Ask question'} <span aria-hidden="true">↗</span></button></div>
+        {error && <p className="form-error" role="alert">{error}</p>}
+      </form>
+      {status === 'loading' && <p className="ask-status" role="status">Finding evidence and composing an answer…</p>}
+    </div>}
+  </section>
 }
 
 export default function App() {
@@ -166,6 +205,13 @@ export default function App() {
   const [imagePreview, setImagePreview] = useState(null)
   const [imageRun, setImageRun] = useState(EMPTY_RUN)
   const controller = useRef()
+  const [selectedProduct, setSelectedProduct] = useState(null)
+  const [question, setQuestion] = useState('')
+  const [selectedSources, setSelectedSources] = useState(['product'])
+  const [answers, setAnswers] = useState([])
+  const [answerStatus, setAnswerStatus] = useState('idle')
+  const [answerError, setAnswerError] = useState(null)
+  const answerController = useRef()
 
   useEffect(() => {
     const requestController = new AbortController()
@@ -296,10 +342,48 @@ export default function App() {
     else if (file) setImageRun({ ...EMPTY_RUN, status: 'error', error: 'Choose a valid image file.' })
   }
 
+  function selectProduct(product) {
+    if (selectedProduct?.product_id !== product.product_id) {
+      answerController.current?.abort()
+      answerController.current = null
+      setSelectedProduct(product)
+      setQuestion('')
+      setAnswers([])
+      setAnswerStatus('idle')
+      setAnswerError(null)
+    }
+    document.getElementById('ask-product')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  function toggleSource(source) {
+    setSelectedSources((current) => current.includes(source) ? current.filter((item) => item !== source) : [...current, source])
+  }
+
+  async function askQuestion(event) {
+    event.preventDefault()
+    if (!selectedProduct || !question.trim() || answerStatus === 'loading') return
+    const asked = question.trim()
+    const requestController = new AbortController()
+    answerController.current = requestController
+    setAnswerStatus('loading')
+    setAnswerError(null)
+    try {
+      const { data } = await askProduct({ question: asked, productId: selectedProduct.product_id, sources: selectedSources, signal: requestController.signal })
+      if (answerController.current !== requestController) return
+      setAnswers((current) => [...current, { question: asked, ...data }])
+      setQuestion('')
+      setAnswerStatus('idle')
+    } catch (error) {
+      if (answerController.current !== requestController) return
+      setAnswerError(error.message)
+      setAnswerStatus('idle')
+    }
+  }
+
   return (
     <main>
       <header className="site-header">
-        <a className="brand" href="/" aria-label="ShopMind home"><span>SM</span><strong>ShopMind</strong><small>Retrieval Lab / A1</small></a>
+        <a className="brand" href="/" aria-label="ShopMind home"><span>SM</span><strong>ShopMind</strong><small>Retrieval Lab / A1 + A3</small></a>
         <div className={`readiness ${ready}`} role="status" aria-live="polite"><span />{ready === 'checking' ? 'Checking API' : ready === 'ready' ? 'System ready' : 'API unavailable'}</div>
       </header>
 
@@ -330,7 +414,7 @@ export default function App() {
           {formError && <p className="form-error" role="alert">{formError}</p>}
         </form>
         <p className="score-note"><span>i</span> {textFilterOnly ? 'Filter-only catalog search uses deterministic BM25 ordering.' : 'Scores are native to each retrieval method and should not be compared directly across columns.'}</p>
-        <div className={textFilterOnly ? 'comparison-grid single-result' : 'comparison-grid'}><ResultPanel mode={textFilterOnly ? 'filter_only' : modeA} run={runs[0]} sharedIds={sharedIds} />{!textFilterOnly && <ResultPanel mode={modeB} run={runs[1]} sharedIds={sharedIds} />}</div>
+        <div className={textFilterOnly ? 'comparison-grid single-result' : 'comparison-grid'}><ResultPanel mode={textFilterOnly ? 'filter_only' : modeA} run={runs[0]} sharedIds={sharedIds} selectedProductId={selectedProduct?.product_id} onSelectProduct={selectProduct} />{!textFilterOnly && <ResultPanel mode={modeB} run={runs[1]} sharedIds={sharedIds} selectedProductId={selectedProduct?.product_id} onSelectProduct={selectProduct} />}</div>
       </> : <>
         <form className="search-console image-console" onSubmit={findSimilar}>
           <label className={`drop-zone${imagePreview ? ' has-image' : ''}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); chooseImage(event.dataTransfer.files) }}>
@@ -349,8 +433,9 @@ export default function App() {
             <button className="image-submit" type="submit" disabled={!imageFile || imageRun.status === 'loading'}>Find similar products <span aria-hidden="true">↗</span></button>
           </div>
         </form>
-        <div className="image-results"><ResultPanel mode="image_dense" run={imageRun} sharedIds={NO_SHARED_IDS} /></div>
+        <div className="image-results"><ResultPanel mode="image_dense" run={imageRun} sharedIds={NO_SHARED_IDS} selectedProductId={selectedProduct?.product_id} onSelectProduct={selectProduct} /></div>
       </>}
+      <AnswerPanel product={selectedProduct} question={question} onQuestionChange={setQuestion} onSubmit={askQuestion} sources={selectedSources} onToggleSource={toggleSource} answers={answers} status={answerStatus} error={answerError} />
     </main>
   )
 }

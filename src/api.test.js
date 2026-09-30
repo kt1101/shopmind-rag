@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { checkReadiness, getFilterOptions, resolveImageUrl, searchImage, searchText } from './api.js'
+import { askProduct, checkReadiness, getFilterOptions, resolveImageUrl, searchImage, searchText } from './api.js'
 
 function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -96,6 +96,34 @@ test('getFilterOptions requests a bounded catalog suggestion list', async () => 
   await getFilterOptions({ field: 'brand', prefix: ' ama ', limit: 7, fetchImpl })
 
   assert.equal(requestUrl, '/api/v1/search/filter-options?field=brand&prefix=ama&limit=7')
+})
+
+test('askProduct sends a selected product question to the RAG endpoint', async () => {
+  let request
+  const fetchImpl = async (url, options) => {
+    request = { url, options }
+    return jsonResponse({ answer: 'It fits true to size.', sources: [], insufficient_evidence: false, metadata: {} })
+  }
+
+  const result = await askProduct({ question: ' Does it fit? ', productId: 'P1', fetchImpl })
+
+  assert.equal(request.url, '/api/v1/rag/ask')
+  assert.equal(request.options.method, 'POST')
+  assert.equal(request.options.headers['content-type'], 'application/json')
+  assert.deepEqual(JSON.parse(request.options.body), { question: 'Does it fit?', product_id: 'P1', sources: ['product'] })
+  assert.equal(result.data.answer, 'It fits true to size.')
+})
+
+test('askProduct forwards optional review and policy sources', async () => {
+  let body
+  const fetchImpl = async (_url, options) => {
+    body = JSON.parse(options.body)
+    return jsonResponse({ answer: 'See sources.', sources: [], insufficient_evidence: false, metadata: {} })
+  }
+
+  await askProduct({ question: 'What do reviews and policies say?', productId: 'P1', sources: ['product', 'review', 'policy'], fetchImpl })
+
+  assert.deepEqual(body.sources, ['product', 'review', 'policy'])
 })
 
 test('API errors expose the backend message', async () => {
