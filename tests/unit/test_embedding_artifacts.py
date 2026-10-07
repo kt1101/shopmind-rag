@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 import numpy as np
 import pytest
-from PIL import Image
 from shopmind.pipeline.embedding_artifacts import EmbeddingManifest, load_embedding_artifacts, validate_artifacts, write_embedding_artifacts
 from scripts.generate_embeddings import generate_embeddings
 from scripts.index_products import build_index_documents, public_image_url
