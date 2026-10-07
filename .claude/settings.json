@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // empty'); case \"$f\" in .env|*/.env|*/evaluation/benchmarks/*/qrels.jsonl|*/evaluation/benchmarks/*/queries.jsonl|*/tests/fixtures/evaluation/*) echo \"Blocked: $f is a protected secret or evaluation ground-truth file. Regenerate benchmarks with scripts.build_a1_benchmark, or ask the user to edit it directly.\" >&2; exit 2;; esac; exit 0"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // empty'); case \"$f\" in *.py) out=$(ruff check --quiet --output-format concise \"$f\" 2>&1) || { printf 'ruff found issues in %s:\\n%s\\n' \"$f\" \"$out\" >&2; exit 2; };; esac; exit 0",
+            "timeout": 30,
+            "statusMessage": "ruff check"
+          }
+        ]
+      }
+    ]
+  }
+}
