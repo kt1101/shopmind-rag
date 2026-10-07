@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import csv
 import json
-from pathlib import Path
 
 from evaluation.ablation import HybridNoRRFControlService, run_ablation
 from evaluation.datasets import EvaluationQuery
