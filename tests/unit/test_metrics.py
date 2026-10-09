@@ -16,3 +16,8 @@ def test_metrics_return_zero_without_positive_relevance():
 
 def test_metrics_reject_non_positive_k():
     with pytest.raises(ValueError): recall_at_k([],{},0)
+
+def test_duplicate_products_consume_rank_without_repeated_gain():
+    assert ndcg_at_k(["P1", "P1"], {"P1": 1}, 10) == 1.0
+    expected = (1 + 1 / math.log2(4)) / (1 + 1 / math.log2(3))
+    assert ndcg_at_k(["P1", "P1", "P2"], {"P1": 1, "P2": 1}, 10) == pytest.approx(expected)

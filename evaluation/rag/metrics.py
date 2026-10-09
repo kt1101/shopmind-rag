@@ -29,6 +29,7 @@ def score_retrieval(case: RAGEvaluationCase, metadata: dict[str, Any]) -> dict[s
 
 
 def score_case(case: RAGEvaluationCase, answer: Any, *, grader: Any = None) -> dict[str, float | None]:
+    """Citation coverage measures citation presence, not support for answer claims."""
     metadata = answer.metadata or {}
     relevant = set(case.relevant_document_ids)
     cited = [source.document_id for source in answer.sources]
@@ -60,4 +61,6 @@ def classify_failure(case: RAGEvaluationCase, metrics: dict[str, float | None]) 
         return "citation_miss"
     if metrics.get("abstention_accuracy") == 0:
         return "wrong_abstention"
+    if metrics.get("answer_correctness") == 0:
+        return "wrong_answer"
     return None

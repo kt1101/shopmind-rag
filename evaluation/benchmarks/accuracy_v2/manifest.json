@@ -1,0 +1,1622 @@
+{
+  "aliases": {
+    "categories": {
+      "BACKPACK": {
+        "en": "backpacks",
+        "vi": "ba lô"
+      },
+      "BEAN_BAG_CHAIR": {
+        "en": "bean bag chairs",
+        "vi": "ghế túi đậu"
+      },
+      "BEAUTY": {
+        "en": "beauty products",
+        "vi": "sản phẩm làm đẹp"
+      },
+      "BED": {
+        "en": "beds",
+        "vi": "giường"
+      },
+      "BOOT": {
+        "en": "boots",
+        "vi": "giày bốt"
+      },
+      "BOTTLE": {
+        "en": "bottles",
+        "vi": "chai"
+      },
+      "CELLULAR_PHONE_CASE": {
+        "en": "phone cases",
+        "vi": "ốp điện thoại"
+      },
+      "CHAIR": {
+        "en": "chairs",
+        "vi": "ghế"
+      },
+      "CLOCK": {
+        "en": "clocks",
+        "vi": "đồng hồ"
+      },
+      "COFFEE": {
+        "en": "coffee",
+        "vi": "cà phê"
+      },
+      "DRINKING_CUP": {
+        "en": "drinking cups",
+        "vi": "cốc uống nước"
+      },
+      "FLAT_SHEET": {
+        "en": "flat sheets",
+        "vi": "ga trải giường"
+      },
+      "FURNITURE_COVER": {
+        "en": "furniture covers",
+        "vi": "vỏ bọc nội thất"
+      },
+      "GROCERY": {
+        "en": "groceries",
+        "vi": "hàng tạp hóa"
+      },
+      "HANDBAG": {
+        "en": "handbags",
+        "vi": "túi xách"
+      },
+      "HARDWARE_HANDLE": {
+        "en": "hardware handles",
+        "vi": "tay nắm"
+      },
+      "HAT": {
+        "en": "hats",
+        "vi": "mũ"
+      },
+      "HEADBOARD": {
+        "en": "headboards",
+        "vi": "đầu giường"
+      },
+      "HEADPHONES": {
+        "en": "headphones",
+        "vi": "tai nghe"
+      },
+      "HOME": {
+        "en": "home products",
+        "vi": "đồ dùng gia đình"
+      },
+      "HOME_BED_AND_BATH": {
+        "en": "bed and bath products",
+        "vi": "đồ dùng phòng ngủ và phòng tắm"
+      },
+      "HOME_FURNITURE_AND_DECOR": {
+        "en": "home furniture and decor",
+        "vi": "đồ nội thất và trang trí nhà"
+      },
+      "HOME_MIRROR": {
+        "en": "mirrors",
+        "vi": "gương"
+      },
+      "JAR": {
+        "en": "jars",
+        "vi": "lọ"
+      },
+      "KITCHEN": {
+        "en": "kitchen products",
+        "vi": "đồ dùng nhà bếp"
+      },
+      "LAMP": {
+        "en": "lamps",
+        "vi": "đèn"
+      },
+      "LIGHT_BULB": {
+        "en": "light bulbs",
+        "vi": "bóng đèn"
+      },
+      "LIGHT_FIXTURE": {
+        "en": "light fixtures",
+        "vi": "bộ đèn"
+      },
+      "LUGGAGE": {
+        "en": "luggage",
+        "vi": "hành lý"
+      },
+      "OFFICE_PRODUCTS": {
+        "en": "office products",
+        "vi": "đồ dùng văn phòng"
+      },
+      "OTTOMAN": {
+        "en": "ottomans",
+        "vi": "ghế đôn"
+      },
+      "PET_SUPPLIES": {
+        "en": "pet supplies",
+        "vi": "đồ dùng thú cưng"
+      },
+      "PILLOW": {
+        "en": "pillows",
+        "vi": "gối"
+      },
+      "PLANTER": {
+        "en": "planters",
+        "vi": "chậu cây"
+      },
+      "RUG": {
+        "en": "rugs",
+        "vi": "thảm"
+      },
+      "SANDAL": {
+        "en": "sandals",
+        "vi": "dép xăng đan"
+      },
+      "SHELF": {
+        "en": "shelves",
+        "vi": "kệ"
+      },
+      "SHOES": {
+        "en": "shoes",
+        "vi": "giày"
+      },
+      "SOFA": {
+        "en": "sofas",
+        "vi": "ghế sofa"
+      },
+      "SPORTING_GOODS": {
+        "en": "sporting goods",
+        "vi": "đồ dùng thể thao"
+      },
+      "STOOL_SEATING": {
+        "en": "stools",
+        "vi": "ghế đẩu"
+      },
+      "STORAGE_HOOK": {
+        "en": "storage hooks",
+        "vi": "móc treo"
+      },
+      "SUITCASE": {
+        "en": "suitcases",
+        "vi": "va li"
+      },
+      "TABLE": {
+        "en": "tables",
+        "vi": "bàn"
+      },
+      "TOOLS": {
+        "en": "tools",
+        "vi": "dụng cụ"
+      },
+      "TOTE_BAG": {
+        "en": "tote bags",
+        "vi": "túi tote"
+      },
+      "UMBRELLA": {
+        "en": "umbrellas",
+        "vi": "ô"
+      },
+      "WALLET": {
+        "en": "wallets",
+        "vi": "ví"
+      },
+      "WALL_ART": {
+        "en": "wall art",
+        "vi": "tranh trang trí tường"
+      },
+      "WRITING_INSTRUMENT": {
+        "en": "writing instruments",
+        "vi": "dụng cụ viết"
+      }
+    },
+    "colors": {
+      "beige": {
+        "en": "beige",
+        "metadata_values": [
+          "beige"
+        ],
+        "vi": "be"
+      },
+      "black": {
+        "en": "black",
+        "metadata_values": [
+          "black",
+          "noir",
+          "negro",
+          "nero",
+          "zwart",
+          "schwarz",
+          "काला"
+        ],
+        "vi": "đen"
+      },
+      "blue": {
+        "en": "blue",
+        "metadata_values": [
+          "blue",
+          "bleu",
+          "azul",
+          "blu",
+          "blauw",
+          "blau",
+          "नीला"
+        ],
+        "vi": "xanh dương"
+      },
+      "brown": {
+        "en": "brown",
+        "metadata_values": [
+          "brown",
+          "bruin",
+          "braun",
+          "marron",
+          "marrón",
+          "marrone",
+          "भूरा"
+        ],
+        "vi": "nâu"
+      },
+      "clear": {
+        "en": "clear",
+        "metadata_values": [
+          "clear",
+          "transparent",
+          "クリア"
+        ],
+        "vi": "trong suốt"
+      },
+      "gold": {
+        "en": "gold",
+        "metadata_values": [
+          "gold",
+          "or",
+          "oro"
+        ],
+        "vi": "vàng kim"
+      },
+      "gray": {
+        "en": "gray",
+        "metadata_values": [
+          "gray",
+          "grey",
+          "gris",
+          "grigio",
+          "grau"
+        ],
+        "vi": "xám"
+      },
+      "green": {
+        "en": "green",
+        "metadata_values": [
+          "green",
+          "vert",
+          "verde",
+          "groen",
+          "grün"
+        ],
+        "vi": "xanh lá"
+      },
+      "multicolor": {
+        "en": "multicolor",
+        "metadata_values": [
+          "multicolor",
+          "multi-colored",
+          "multi"
+        ],
+        "vi": "nhiều màu"
+      },
+      "navy": {
+        "en": "navy blue",
+        "metadata_values": [
+          "navy",
+          "navy blue",
+          "blue navy",
+          "bleu marine"
+        ],
+        "vi": "xanh hải quân"
+      },
+      "orange": {
+        "en": "orange",
+        "metadata_values": [
+          "orange",
+          "naranja",
+          "arancione"
+        ],
+        "vi": "cam"
+      },
+      "pink": {
+        "en": "pink",
+        "metadata_values": [
+          "pink",
+          "rose",
+          "rosa",
+          "roze"
+        ],
+        "vi": "hồng"
+      },
+      "red": {
+        "en": "red",
+        "metadata_values": [
+          "red",
+          "rouge",
+          "rojo",
+          "rosso",
+          "rot",
+          "rood"
+        ],
+        "vi": "đỏ"
+      },
+      "silver": {
+        "en": "silver",
+        "metadata_values": [
+          "silver",
+          "silber",
+          "argent",
+          "argento"
+        ],
+        "vi": "bạc"
+      },
+      "white": {
+        "en": "white",
+        "metadata_values": [
+          "white",
+          "blanco",
+          "blanc",
+          "bianco",
+          "wit",
+          "weiß",
+          "ホワイト"
+        ],
+        "vi": "trắng"
+      },
+      "yellow": {
+        "en": "yellow",
+        "metadata_values": [
+          "yellow",
+          "jaune",
+          "amarillo",
+          "giallo",
+          "gelb",
+          "geel"
+        ],
+        "vi": "vàng"
+      }
+    }
+  },
+  "category_splits": {
+    "BACKPACK": "holdout",
+    "BEAN_BAG_CHAIR": "holdout",
+    "BEAUTY": "holdout",
+    "BED": "dev",
+    "BOOT": "dev",
+    "BOTTLE": "holdout",
+    "CELLULAR_PHONE_CASE": "holdout",
+    "CLOCK": "holdout",
+    "COFFEE": "holdout",
+    "DRINKING_CUP": "dev",
+    "FLAT_SHEET": "dev",
+    "FURNITURE_COVER": "dev",
+    "GROCERY": "dev",
+    "HANDBAG": "dev",
+    "HARDWARE_HANDLE": "holdout",
+    "HAT": "holdout",
+    "HEADBOARD": "dev",
+    "HEADPHONES": "holdout",
+    "HOME_BED_AND_BATH": "dev",
+    "JAR": "dev",
+    "KITCHEN": "dev",
+    "LAMP": "dev",
+    "LIGHT_BULB": "dev",
+    "LUGGAGE": "dev",
+    "OTTOMAN": "dev",
+    "PET_SUPPLIES": "dev",
+    "PILLOW": "dev",
+    "PLANTER": "holdout",
+    "RUG": "dev",
+    "SANDAL": "dev",
+    "SHELF": "dev",
+    "SHOES": "dev",
+    "SOFA": "dev",
+    "SPORTING_GOODS": "dev",
+    "STOOL_SEATING": "holdout",
+    "STORAGE_HOOK": "dev",
+    "SUITCASE": "dev",
+    "TOOLS": "dev",
+    "TOTE_BAG": "dev",
+    "UMBRELLA": "dev",
+    "WALLET": "holdout",
+    "WALL_ART": "dev",
+    "WRITING_INSTRUMENT": "dev"
+  },
+  "counts": {
+    "categories_by_split": {
+      "dev": 30,
+      "holdout": 13
+    },
+    "corpus_categories": 215,
+    "corpus_products": 1500,
+    "exact_id_probes": 40,
+    "predicate_groups": 60,
+    "qrels": 278,
+    "queries": 160,
+    "queries_by_group": {
+      "category_brand": 40,
+      "category_brand_color": 40,
+      "category_color": 40,
+      "exact_id": 40
+    },
+    "queries_by_split": {
+      "dev": 130,
+      "holdout": 30
+    },
+    "supported_categories": 43,
+    "supported_products": 812
+  },
+  "exclusions": {
+    "categories": [
+      "BISS",
+      "BLANK_MEDIA",
+      "CHAIR",
+      "HOME",
+      "HOME_FURNITURE_AND_DECOR",
+      "HOME_MIRROR",
+      "LIGHT_FIXTURE",
+      "OFFICE_PRODUCTS",
+      "PLUMBING_FIXTURE",
+      "SHEET_PAN",
+      "TABLE",
+      "TEACHING_EQUIPMENT",
+      "WIRELESS_ACCESSORY"
+    ],
+    "cross_category_image_groups": {
+      "61OnkGVhMWL": [
+        "B07MCM6W8C",
+        "B07PJV3486",
+        "B07XS3K1C2",
+        "B07YB3QY7R",
+        "B07YB9JFVB",
+        "B087MHS57F",
+        "B088XHDPYR",
+        "B089LB7TJC",
+        "B08D9R7PTD",
+        "B08DJ6GPFK",
+        "B08DJNYX8Y"
+      ],
+      "61kVdTXTJ4L": [
+        "B072JG3WR5",
+        "B073GCWSRW",
+        "B07B4DB9LK",
+        "B07HSCRFDN"
+      ],
+      "61w4fs2ESyL": [
+        "B07F2C8PYK",
+        "B07FK8CZXL",
+        "B07H8F36W5"
+      ],
+      "71mTAUFojML": [
+        "B075FSCJJ4",
+        "B07BWJCZJX"
+      ],
+      "A1Jj90-Rb9L": [
+        "B073WH6N3R",
+        "B07856X8GZ"
+      ]
+    },
+    "product_ids": [
+      "B000HBVNGM",
+      "B000HBVO5W",
+      "B000HBYKWG",
+      "B000R2YQRY",
+      "B0011MXVMU",
+      "B0013TV6E6",
+      "B00149YZ5M",
+      "B001DA0KVA",
+      "B001DA7A36",
+      "B0028N6SJY",
+      "B002HEXKFY",
+      "B002KMI97W",
+      "B003QP2ZD6",
+      "B003S3RF1I",
+      "B003ZFT6NO",
+      "B00511PTWM",
+      "B0079JM3LO",
+      "B007M6GS6A",
+      "B00EUL2B16",
+      "B00GBUJF3G",
+      "B00IAHQH0C",
+      "B01E3R7T9K",
+      "B01FVUGQC4",
+      "B01FW3SX08",
+      "B01KBEP4N2",
+      "B01M1C188Z",
+      "B01N3MBCKT",
+      "B071PDYKYB",
+      "B071V8M937",
+      "B0725Z9MXM",
+      "B072JG3WR5",
+      "B072PZ4LQ2",
+      "B073G856FB",
+      "B073GCWSRW",
+      "B073WH6N3R",
+      "B073WHZK9W",
+      "B07586VK1V",
+      "B075D9TBDV",
+      "B075FSCJJ4",
+      "B075H3XBQ6",
+      "B075HCC3LS",
+      "B075HDT26P",
+      "B075HFVVY9",
+      "B075JQRDNY",
+      "B075LB2WGG",
+      "B075WXMTG4",
+      "B075X33RZL",
+      "B075X65QYF",
+      "B075YLXVJC",
+      "B076NVWDJC",
+      "B07856X8GZ",
+      "B0792G6PVF",
+      "B0794PMMQS",
+      "B07B4DB9LK",
+      "B07B4GVMDC",
+      "B07B4M364Y",
+      "B07B7BX336",
+      "B07BJBG44V",
+      "B07BWJCZJX",
+      "B07C8Y2CF2",
+      "B07CSTTPTC",
+      "B07CSX7N2B",
+      "B07CTKWHBH",
+      "B07D2Q3JKQ",
+      "B07D5MRG8B",
+      "B07DBDQLF2",
+      "B07DBFT2YG",
+      "B07DBHC337",
+      "B07DBHCKHY",
+      "B07DBHF136",
+      "B07DFKM4XZ",
+      "B07DT4GYTD",
+      "B07DWNWGNJ",
+      "B07F28F6X6",
+      "B07F2C8PYK",
+      "B07FF1KH82",
+      "B07FFTT628",
+      "B07FJVXVNW",
+      "B07FK8CZXL",
+      "B07GCZ6LBW",
+      "B07GWWRZZX",
+      "B07H8F36W5",
+      "B07H8PS46Q",
+      "B07HGQ7MHB",
+      "B07HK85JKQ",
+      "B07HPJ9V3J",
+      "B07HQTQLVX",
+      "B07HSCRFDN",
+      "B07HSL2FMH",
+      "B07HSLQYF1",
+      "B07HSMYNYF",
+      "B07HSX72KD",
+      "B07HZ7PG4D",
+      "B07J2B91QQ",
+      "B07J2R9Y7F",
+      "B07JHPR61P",
+      "B07JLBF277",
+      "B07JY29YYP",
+      "B07K35ZXB6",
+      "B07K7K9224",
+      "B07K7NYB8K",
+      "B07K96BMXB",
+      "B07KCQX8QJ",
+      "B07KNKMVC6",
+      "B07KQ94NM4",
+      "B07KR85FMX",
+      "B07KR89SZ1",
+      "B07KR9GKL1",
+      "B07KR9WBN7",
+      "B07KRB8CGW",
+      "B07KRPF5NN",
+      "B07KRR7KF5",
+      "B07KZV51ZQ",
+      "B07L49FNQ7",
+      "B07L5GZM68",
+      "B07LGNPD7M",
+      "B07LGYMKPG",
+      "B07MBFDHRY",
+      "B07MBFDS3B",
+      "B07MCM6W8C",
+      "B07MF1RNWQ",
+      "B07MHD9DJX",
+      "B07MM5H3HX",
+      "B07NJQMTRB",
+      "B07NQKY2B6",
+      "B07P5LMG29",
+      "B07PCLTY4H",
+      "B07PJV3486",
+      "B07PN4KWG3",
+      "B07PQBS2V3",
+      "B07Q7FTQXV",
+      "B07QBQFBBV",
+      "B07QGWQM5D",
+      "B07QJLYCBS",
+      "B07QJP9JHH",
+      "B07QPZK6MJ",
+      "B07QW1JCPL",
+      "B07R4Q7SLG",
+      "B07RM2G1K6",
+      "B07RWK43Q8",
+      "B07S88CDXS",
+      "B07S8W5N6L",
+      "B07SH7KLP5",
+      "B07SJ7S29M",
+      "B07STFRDFK",
+      "B07T61G2WF",
+      "B07TC2NYYX",
+      "B07TJSVJ4B",
+      "B07TMH6289",
+      "B07TS8S2D2",
+      "B07TXL7CPQ",
+      "B07V126F2D",
+      "B07V3LSNPT",
+      "B07V5CNL8L",
+      "B07V6M4MSN",
+      "B07VB7QF86",
+      "B07VDD47GT",
+      "B07VYKTLDJ",
+      "B07VZNSB1D",
+      "B07W34DD5Z",
+      "B07W3MH4HJ",
+      "B07WC29SL4",
+      "B07WFF9B6W",
+      "B07WL3YXZD",
+      "B07WNX5V8Z",
+      "B07WSQCCHY",
+      "B07WY3ZW7X",
+      "B07WZSNKTW",
+      "B07X41KJK8",
+      "B07X8LXCC1",
+      "B07XCV9DZY",
+      "B07XD6HDGT",
+      "B07XDNQQRM",
+      "B07XDPB1FR",
+      "B07XDYGP6L",
+      "B07XS3K1C2",
+      "B07YB3QY7R",
+      "B07YB9JFVB",
+      "B07YGC231M",
+      "B07YN3FH3J",
+      "B07YN48J13",
+      "B081BB4WH1",
+      "B081FH7NYB",
+      "B081FHFLWC",
+      "B081FHHB2S",
+      "B081LNYW2P",
+      "B0829PFMS1",
+      "B082BGGBR1",
+      "B082BLFMRC",
+      "B082DJ4X4C",
+      "B082DNTKB6",
+      "B082DS1NN3",
+      "B082JHXMHL",
+      "B082RGBJLF",
+      "B082VSXML3",
+      "B083H3WMT3",
+      "B083YW3VRL",
+      "B0847F7F4X",
+      "B084C58TW5",
+      "B084S8V2X3",
+      "B0851PNLSQ",
+      "B0852134N2",
+      "B085214VCF",
+      "B0859LYQW9",
+      "B085BKPT1M",
+      "B085LQYPL8",
+      "B085N9DY65",
+      "B085PHJ4GG",
+      "B086GM9TTD",
+      "B086JJQQZ3",
+      "B086KWJRPN",
+      "B086L1FF7H",
+      "B086L6Z47W",
+      "B086LCGVJ4",
+      "B086NG86YG",
+      "B086VZ3MYR",
+      "B086XJZVY1",
+      "B0876K72VK",
+      "B08778BNJ1",
+      "B087MHS57F",
+      "B0888M8SYP",
+      "B088B87WST",
+      "B088BFNCPR",
+      "B088T8FSGJ",
+      "B088XHDPYR",
+      "B088ZNN1MS",
+      "B08976MK8Y",
+      "B089LB7TJC",
+      "B089PVNN7P",
+      "B089ZRNH6D",
+      "B08BFLN8CJ",
+      "B08BKKR9KQ",
+      "B08BLDGMM5",
+      "B08BP59P95",
+      "B08CBRNWY7",
+      "B08CRGH6YF",
+      "B08D9LTZF4",
+      "B08D9R7PTD",
+      "B08DCWRNYW",
+      "B08DJ6GPFK",
+      "B08DJNYX8Y",
+      "B08DKRDNHN",
+      "B08F4D2QBZ",
+      "B08F4DHXWM",
+      "B08F4K4HFW",
+      "B08F7N2CTT",
+      "B08FCMVPHR",
+      "B08FCMXFHF",
+      "B08FCN3YTZ",
+      "B08GD1QL53",
+      "B08GL29YBJ",
+      "B08GL2N8B2",
+      "B08GL2N8FK"
+    ],
+    "product_ids_sha256": "ec92f76c239de9c2f8043bda9ce2515d128198dbb001251905d23c6d8423e677",
+    "products_in_excluded_categories": 253,
+    "rule": "Exclude all categories sharing any main_image_id across category labels; identities may be variants or ambiguous placeholders."
+  },
+  "hashes": {
+    "corpus": "addc2b80493d9bda334af1130aabab401f4287806324f56b55c8a7cfc87472e4",
+    "qrels.jsonl": "d2fa9c41bccfe35969b8cb0d67048d0a92c0d6640db5bd55e80d8df388b11d99",
+    "queries.jsonl": "a9ad335e7ca8c830322f58de74d8733bc937853fadd154592554edb188362844"
+  },
+  "label_status": "metadata_grounded",
+  "limitations": [
+    "Metadata-grounded labels, never human reviewed semantic relevance.",
+    "Only fixed supported category/color aliases are covered; missing, compound and ambiguous colors are excluded from color predicates.",
+    "Shared-image cross-category categories are excluded before splitting; same-category variants remain together.",
+    "Catalog field equality is the relevance definition; language naturalness and finer user intent have not been independently reviewed.",
+    "Recall@10 ceiling is min(10,N)/N for N positives; use nDCG@10 as primary.",
+    "Exact-ID probes measure identifier routing, not natural-language semantic relevance."
+  ],
+  "positive_counts": {
+    "exact_001": 1,
+    "exact_002": 1,
+    "exact_003": 1,
+    "exact_004": 1,
+    "exact_005": 1,
+    "exact_006": 1,
+    "exact_007": 1,
+    "exact_008": 1,
+    "exact_009": 1,
+    "exact_010": 1,
+    "exact_011": 1,
+    "exact_012": 1,
+    "exact_013": 1,
+    "exact_014": 1,
+    "exact_015": 1,
+    "exact_016": 1,
+    "exact_017": 1,
+    "exact_018": 1,
+    "exact_019": 1,
+    "exact_020": 1,
+    "exact_021": 1,
+    "exact_022": 1,
+    "exact_023": 1,
+    "exact_024": 1,
+    "exact_025": 1,
+    "exact_026": 1,
+    "exact_027": 1,
+    "exact_028": 1,
+    "exact_029": 1,
+    "exact_030": 1,
+    "exact_031": 1,
+    "exact_032": 1,
+    "exact_033": 1,
+    "exact_034": 1,
+    "exact_035": 1,
+    "exact_036": 1,
+    "exact_037": 1,
+    "exact_038": 1,
+    "exact_039": 1,
+    "exact_040": 1,
+    "predicate_001_en": 1,
+    "predicate_001_vi": 1,
+    "predicate_002_en": 1,
+    "predicate_002_vi": 1,
+    "predicate_003_en": 1,
+    "predicate_003_vi": 1,
+    "predicate_004_en": 3,
+    "predicate_004_vi": 3,
+    "predicate_005_en": 1,
+    "predicate_005_vi": 1,
+    "predicate_006_en": 5,
+    "predicate_006_vi": 5,
+    "predicate_007_en": 1,
+    "predicate_007_vi": 1,
+    "predicate_008_en": 1,
+    "predicate_008_vi": 1,
+    "predicate_009_en": 5,
+    "predicate_009_vi": 5,
+    "predicate_010_en": 4,
+    "predicate_010_vi": 4,
+    "predicate_011_en": 4,
+    "predicate_011_vi": 4,
+    "predicate_012_en": 1,
+    "predicate_012_vi": 1,
+    "predicate_013_en": 1,
+    "predicate_013_vi": 1,
+    "predicate_014_en": 1,
+    "predicate_014_vi": 1,
+    "predicate_015_en": 4,
+    "predicate_015_vi": 4,
+    "predicate_016_en": 11,
+    "predicate_016_vi": 11,
+    "predicate_017_en": 6,
+    "predicate_017_vi": 6,
+    "predicate_018_en": 2,
+    "predicate_018_vi": 2,
+    "predicate_019_en": 7,
+    "predicate_019_vi": 7,
+    "predicate_020_en": 1,
+    "predicate_020_vi": 1,
+    "predicate_021_en": 1,
+    "predicate_021_vi": 1,
+    "predicate_022_en": 1,
+    "predicate_022_vi": 1,
+    "predicate_023_en": 1,
+    "predicate_023_vi": 1,
+    "predicate_024_en": 1,
+    "predicate_024_vi": 1,
+    "predicate_025_en": 3,
+    "predicate_025_vi": 3,
+    "predicate_026_en": 1,
+    "predicate_026_vi": 1,
+    "predicate_027_en": 5,
+    "predicate_027_vi": 5,
+    "predicate_028_en": 1,
+    "predicate_028_vi": 1,
+    "predicate_029_en": 1,
+    "predicate_029_vi": 1,
+    "predicate_030_en": 1,
+    "predicate_030_vi": 1,
+    "predicate_031_en": 1,
+    "predicate_031_vi": 1,
+    "predicate_032_en": 1,
+    "predicate_032_vi": 1,
+    "predicate_033_en": 1,
+    "predicate_033_vi": 1,
+    "predicate_034_en": 1,
+    "predicate_034_vi": 1,
+    "predicate_035_en": 1,
+    "predicate_035_vi": 1,
+    "predicate_036_en": 4,
+    "predicate_036_vi": 4,
+    "predicate_037_en": 2,
+    "predicate_037_vi": 2,
+    "predicate_038_en": 1,
+    "predicate_038_vi": 1,
+    "predicate_039_en": 1,
+    "predicate_039_vi": 1,
+    "predicate_040_en": 1,
+    "predicate_040_vi": 1,
+    "predicate_041_en": 4,
+    "predicate_041_vi": 4,
+    "predicate_042_en": 1,
+    "predicate_042_vi": 1,
+    "predicate_043_en": 1,
+    "predicate_043_vi": 1,
+    "predicate_044_en": 1,
+    "predicate_044_vi": 1,
+    "predicate_045_en": 4,
+    "predicate_045_vi": 4,
+    "predicate_046_en": 1,
+    "predicate_046_vi": 1,
+    "predicate_047_en": 1,
+    "predicate_047_vi": 1,
+    "predicate_048_en": 2,
+    "predicate_048_vi": 2,
+    "predicate_049_en": 1,
+    "predicate_049_vi": 1,
+    "predicate_050_en": 1,
+    "predicate_050_vi": 1,
+    "predicate_051_en": 1,
+    "predicate_051_vi": 1,
+    "predicate_052_en": 2,
+    "predicate_052_vi": 2,
+    "predicate_053_en": 1,
+    "predicate_053_vi": 1,
+    "predicate_054_en": 1,
+    "predicate_054_vi": 1,
+    "predicate_055_en": 1,
+    "predicate_055_vi": 1,
+    "predicate_056_en": 1,
+    "predicate_056_vi": 1,
+    "predicate_057_en": 1,
+    "predicate_057_vi": 1,
+    "predicate_058_en": 1,
+    "predicate_058_vi": 1,
+    "predicate_059_en": 1,
+    "predicate_059_vi": 1,
+    "predicate_060_en": 1,
+    "predicate_060_vi": 1
+  },
+  "predicate_rule": "Exact category and exact brand equality; color is exact stripped casefolded metadata membership in fixed alias list. Evaluate over full corpus; no positive sampling.",
+  "predicates": {
+    "exact_001": {
+      "category": "HOME_BED_AND_BATH",
+      "kind": "exact_id",
+      "product_id": "B00EQ5JIEO"
+    },
+    "exact_002": {
+      "category": "HEADBOARD",
+      "kind": "exact_id",
+      "product_id": "B0853JGLT7"
+    },
+    "exact_003": {
+      "category": "PET_SUPPLIES",
+      "kind": "exact_id",
+      "product_id": "B07FD941BG"
+    },
+    "exact_004": {
+      "category": "GROCERY",
+      "kind": "exact_id",
+      "product_id": "B074MH3FLC"
+    },
+    "exact_005": {
+      "category": "SHOES",
+      "kind": "exact_id",
+      "product_id": "B075ZVGZQY"
+    },
+    "exact_006": {
+      "category": "GROCERY",
+      "kind": "exact_id",
+      "product_id": "B074KJ6T9X"
+    },
+    "exact_007": {
+      "category": "SHOES",
+      "kind": "exact_id",
+      "product_id": "B075SY59SG"
+    },
+    "exact_008": {
+      "category": "OTTOMAN",
+      "kind": "exact_id",
+      "product_id": "B07D4FS7GY"
+    },
+    "exact_009": {
+      "category": "SHOES",
+      "kind": "exact_id",
+      "product_id": "B085J7CVVY"
+    },
+    "exact_010": {
+      "category": "LIGHT_BULB",
+      "kind": "exact_id",
+      "product_id": "B07WJBFJZZ"
+    },
+    "exact_011": {
+      "category": "GROCERY",
+      "kind": "exact_id",
+      "product_id": "B07RHV2ZKL"
+    },
+    "exact_012": {
+      "category": "FLAT_SHEET",
+      "kind": "exact_id",
+      "product_id": "B07RDZDJBG"
+    },
+    "exact_013": {
+      "category": "SANDAL",
+      "kind": "exact_id",
+      "product_id": "B07W71BNT3"
+    },
+    "exact_014": {
+      "category": "SANDAL",
+      "kind": "exact_id",
+      "product_id": "B07FR5RHKS"
+    },
+    "exact_015": {
+      "category": "SHOES",
+      "kind": "exact_id",
+      "product_id": "B07YV7KJMM"
+    },
+    "exact_016": {
+      "category": "SHOES",
+      "kind": "exact_id",
+      "product_id": "B082TJLGQ1"
+    },
+    "exact_017": {
+      "category": "UMBRELLA",
+      "kind": "exact_id",
+      "product_id": "B07BHFLJGV"
+    },
+    "exact_018": {
+      "category": "SPORTING_GOODS",
+      "kind": "exact_id",
+      "product_id": "B0747KXZV9"
+    },
+    "exact_019": {
+      "category": "LAMP",
+      "kind": "exact_id",
+      "product_id": "B0857P684G"
+    },
+    "exact_020": {
+      "category": "GROCERY",
+      "kind": "exact_id",
+      "product_id": "B084RG5PT4"
+    },
+    "exact_021": {
+      "category": "BOOT",
+      "kind": "exact_id",
+      "product_id": "B07XJP3TF3"
+    },
+    "exact_022": {
+      "category": "SHOES",
+      "kind": "exact_id",
+      "product_id": "B082PMRGHY"
+    },
+    "exact_023": {
+      "category": "SHOES",
+      "kind": "exact_id",
+      "product_id": "B07YFB3Y16"
+    },
+    "exact_024": {
+      "category": "GROCERY",
+      "kind": "exact_id",
+      "product_id": "B079WX9H4Q"
+    },
+    "exact_025": {
+      "category": "RUG",
+      "kind": "exact_id",
+      "product_id": "B071J4VYJL"
+    },
+    "exact_026": {
+      "category": "LAMP",
+      "kind": "exact_id",
+      "product_id": "B07HK85S41"
+    },
+    "exact_027": {
+      "category": "SHOES",
+      "kind": "exact_id",
+      "product_id": "B072V89RT7"
+    },
+    "exact_028": {
+      "category": "PILLOW",
+      "kind": "exact_id",
+      "product_id": "B07JKJSTVJ"
+    },
+    "exact_029": {
+      "category": "CELLULAR_PHONE_CASE",
+      "kind": "exact_id",
+      "product_id": "B08511H4VV"
+    },
+    "exact_030": {
+      "category": "CELLULAR_PHONE_CASE",
+      "kind": "exact_id",
+      "product_id": "B07R6SW5N7"
+    },
+    "exact_031": {
+      "category": "CELLULAR_PHONE_CASE",
+      "kind": "exact_id",
+      "product_id": "B07TG3KV4S"
+    },
+    "exact_032": {
+      "category": "HEADPHONES",
+      "kind": "exact_id",
+      "product_id": "B07RBZ7958"
+    },
+    "exact_033": {
+      "category": "CELLULAR_PHONE_CASE",
+      "kind": "exact_id",
+      "product_id": "B081HMDFCD"
+    },
+    "exact_034": {
+      "category": "BACKPACK",
+      "kind": "exact_id",
+      "product_id": "B07FRM1JXK"
+    },
+    "exact_035": {
+      "category": "CELLULAR_PHONE_CASE",
+      "kind": "exact_id",
+      "product_id": "B0854M3MX2"
+    },
+    "exact_036": {
+      "category": "CELLULAR_PHONE_CASE",
+      "kind": "exact_id",
+      "product_id": "B0854CTNR9"
+    },
+    "exact_037": {
+      "category": "CELLULAR_PHONE_CASE",
+      "kind": "exact_id",
+      "product_id": "B0856B1646"
+    },
+    "exact_038": {
+      "category": "CELLULAR_PHONE_CASE",
+      "kind": "exact_id",
+      "product_id": "B07TG4VZ6M"
+    },
+    "exact_039": {
+      "category": "CELLULAR_PHONE_CASE",
+      "kind": "exact_id",
+      "product_id": "B07TCWSWY4"
+    },
+    "exact_040": {
+      "category": "CELLULAR_PHONE_CASE",
+      "kind": "exact_id",
+      "product_id": "B0853XGSJ1"
+    },
+    "predicate_001": {
+      "brand": "Amazon Brand - Solimo",
+      "category": "SHELF",
+      "kind": "category_brand"
+    },
+    "predicate_002": {
+      "brand": "Rivet",
+      "category": "PILLOW",
+      "kind": "category_brand"
+    },
+    "predicate_003": {
+      "brand": "Amazon Basics",
+      "category": "BED",
+      "kind": "category_brand"
+    },
+    "predicate_004": {
+      "brand": "Eono",
+      "category": "TOTE_BAG",
+      "kind": "category_brand"
+    },
+    "predicate_005": {
+      "brand": "Nia & Nicole",
+      "category": "HANDBAG",
+      "kind": "category_brand"
+    },
+    "predicate_006": {
+      "brand": "Stone & Beam",
+      "category": "WALL_ART",
+      "kind": "category_brand"
+    },
+    "predicate_007": {
+      "brand": "Ravenna Home",
+      "category": "PILLOW",
+      "kind": "category_brand"
+    },
+    "predicate_008": {
+      "brand": "AmazonBasics",
+      "category": "JAR",
+      "kind": "category_brand"
+    },
+    "predicate_009": {
+      "brand": "Fresh",
+      "category": "GROCERY",
+      "kind": "category_brand"
+    },
+    "predicate_010": {
+      "brand": "AmazonBasics",
+      "category": "DRINKING_CUP",
+      "kind": "category_brand"
+    },
+    "predicate_011": {
+      "brand": "AmazonBasics",
+      "category": "TOOLS",
+      "kind": "category_brand"
+    },
+    "predicate_012": {
+      "brand": "Ravenna Home",
+      "category": "FURNITURE_COVER",
+      "kind": "category_brand"
+    },
+    "predicate_013": {
+      "brand": "Amazon Basics",
+      "category": "RUG",
+      "kind": "category_brand"
+    },
+    "predicate_014": {
+      "brand": "AmazonBasics",
+      "category": "PLANTER",
+      "kind": "category_brand"
+    },
+    "predicate_015": {
+      "brand": "AmazonBasics",
+      "category": "WRITING_INSTRUMENT",
+      "kind": "category_brand"
+    },
+    "predicate_016": {
+      "brand": "AmazonBasics",
+      "category": "FLAT_SHEET",
+      "kind": "category_brand"
+    },
+    "predicate_017": {
+      "brand": "206 Collective",
+      "category": "SANDAL",
+      "kind": "category_brand"
+    },
+    "predicate_018": {
+      "brand": "Stone & Beam",
+      "category": "PLANTER",
+      "kind": "category_brand"
+    },
+    "predicate_019": {
+      "brand": "Stone & Beam",
+      "category": "SOFA",
+      "kind": "category_brand"
+    },
+    "predicate_020": {
+      "brand": "Rivet",
+      "category": "PLANTER",
+      "kind": "category_brand"
+    },
+    "predicate_021": {
+      "category": "PET_SUPPLIES",
+      "color": "black",
+      "kind": "category_color"
+    },
+    "predicate_022": {
+      "category": "BACKPACK",
+      "color": "green",
+      "kind": "category_color"
+    },
+    "predicate_023": {
+      "category": "FURNITURE_COVER",
+      "color": "black",
+      "kind": "category_color"
+    },
+    "predicate_024": {
+      "category": "HOME_BED_AND_BATH",
+      "color": "multicolor",
+      "kind": "category_color"
+    },
+    "predicate_025": {
+      "category": "FURNITURE_COVER",
+      "color": "gray",
+      "kind": "category_color"
+    },
+    "predicate_026": {
+      "category": "SPORTING_GOODS",
+      "color": "black",
+      "kind": "category_color"
+    },
+    "predicate_027": {
+      "category": "BOOT",
+      "color": "black",
+      "kind": "category_color"
+    },
+    "predicate_028": {
+      "category": "PILLOW",
+      "color": "white",
+      "kind": "category_color"
+    },
+    "predicate_029": {
+      "category": "LUGGAGE",
+      "color": "gray",
+      "kind": "category_color"
+    },
+    "predicate_030": {
+      "category": "HEADBOARD",
+      "color": "beige",
+      "kind": "category_color"
+    },
+    "predicate_031": {
+      "category": "HAT",
+      "color": "red",
+      "kind": "category_color"
+    },
+    "predicate_032": {
+      "category": "HANDBAG",
+      "color": "black",
+      "kind": "category_color"
+    },
+    "predicate_033": {
+      "category": "TOTE_BAG",
+      "color": "blue",
+      "kind": "category_color"
+    },
+    "predicate_034": {
+      "category": "OTTOMAN",
+      "color": "gray",
+      "kind": "category_color"
+    },
+    "predicate_035": {
+      "category": "WALL_ART",
+      "color": "red",
+      "kind": "category_color"
+    },
+    "predicate_036": {
+      "category": "PET_SUPPLIES",
+      "color": "beige",
+      "kind": "category_color"
+    },
+    "predicate_037": {
+      "category": "PET_SUPPLIES",
+      "color": "gray",
+      "kind": "category_color"
+    },
+    "predicate_038": {
+      "category": "KITCHEN",
+      "color": "red",
+      "kind": "category_color"
+    },
+    "predicate_039": {
+      "category": "PILLOW",
+      "color": "gray",
+      "kind": "category_color"
+    },
+    "predicate_040": {
+      "category": "HOME_BED_AND_BATH",
+      "color": "red",
+      "kind": "category_color"
+    },
+    "predicate_041": {
+      "brand": "AmazonBasics",
+      "category": "PET_SUPPLIES",
+      "color": "beige",
+      "kind": "category_brand_color"
+    },
+    "predicate_042": {
+      "brand": "Nia & Nicole",
+      "category": "HANDBAG",
+      "color": "blue",
+      "kind": "category_brand_color"
+    },
+    "predicate_043": {
+      "brand": "Amazon Basics",
+      "category": "RUG",
+      "color": "beige",
+      "kind": "category_brand_color"
+    },
+    "predicate_044": {
+      "brand": "AmazonBasics",
+      "category": "BACKPACK",
+      "color": "gray",
+      "kind": "category_brand_color"
+    },
+    "predicate_045": {
+      "brand": "find.",
+      "category": "BOOT",
+      "color": "black",
+      "kind": "category_brand_color"
+    },
+    "predicate_046": {
+      "brand": "Ravenna Home",
+      "category": "PILLOW",
+      "color": "gray",
+      "kind": "category_brand_color"
+    },
+    "predicate_047": {
+      "brand": "AmazonBasics",
+      "category": "PET_SUPPLIES",
+      "color": "black",
+      "kind": "category_brand_color"
+    },
+    "predicate_048": {
+      "brand": "AmazonBasics",
+      "category": "SUITCASE",
+      "color": "red",
+      "kind": "category_brand_color"
+    },
+    "predicate_049": {
+      "brand": "Traversible",
+      "category": "WALLET",
+      "color": "brown",
+      "kind": "category_brand_color"
+    },
+    "predicate_050": {
+      "brand": "Eono",
+      "category": "SPORTING_GOODS",
+      "color": "black",
+      "kind": "category_brand_color"
+    },
+    "predicate_051": {
+      "brand": "find.",
+      "category": "SHOES",
+      "color": "pink",
+      "kind": "category_brand_color"
+    },
+    "predicate_052": {
+      "brand": "Klepe",
+      "category": "SHOES",
+      "color": "navy",
+      "kind": "category_brand_color"
+    },
+    "predicate_053": {
+      "brand": "Ravenna Home",
+      "category": "FURNITURE_COVER",
+      "color": "beige",
+      "kind": "category_brand_color"
+    },
+    "predicate_054": {
+      "brand": "Solefit",
+      "category": "SHOES",
+      "color": "black",
+      "kind": "category_brand_color"
+    },
+    "predicate_055": {
+      "brand": "Pinzon by Amazon",
+      "category": "HOME_BED_AND_BATH",
+      "color": "multicolor",
+      "kind": "category_brand_color"
+    },
+    "predicate_056": {
+      "brand": "Flavia",
+      "category": "HANDBAG",
+      "color": "black",
+      "kind": "category_brand_color"
+    },
+    "predicate_057": {
+      "brand": "Amazon Brand - Solimo",
+      "category": "BOTTLE",
+      "color": "pink",
+      "kind": "category_brand_color"
+    },
+    "predicate_058": {
+      "brand": "Presto!",
+      "category": "TOOLS",
+      "color": "blue",
+      "kind": "category_brand_color"
+    },
+    "predicate_059": {
+      "brand": "Amazon Brand - Symbol",
+      "category": "SHOES",
+      "color": "green",
+      "kind": "category_brand_color"
+    },
+    "predicate_060": {
+      "brand": "AmazonBasics",
+      "category": "BACKPACK",
+      "color": "yellow",
+      "kind": "category_brand_color"
+    }
+  },
+  "recall_at_10_ceiling": {
+    "exact_001": 1.0,
+    "exact_002": 1.0,
+    "exact_003": 1.0,
+    "exact_004": 1.0,
+    "exact_005": 1.0,
+    "exact_006": 1.0,
+    "exact_007": 1.0,
+    "exact_008": 1.0,
+    "exact_009": 1.0,
+    "exact_010": 1.0,
+    "exact_011": 1.0,
+    "exact_012": 1.0,
+    "exact_013": 1.0,
+    "exact_014": 1.0,
+    "exact_015": 1.0,
+    "exact_016": 1.0,
+    "exact_017": 1.0,
+    "exact_018": 1.0,
+    "exact_019": 1.0,
+    "exact_020": 1.0,
+    "exact_021": 1.0,
+    "exact_022": 1.0,
+    "exact_023": 1.0,
+    "exact_024": 1.0,
+    "exact_025": 1.0,
+    "exact_026": 1.0,
+    "exact_027": 1.0,
+    "exact_028": 1.0,
+    "exact_029": 1.0,
+    "exact_030": 1.0,
+    "exact_031": 1.0,
+    "exact_032": 1.0,
+    "exact_033": 1.0,
+    "exact_034": 1.0,
+    "exact_035": 1.0,
+    "exact_036": 1.0,
+    "exact_037": 1.0,
+    "exact_038": 1.0,
+    "exact_039": 1.0,
+    "exact_040": 1.0,
+    "predicate_001_en": 1.0,
+    "predicate_001_vi": 1.0,
+    "predicate_002_en": 1.0,
+    "predicate_002_vi": 1.0,
+    "predicate_003_en": 1.0,
+    "predicate_003_vi": 1.0,
+    "predicate_004_en": 1.0,
+    "predicate_004_vi": 1.0,
+    "predicate_005_en": 1.0,
+    "predicate_005_vi": 1.0,
+    "predicate_006_en": 1.0,
+    "predicate_006_vi": 1.0,
+    "predicate_007_en": 1.0,
+    "predicate_007_vi": 1.0,
+    "predicate_008_en": 1.0,
+    "predicate_008_vi": 1.0,
+    "predicate_009_en": 1.0,
+    "predicate_009_vi": 1.0,
+    "predicate_010_en": 1.0,
+    "predicate_010_vi": 1.0,
+    "predicate_011_en": 1.0,
+    "predicate_011_vi": 1.0,
+    "predicate_012_en": 1.0,
+    "predicate_012_vi": 1.0,
+    "predicate_013_en": 1.0,
+    "predicate_013_vi": 1.0,
+    "predicate_014_en": 1.0,
+    "predicate_014_vi": 1.0,
+    "predicate_015_en": 1.0,
+    "predicate_015_vi": 1.0,
+    "predicate_016_en": 0.9090909090909091,
+    "predicate_016_vi": 0.9090909090909091,
+    "predicate_017_en": 1.0,
+    "predicate_017_vi": 1.0,
+    "predicate_018_en": 1.0,
+    "predicate_018_vi": 1.0,
+    "predicate_019_en": 1.0,
+    "predicate_019_vi": 1.0,
+    "predicate_020_en": 1.0,
+    "predicate_020_vi": 1.0,
+    "predicate_021_en": 1.0,
+    "predicate_021_vi": 1.0,
+    "predicate_022_en": 1.0,
+    "predicate_022_vi": 1.0,
+    "predicate_023_en": 1.0,
+    "predicate_023_vi": 1.0,
+    "predicate_024_en": 1.0,
+    "predicate_024_vi": 1.0,
+    "predicate_025_en": 1.0,
+    "predicate_025_vi": 1.0,
+    "predicate_026_en": 1.0,
+    "predicate_026_vi": 1.0,
+    "predicate_027_en": 1.0,
+    "predicate_027_vi": 1.0,
+    "predicate_028_en": 1.0,
+    "predicate_028_vi": 1.0,
+    "predicate_029_en": 1.0,
+    "predicate_029_vi": 1.0,
+    "predicate_030_en": 1.0,
+    "predicate_030_vi": 1.0,
+    "predicate_031_en": 1.0,
+    "predicate_031_vi": 1.0,
+    "predicate_032_en": 1.0,
+    "predicate_032_vi": 1.0,
+    "predicate_033_en": 1.0,
+    "predicate_033_vi": 1.0,
+    "predicate_034_en": 1.0,
+    "predicate_034_vi": 1.0,
+    "predicate_035_en": 1.0,
+    "predicate_035_vi": 1.0,
+    "predicate_036_en": 1.0,
+    "predicate_036_vi": 1.0,
+    "predicate_037_en": 1.0,
+    "predicate_037_vi": 1.0,
+    "predicate_038_en": 1.0,
+    "predicate_038_vi": 1.0,
+    "predicate_039_en": 1.0,
+    "predicate_039_vi": 1.0,
+    "predicate_040_en": 1.0,
+    "predicate_040_vi": 1.0,
+    "predicate_041_en": 1.0,
+    "predicate_041_vi": 1.0,
+    "predicate_042_en": 1.0,
+    "predicate_042_vi": 1.0,
+    "predicate_043_en": 1.0,
+    "predicate_043_vi": 1.0,
+    "predicate_044_en": 1.0,
+    "predicate_044_vi": 1.0,
+    "predicate_045_en": 1.0,
+    "predicate_045_vi": 1.0,
+    "predicate_046_en": 1.0,
+    "predicate_046_vi": 1.0,
+    "predicate_047_en": 1.0,
+    "predicate_047_vi": 1.0,
+    "predicate_048_en": 1.0,
+    "predicate_048_vi": 1.0,
+    "predicate_049_en": 1.0,
+    "predicate_049_vi": 1.0,
+    "predicate_050_en": 1.0,
+    "predicate_050_vi": 1.0,
+    "predicate_051_en": 1.0,
+    "predicate_051_vi": 1.0,
+    "predicate_052_en": 1.0,
+    "predicate_052_vi": 1.0,
+    "predicate_053_en": 1.0,
+    "predicate_053_vi": 1.0,
+    "predicate_054_en": 1.0,
+    "predicate_054_vi": 1.0,
+    "predicate_055_en": 1.0,
+    "predicate_055_vi": 1.0,
+    "predicate_056_en": 1.0,
+    "predicate_056_vi": 1.0,
+    "predicate_057_en": 1.0,
+    "predicate_057_vi": 1.0,
+    "predicate_058_en": 1.0,
+    "predicate_058_vi": 1.0,
+    "predicate_059_en": 1.0,
+    "predicate_059_vi": 1.0,
+    "predicate_060_en": 1.0,
+    "predicate_060_vi": 1.0
+  },
+  "schema_version": 1,
+  "seed": 42,
+  "selection_rule": "Seeded shuffle within each predicate kind, take up to 20 unique English/Vietnamese pairs per kind; nonempty complete positives <=20. Exact IDs: up to28 dev and12 holdout.",
+  "split_rule": "Sort supported categories; random.Random(seed).shuffle; floor(0.7*N) dev, remainder holdout; split before selecting any predicates or exact IDs."
+}

@@ -22,6 +22,8 @@ class RAGRunSummary:
     metrics: dict[str, float | None]
     successful_cases: int
     failed_cases: int
+    metrics_successful_only: dict[str, float | None] | None = None
+    success_rate: float = 0.0
 
 
 def load_experiment_config(path: str | Path, base_config: Any = None) -> tuple[dict[str, Any], Any]:
@@ -124,14 +126,19 @@ def run_rag_experiment(
                 "error_category": category,
             })
         except Exception as exc:
-            errors.append({"question_id": case.question_id, "error_type": type(exc).__name__, "latency_ms": (perf_counter() - started) * 1000})
+            errors.append({"question_id": case.question_id, "error_type": type(exc).__name__, "latency_ms": (perf_counter() - started) * 1000, "metrics": score_retrieval(case, {"retrieved_ids": [], "fused_ids": [], "reranked_ids": []})})
             error_counts["runtime_error"] += 1
 
-    names = sorted({name for row in results for name in row["metrics"]})
-    metrics = {
-        name: fmean(values) if (values := [row["metrics"][name] for row in results if row["metrics"][name] is not None]) else None
-        for name in names
-    }
+    names = sorted(score_retrieval(cases[0], {}))
+    successful_only = {}
+    metrics = {}
+    for metric_name in names:
+        values = [row["metrics"][metric_name] for row in results if row["metrics"][metric_name] is not None]
+        successful_only[metric_name] = fmean(values) if values else None
+        # Failed attempts add zero only when this metric was actually measured.
+        # Unknown semantic grades and unavailable traces remain unmeasured.
+        failed_values = [row["metrics"][metric_name] for row in errors if row["metrics"][metric_name] is not None]
+        metrics[metric_name] = sum(values) / (len(values) + len(errors)) if values else (0.0 if failed_values else None)
     metrics_path = run_dir / "metrics.json"
     payload = {
         "experiment_name": name,
@@ -142,6 +149,9 @@ def run_rag_experiment(
         "label_statuses": sorted({case.label_status for case in cases}),
         "config": resolved,
         "metrics": metrics,
+        "metrics_successful_only": successful_only,
+        "success_rate": len(results) / len(cases),
+        "metric_measured_successful_cases": {metric_name: sum(row["metrics"][metric_name] is not None for row in results) for metric_name in names},
         "latency_ms": {"p50": _percentile(latencies, 0.5), "p95": _percentile(latencies, 0.95)},
     }
     metrics_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -149,8 +159,11 @@ def run_rag_experiment(
     _write_jsonl(run_dir / "errors.jsonl", errors)
     summary_lines = [f"# RAG experiment: {name}", "", f"Cases: {len(results)} successful, {len(errors)} failed", f"Labels: {', '.join(payload['label_statuses'])}", ""]
     summary_lines += [f"- {key}: {value:.4f}" if value is not None else f"- {key}: unmeasured" for key, value in metrics.items()]
+    summary_lines += ["", f"Success rate: {payload['success_rate']:.4f}", "Measured metrics include runtime failures as zero; missing judgments remain unmeasured.", "", "Successful requests only (diagnostic):"]
+    summary_lines += [f"- {key}: {value:.4f}" if value is not None else f"- {key}: unmeasured" for key, value in successful_only.items()]
+    summary_lines += ["", "Citation coverage measures citation presence, not support for individual answer claims."]
     summary_lines += ["", "Answer correctness requires an external grader; fact coverage is only a string match proxy." if generate_answers else "Retrieval-only run; answer and citation metrics were not measured.", ""]
     (run_dir / "summary.md").write_text("\n".join(summary_lines), encoding="utf-8")
     if not results:
         raise RuntimeError(f"all RAG cases failed; artifacts written to {run_dir}")
-    return RAGRunSummary(run_dir, metrics, len(results), len(errors))
+    return RAGRunSummary(run_dir, metrics, len(results), len(errors), successful_only, payload["success_rate"])

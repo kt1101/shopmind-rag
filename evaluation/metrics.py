@@ -41,7 +41,11 @@ def ndcg_at_k(ranked_product_ids: list[str], relevance: dict[str, int], k: int) 
     positive_grades = [grade for grade in relevance.values() if grade > 0]
     if not positive_grades:
         return 0.0
-    observed = [max(0, int(relevance.get(product_id, 0))) for product_id in ranked_product_ids[:k]]
+    seen: set[str] = set()
+    observed = []
+    for product_id in ranked_product_ids[:k]:
+        observed.append(0 if product_id in seen else max(0, int(relevance.get(product_id, 0))))
+        seen.add(product_id)
     dcg = _dcg(observed)
     ideal = sorted(positive_grades, reverse=True)[:k]
     idcg = _dcg(ideal)
