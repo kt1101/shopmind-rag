@@ -45,7 +45,7 @@
 
 ### Task 2: Measure and fix real embedding/retrieval failures
 
-**Owner:** retrieval agent after Task 1 review. **Files:** `shopmind/app/embedding/siglip2.py`, `shopmind/pipeline/embedding_artifacts.py`, relevant Elasticsearch/retrieval code, `shopmind/app/core/config.py`, `configs/{app,retrieval}.yaml`, `scripts/{generate_embeddings,generate_knowledge_embeddings,index_products}.py`, new `scripts/diagnose_embedding_accuracy.py`, related existing embedding/integration tests. Evaluation agent continues to own frozen benchmark and reports.
+**Owner:** retrieval agent after Task 1 review. **Files:** `shopmind/app/embedding/siglip2.py`, product/knowledge embedding artifact modules, relevant Elasticsearch/retrieval/knowledge code, runtime wiring in `shopmind/app/main.py`, `shopmind/app/core/config.py`, `configs/{app,retrieval}.yaml`, product/knowledge generation and index creation/indexing scripts, new `scripts/diagnose_embedding_accuracy.py`, related existing embedding/integration tests. Evaluation agent continues to own frozen benchmark and reports. Task 3 starts only after shared knowledge/runtime contracts are finalized.
 
 **Interfaces:** Existing `SigLIP2EmbeddingProvider.embed_texts(texts) -> np.ndarray` and artifact load/write contracts stay usable. Manifest/index preprocessing identity is additive; compatible old assets remain available for baseline. Diagnostic CLI writes JSON actual cosine/identity measurements. Use new artifact directory `data/embeddings/abo_accuracy_v2` and index `products_accuracy_20261009_v2`; never overwrite baseline assets.
 
