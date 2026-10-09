@@ -74,6 +74,56 @@ def test_metrics_do_not_invent_answer_correctness_or_citation_context():
     assert classify_failure(case, scored) == "invalid_citation"
 
 
+def test_semantic_failure_is_explicit_and_unknown_is_unmeasured():
+    from evaluation.rag.metrics import classify_failure, score_case
+
+    case = _case()
+    unknown = score_case(case, _answer())
+    assert unknown["answer_correctness"] is None
+    assert classify_failure(case, unknown) is None
+    assert classify_failure(case, score_case(case, _answer(), grader=lambda case, answer: 0)) == "wrong_answer"
+
+
+def test_rag_runtime_failure_counts_zero_without_inventing_semantic_grade(tmp_path):
+    from evaluation.rag.runner import run_rag_experiment
+
+    path = tmp_path / "run.yaml"
+    path.write_text("experiment:\n  name: partial\nsources: [review]\n")
+
+    class Service:
+        def answer(self, request):
+            if request.question == "broken":
+                raise RuntimeError("failed")
+            return _answer()
+
+    summary = run_rag_experiment(config_path=path, service_factory=lambda config: Service(), cases=[_case(), _case(question_id="q2", question="broken")], runs_root=tmp_path / "runs")
+    assert summary.metrics["reranked_ndcg_at_10"] == 0.5
+    assert summary.metrics["answer_correctness"] is None
+    payload = json.loads((summary.run_dir / "metrics.json").read_text())
+    assert payload["metrics_successful_only"]["reranked_ndcg_at_10"] == 1.0
+    assert payload["metrics_successful_only"]["answer_correctness"] is None
+    assert payload["success_rate"] == 0.5
+
+
+def test_all_failed_rag_run_reports_zero_retrieval_and_null_semantic_metrics(tmp_path):
+    from evaluation.rag.runner import run_rag_experiment
+
+    config = tmp_path / "run.yaml"
+    config.write_text("experiment:\n  name: failed\nsources: [review]\n")
+
+    class Service:
+        def answer(self, request):
+            raise RuntimeError("failed")
+
+    with pytest.raises(RuntimeError, match="all RAG cases failed"):
+        run_rag_experiment(config_path=config, service_factory=lambda config: Service(), cases=[_case()], runs_root=tmp_path / "runs")
+    payload = json.loads(next((tmp_path / "runs").glob("*/metrics.json")).read_text())
+    assert payload["metrics"]["reranked_ndcg_at_10"] == 0.0
+    assert payload["metrics"]["answer_correctness"] is None
+    assert payload["metrics_successful_only"]["reranked_ndcg_at_10"] is None
+    assert payload["success_rate"] == 0.0
+
+
 def test_candidate_recall_includes_policy_after_other_source_candidates():
     from evaluation.rag.metrics import classify_failure, score_case
 

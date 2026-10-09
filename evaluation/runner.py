@@ -26,6 +26,8 @@ class RunSummary:
     metrics: dict[str, float]
     successful_queries: int
     failed_queries: int
+    metrics_successful_only: dict[str, float] | None = None
+    success_rate: float = 0.0
 
 
 def _require_mapping(value: Any, name: str) -> dict[str, Any]:
@@ -163,9 +165,9 @@ def run_experiment(config_path: str | Path, service: Any, queries: list[Evaluati
             ranked_ids = [result.product_id for result in results]
             relevance = qrels[query.query_id]
             query_metrics = {"Recall@10": recall_at_k(ranked_ids, relevance, 10), "nDCG@10": ndcg_at_k(ranked_ids, relevance, 10), "MRR@10": mrr_at_k(ranked_ids, relevance, 10)}
-            result_rows.append({"query_id": query.query_id, "query_type": query.query_type, "query": query.query, "image_path": str(query.image_path) if query.image_path else None, "group": query.group, "language": query.language, "mode": result_mode, "latency_ms": latency_ms, "results": [{"product_id": result.product_id, "score": result.score, "rank": result.rank, "source": result.source, "retrieval_scores": asdict(result.retrieval_scores)} for result in results], "metrics": query_metrics})
+            result_rows.append({"query_id": query.query_id, "query_type": query.query_type, "query": query.query, "image_path": str(query.image_path) if query.image_path else None, "group": query.group, "language": query.language, "split": query.split, "intent_id": query.intent_id, "positive_count": sum(grade > 0 for grade in relevance.values()), "recall_at_10_ceiling": min(10, sum(grade > 0 for grade in relevance.values())) / max(1, sum(grade > 0 for grade in relevance.values())), "exact_id_top_1_hit": float(bool(ranked_ids) and ranked_ids[0] in relevance and relevance[ranked_ids[0]] > 0) if query.group == "exact_id" else None, "mode": result_mode, "latency_ms": latency_ms, "results": [{"product_id": result.product_id, "score": result.score, "rank": result.rank, "source": result.source, "retrieval_scores": asdict(result.retrieval_scores)} for result in results], "metrics": query_metrics})
         except Exception as exc:
-            error_rows.append({"query_id": query.query_id, "query_type": query.query_type, "query": query.query, "error_type": type(exc).__name__, "message": str(exc)})
+            error_rows.append({"query_id": query.query_id, "query_type": query.query_type, "query": query.query, "group": query.group, "language": query.language, "split": query.split, "intent_id": query.intent_id, "metrics": _aggregate([]), "exact_id_top_1_hit": 0.0 if query.group == "exact_id" else None, "error_type": type(exc).__name__, "message": str(exc)})
 
     def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
         with path.open("w", encoding="utf-8", newline="\n") as handle:
@@ -177,17 +179,24 @@ def run_experiment(config_path: str | Path, service: Any, queries: list[Evaluati
 
     successful = len(result_rows)
     failed = len(error_rows)
-    aggregate = _aggregate([row["metrics"] for row in result_rows])
+    attempts = result_rows + error_rows
+    successful_only = _aggregate([row["metrics"] for row in result_rows])
+    aggregate = _aggregate([row["metrics"] for row in attempts])
+    success_rate = successful / len(queries)
     latencies = [float(row["latency_ms"]) for row in result_rows]
-    query_types = {kind: sum(row["query_type"] == kind for row in result_rows) for kind in ("image", "text")}
+    query_types = {kind: sum(row["query_type"] == kind for row in attempts) for kind in ("image", "text")}
     query_types = {key: value for key, value in query_types.items() if value}
-    metadata = {"run_id": run_id, "created_at": now.isoformat().replace("+00:00", "Z"), "experiment_name": config["experiment"]["name"], "dataset_version": config["experiment"]["dataset_version"], "index_version": config["experiment"]["index_version"], "embedding_model": config["embedding"]["model"], "embedding_version": config["embedding"]["version"], "retrieval": config["retrieval"], "fusion": config["fusion"], "reranker": config["reranker"], "metrics": aggregate, "metrics_by_query_type": _group_metrics(result_rows, "query_type"), "metrics_by_language": _group_metrics(result_rows, "language"), "metrics_by_group": _group_metrics(result_rows, "group"), "query_types": query_types, "latency_ms": {"p50": _percentile(latencies, 0.5), "p95": _percentile(latencies, 0.95)}, "successful_queries": successful, "failed_queries": failed}
+    metadata = {"run_id": run_id, "created_at": now.isoformat().replace("+00:00", "Z"), "experiment_name": config["experiment"]["name"], "dataset_version": config["experiment"]["dataset_version"], "index_version": config["experiment"]["index_version"], "embedding_model": config["embedding"]["model"], "embedding_version": config["embedding"]["version"], "retrieval": config["retrieval"], "fusion": config["fusion"], "reranker": config["reranker"], "metrics": aggregate, "metrics_successful_only": successful_only, "success_rate": success_rate, "metrics_by_query_type": _group_metrics(attempts, "query_type"), "metrics_by_language": _group_metrics(attempts, "language"), "metrics_by_group": _group_metrics(attempts, "group"), "metrics_by_split": _group_metrics(attempts, "split"), "query_types": query_types, "latency_ms": {"p50": _percentile(latencies, 0.5), "p95": _percentile(latencies, 0.95)}, "successful_queries": successful, "failed_queries": failed}
+    metadata["recall_at_10_ceiling"] = fmean(min(10, count) / max(1, count) for query in queries for count in [sum(grade > 0 for grade in qrels[query.query_id].values())])
+    probes = [row for row in attempts if row["exact_id_top_1_hit"] is not None]
+    metadata["exact_id_top_1_hit_rate"] = fmean(row["exact_id_top_1_hit"] for row in probes) if probes else None
+    metadata["exact_id_top_1_hit_rate_by_split"] = {split: fmean(row["exact_id_top_1_hit"] for row in probes if row["split"] == split) for split in sorted({row["split"] for row in probes if row["split"] is not None})}
     (run_dir / "metrics.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     write_run_summary(run_dir / "summary.md", metadata)
 
     if successful == 0:
         raise RuntimeError(f"all queries failed; artifacts written to {run_dir}")
-    return RunSummary(run_id=run_id, run_dir=run_dir, metrics=aggregate, successful_queries=successful, failed_queries=failed)
+    return RunSummary(run_id=run_id, run_dir=run_dir, metrics=aggregate, successful_queries=successful, failed_queries=failed, metrics_successful_only=successful_only, success_rate=success_rate)
 
 
 def build_parser() -> argparse.ArgumentParser:

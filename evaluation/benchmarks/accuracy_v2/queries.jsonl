@@ -1,0 +1,160 @@
+{"group": "category_brand", "intent_id": "predicate_001", "language": "en", "query": "Find shelves from Amazon Brand - Solimo.", "query_id": "predicate_001_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_001", "language": "vi", "query": "Tìm kệ của Amazon Brand - Solimo.", "query_id": "predicate_001_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_002", "language": "en", "query": "Find pillows from Rivet.", "query_id": "predicate_002_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_002", "language": "vi", "query": "Tìm gối của Rivet.", "query_id": "predicate_002_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_003", "language": "en", "query": "Find beds from Amazon Basics.", "query_id": "predicate_003_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_003", "language": "vi", "query": "Tìm giường của Amazon Basics.", "query_id": "predicate_003_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_004", "language": "en", "query": "Find tote bags from Eono.", "query_id": "predicate_004_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_004", "language": "vi", "query": "Tìm túi tote của Eono.", "query_id": "predicate_004_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_005", "language": "en", "query": "Find handbags from Nia & Nicole.", "query_id": "predicate_005_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_005", "language": "vi", "query": "Tìm túi xách của Nia & Nicole.", "query_id": "predicate_005_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_006", "language": "en", "query": "Find wall art from Stone & Beam.", "query_id": "predicate_006_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_006", "language": "vi", "query": "Tìm tranh trang trí tường của Stone & Beam.", "query_id": "predicate_006_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_007", "language": "en", "query": "Find pillows from Ravenna Home.", "query_id": "predicate_007_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_007", "language": "vi", "query": "Tìm gối của Ravenna Home.", "query_id": "predicate_007_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_008", "language": "en", "query": "Find jars from AmazonBasics.", "query_id": "predicate_008_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_008", "language": "vi", "query": "Tìm lọ của AmazonBasics.", "query_id": "predicate_008_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_009", "language": "en", "query": "Find groceries from Fresh.", "query_id": "predicate_009_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_009", "language": "vi", "query": "Tìm hàng tạp hóa của Fresh.", "query_id": "predicate_009_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_010", "language": "en", "query": "Find drinking cups from AmazonBasics.", "query_id": "predicate_010_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_010", "language": "vi", "query": "Tìm cốc uống nước của AmazonBasics.", "query_id": "predicate_010_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_011", "language": "en", "query": "Find tools from AmazonBasics.", "query_id": "predicate_011_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_011", "language": "vi", "query": "Tìm dụng cụ của AmazonBasics.", "query_id": "predicate_011_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_012", "language": "en", "query": "Find furniture covers from Ravenna Home.", "query_id": "predicate_012_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_012", "language": "vi", "query": "Tìm vỏ bọc nội thất của Ravenna Home.", "query_id": "predicate_012_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_013", "language": "en", "query": "Find rugs from Amazon Basics.", "query_id": "predicate_013_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_013", "language": "vi", "query": "Tìm thảm của Amazon Basics.", "query_id": "predicate_013_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_014", "language": "en", "query": "Find planters from AmazonBasics.", "query_id": "predicate_014_en", "query_type": "text", "split": "holdout"}
+{"group": "category_brand", "intent_id": "predicate_014", "language": "vi", "query": "Tìm chậu cây của AmazonBasics.", "query_id": "predicate_014_vi", "query_type": "text", "split": "holdout"}
+{"group": "category_brand", "intent_id": "predicate_015", "language": "en", "query": "Find writing instruments from AmazonBasics.", "query_id": "predicate_015_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_015", "language": "vi", "query": "Tìm dụng cụ viết của AmazonBasics.", "query_id": "predicate_015_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_016", "language": "en", "query": "Find flat sheets from AmazonBasics.", "query_id": "predicate_016_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_016", "language": "vi", "query": "Tìm ga trải giường của AmazonBasics.", "query_id": "predicate_016_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_017", "language": "en", "query": "Find sandals from 206 Collective.", "query_id": "predicate_017_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_017", "language": "vi", "query": "Tìm dép xăng đan của 206 Collective.", "query_id": "predicate_017_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_018", "language": "en", "query": "Find planters from Stone & Beam.", "query_id": "predicate_018_en", "query_type": "text", "split": "holdout"}
+{"group": "category_brand", "intent_id": "predicate_018", "language": "vi", "query": "Tìm chậu cây của Stone & Beam.", "query_id": "predicate_018_vi", "query_type": "text", "split": "holdout"}
+{"group": "category_brand", "intent_id": "predicate_019", "language": "en", "query": "Find sofas from Stone & Beam.", "query_id": "predicate_019_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_019", "language": "vi", "query": "Tìm ghế sofa của Stone & Beam.", "query_id": "predicate_019_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand", "intent_id": "predicate_020", "language": "en", "query": "Find planters from Rivet.", "query_id": "predicate_020_en", "query_type": "text", "split": "holdout"}
+{"group": "category_brand", "intent_id": "predicate_020", "language": "vi", "query": "Tìm chậu cây của Rivet.", "query_id": "predicate_020_vi", "query_type": "text", "split": "holdout"}
+{"group": "category_color", "intent_id": "predicate_021", "language": "en", "query": "Find pet supplies in black.", "query_id": "predicate_021_en", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_021", "language": "vi", "query": "Tìm đồ dùng thú cưng màu đen.", "query_id": "predicate_021_vi", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_022", "language": "en", "query": "Find backpacks in green.", "query_id": "predicate_022_en", "query_type": "text", "split": "holdout"}
+{"group": "category_color", "intent_id": "predicate_022", "language": "vi", "query": "Tìm ba lô màu xanh lá.", "query_id": "predicate_022_vi", "query_type": "text", "split": "holdout"}
+{"group": "category_color", "intent_id": "predicate_023", "language": "en", "query": "Find furniture covers in black.", "query_id": "predicate_023_en", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_023", "language": "vi", "query": "Tìm vỏ bọc nội thất màu đen.", "query_id": "predicate_023_vi", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_024", "language": "en", "query": "Find bed and bath products in multicolor.", "query_id": "predicate_024_en", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_024", "language": "vi", "query": "Tìm đồ dùng phòng ngủ và phòng tắm màu nhiều màu.", "query_id": "predicate_024_vi", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_025", "language": "en", "query": "Find furniture covers in gray.", "query_id": "predicate_025_en", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_025", "language": "vi", "query": "Tìm vỏ bọc nội thất màu xám.", "query_id": "predicate_025_vi", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_026", "language": "en", "query": "Find sporting goods in black.", "query_id": "predicate_026_en", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_026", "language": "vi", "query": "Tìm đồ dùng thể thao màu đen.", "query_id": "predicate_026_vi", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_027", "language": "en", "query": "Find boots in black.", "query_id": "predicate_027_en", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_027", "language": "vi", "query": "Tìm giày bốt màu đen.", "query_id": "predicate_027_vi", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_028", "language": "en", "query": "Find pillows in white.", "query_id": "predicate_028_en", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_028", "language": "vi", "query": "Tìm gối màu trắng.", "query_id": "predicate_028_vi", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_029", "language": "en", "query": "Find luggage in gray.", "query_id": "predicate_029_en", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_029", "language": "vi", "query": "Tìm hành lý màu xám.", "query_id": "predicate_029_vi", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_030", "language": "en", "query": "Find headboards in beige.", "query_id": "predicate_030_en", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_030", "language": "vi", "query": "Tìm đầu giường màu be.", "query_id": "predicate_030_vi", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_031", "language": "en", "query": "Find hats in red.", "query_id": "predicate_031_en", "query_type": "text", "split": "holdout"}
+{"group": "category_color", "intent_id": "predicate_031", "language": "vi", "query": "Tìm mũ màu đỏ.", "query_id": "predicate_031_vi", "query_type": "text", "split": "holdout"}
+{"group": "category_color", "intent_id": "predicate_032", "language": "en", "query": "Find handbags in black.", "query_id": "predicate_032_en", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_032", "language": "vi", "query": "Tìm túi xách màu đen.", "query_id": "predicate_032_vi", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_033", "language": "en", "query": "Find tote bags in blue.", "query_id": "predicate_033_en", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_033", "language": "vi", "query": "Tìm túi tote màu xanh dương.", "query_id": "predicate_033_vi", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_034", "language": "en", "query": "Find ottomans in gray.", "query_id": "predicate_034_en", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_034", "language": "vi", "query": "Tìm ghế đôn màu xám.", "query_id": "predicate_034_vi", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_035", "language": "en", "query": "Find wall art in red.", "query_id": "predicate_035_en", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_035", "language": "vi", "query": "Tìm tranh trang trí tường màu đỏ.", "query_id": "predicate_035_vi", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_036", "language": "en", "query": "Find pet supplies in beige.", "query_id": "predicate_036_en", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_036", "language": "vi", "query": "Tìm đồ dùng thú cưng màu be.", "query_id": "predicate_036_vi", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_037", "language": "en", "query": "Find pet supplies in gray.", "query_id": "predicate_037_en", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_037", "language": "vi", "query": "Tìm đồ dùng thú cưng màu xám.", "query_id": "predicate_037_vi", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_038", "language": "en", "query": "Find kitchen products in red.", "query_id": "predicate_038_en", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_038", "language": "vi", "query": "Tìm đồ dùng nhà bếp màu đỏ.", "query_id": "predicate_038_vi", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_039", "language": "en", "query": "Find pillows in gray.", "query_id": "predicate_039_en", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_039", "language": "vi", "query": "Tìm gối màu xám.", "query_id": "predicate_039_vi", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_040", "language": "en", "query": "Find bed and bath products in red.", "query_id": "predicate_040_en", "query_type": "text", "split": "dev"}
+{"group": "category_color", "intent_id": "predicate_040", "language": "vi", "query": "Tìm đồ dùng phòng ngủ và phòng tắm màu đỏ.", "query_id": "predicate_040_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_041", "language": "en", "query": "Find pet supplies in beige from AmazonBasics.", "query_id": "predicate_041_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_041", "language": "vi", "query": "Tìm đồ dùng thú cưng màu be của AmazonBasics.", "query_id": "predicate_041_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_042", "language": "en", "query": "Find handbags in blue from Nia & Nicole.", "query_id": "predicate_042_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_042", "language": "vi", "query": "Tìm túi xách màu xanh dương của Nia & Nicole.", "query_id": "predicate_042_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_043", "language": "en", "query": "Find rugs in beige from Amazon Basics.", "query_id": "predicate_043_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_043", "language": "vi", "query": "Tìm thảm màu be của Amazon Basics.", "query_id": "predicate_043_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_044", "language": "en", "query": "Find backpacks in gray from AmazonBasics.", "query_id": "predicate_044_en", "query_type": "text", "split": "holdout"}
+{"group": "category_brand_color", "intent_id": "predicate_044", "language": "vi", "query": "Tìm ba lô màu xám của AmazonBasics.", "query_id": "predicate_044_vi", "query_type": "text", "split": "holdout"}
+{"group": "category_brand_color", "intent_id": "predicate_045", "language": "en", "query": "Find boots in black from find..", "query_id": "predicate_045_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_045", "language": "vi", "query": "Tìm giày bốt màu đen của find..", "query_id": "predicate_045_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_046", "language": "en", "query": "Find pillows in gray from Ravenna Home.", "query_id": "predicate_046_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_046", "language": "vi", "query": "Tìm gối màu xám của Ravenna Home.", "query_id": "predicate_046_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_047", "language": "en", "query": "Find pet supplies in black from AmazonBasics.", "query_id": "predicate_047_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_047", "language": "vi", "query": "Tìm đồ dùng thú cưng màu đen của AmazonBasics.", "query_id": "predicate_047_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_048", "language": "en", "query": "Find suitcases in red from AmazonBasics.", "query_id": "predicate_048_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_048", "language": "vi", "query": "Tìm va li màu đỏ của AmazonBasics.", "query_id": "predicate_048_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_049", "language": "en", "query": "Find wallets in brown from Traversible.", "query_id": "predicate_049_en", "query_type": "text", "split": "holdout"}
+{"group": "category_brand_color", "intent_id": "predicate_049", "language": "vi", "query": "Tìm ví màu nâu của Traversible.", "query_id": "predicate_049_vi", "query_type": "text", "split": "holdout"}
+{"group": "category_brand_color", "intent_id": "predicate_050", "language": "en", "query": "Find sporting goods in black from Eono.", "query_id": "predicate_050_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_050", "language": "vi", "query": "Tìm đồ dùng thể thao màu đen của Eono.", "query_id": "predicate_050_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_051", "language": "en", "query": "Find shoes in pink from find..", "query_id": "predicate_051_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_051", "language": "vi", "query": "Tìm giày màu hồng của find..", "query_id": "predicate_051_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_052", "language": "en", "query": "Find shoes in navy blue from Klepe.", "query_id": "predicate_052_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_052", "language": "vi", "query": "Tìm giày màu xanh hải quân của Klepe.", "query_id": "predicate_052_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_053", "language": "en", "query": "Find furniture covers in beige from Ravenna Home.", "query_id": "predicate_053_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_053", "language": "vi", "query": "Tìm vỏ bọc nội thất màu be của Ravenna Home.", "query_id": "predicate_053_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_054", "language": "en", "query": "Find shoes in black from Solefit.", "query_id": "predicate_054_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_054", "language": "vi", "query": "Tìm giày màu đen của Solefit.", "query_id": "predicate_054_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_055", "language": "en", "query": "Find bed and bath products in multicolor from Pinzon by Amazon.", "query_id": "predicate_055_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_055", "language": "vi", "query": "Tìm đồ dùng phòng ngủ và phòng tắm màu nhiều màu của Pinzon by Amazon.", "query_id": "predicate_055_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_056", "language": "en", "query": "Find handbags in black from Flavia.", "query_id": "predicate_056_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_056", "language": "vi", "query": "Tìm túi xách màu đen của Flavia.", "query_id": "predicate_056_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_057", "language": "en", "query": "Find bottles in pink from Amazon Brand - Solimo.", "query_id": "predicate_057_en", "query_type": "text", "split": "holdout"}
+{"group": "category_brand_color", "intent_id": "predicate_057", "language": "vi", "query": "Tìm chai màu hồng của Amazon Brand - Solimo.", "query_id": "predicate_057_vi", "query_type": "text", "split": "holdout"}
+{"group": "category_brand_color", "intent_id": "predicate_058", "language": "en", "query": "Find tools in blue from Presto!.", "query_id": "predicate_058_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_058", "language": "vi", "query": "Tìm dụng cụ màu xanh dương của Presto!.", "query_id": "predicate_058_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_059", "language": "en", "query": "Find shoes in green from Amazon Brand - Symbol.", "query_id": "predicate_059_en", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_059", "language": "vi", "query": "Tìm giày màu xanh lá của Amazon Brand - Symbol.", "query_id": "predicate_059_vi", "query_type": "text", "split": "dev"}
+{"group": "category_brand_color", "intent_id": "predicate_060", "language": "en", "query": "Find backpacks in yellow from AmazonBasics.", "query_id": "predicate_060_en", "query_type": "text", "split": "holdout"}
+{"group": "category_brand_color", "intent_id": "predicate_060", "language": "vi", "query": "Tìm ba lô màu vàng của AmazonBasics.", "query_id": "predicate_060_vi", "query_type": "text", "split": "holdout"}
+{"group": "exact_id", "intent_id": "exact_001", "language": null, "query": "B00EQ5JIEO", "query_id": "exact_001", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_002", "language": null, "query": "B0853JGLT7", "query_id": "exact_002", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_003", "language": null, "query": "B07FD941BG", "query_id": "exact_003", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_004", "language": null, "query": "B074MH3FLC", "query_id": "exact_004", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_005", "language": null, "query": "B075ZVGZQY", "query_id": "exact_005", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_006", "language": null, "query": "B074KJ6T9X", "query_id": "exact_006", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_007", "language": null, "query": "B075SY59SG", "query_id": "exact_007", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_008", "language": null, "query": "B07D4FS7GY", "query_id": "exact_008", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_009", "language": null, "query": "B085J7CVVY", "query_id": "exact_009", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_010", "language": null, "query": "B07WJBFJZZ", "query_id": "exact_010", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_011", "language": null, "query": "B07RHV2ZKL", "query_id": "exact_011", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_012", "language": null, "query": "B07RDZDJBG", "query_id": "exact_012", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_013", "language": null, "query": "B07W71BNT3", "query_id": "exact_013", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_014", "language": null, "query": "B07FR5RHKS", "query_id": "exact_014", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_015", "language": null, "query": "B07YV7KJMM", "query_id": "exact_015", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_016", "language": null, "query": "B082TJLGQ1", "query_id": "exact_016", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_017", "language": null, "query": "B07BHFLJGV", "query_id": "exact_017", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_018", "language": null, "query": "B0747KXZV9", "query_id": "exact_018", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_019", "language": null, "query": "B0857P684G", "query_id": "exact_019", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_020", "language": null, "query": "B084RG5PT4", "query_id": "exact_020", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_021", "language": null, "query": "B07XJP3TF3", "query_id": "exact_021", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_022", "language": null, "query": "B082PMRGHY", "query_id": "exact_022", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_023", "language": null, "query": "B07YFB3Y16", "query_id": "exact_023", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_024", "language": null, "query": "B079WX9H4Q", "query_id": "exact_024", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_025", "language": null, "query": "B071J4VYJL", "query_id": "exact_025", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_026", "language": null, "query": "B07HK85S41", "query_id": "exact_026", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_027", "language": null, "query": "B072V89RT7", "query_id": "exact_027", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_028", "language": null, "query": "B07JKJSTVJ", "query_id": "exact_028", "query_type": "text", "split": "dev"}
+{"group": "exact_id", "intent_id": "exact_029", "language": null, "query": "B08511H4VV", "query_id": "exact_029", "query_type": "text", "split": "holdout"}
+{"group": "exact_id", "intent_id": "exact_030", "language": null, "query": "B07R6SW5N7", "query_id": "exact_030", "query_type": "text", "split": "holdout"}
+{"group": "exact_id", "intent_id": "exact_031", "language": null, "query": "B07TG3KV4S", "query_id": "exact_031", "query_type": "text", "split": "holdout"}
+{"group": "exact_id", "intent_id": "exact_032", "language": null, "query": "B07RBZ7958", "query_id": "exact_032", "query_type": "text", "split": "holdout"}
+{"group": "exact_id", "intent_id": "exact_033", "language": null, "query": "B081HMDFCD", "query_id": "exact_033", "query_type": "text", "split": "holdout"}
+{"group": "exact_id", "intent_id": "exact_034", "language": null, "query": "B07FRM1JXK", "query_id": "exact_034", "query_type": "text", "split": "holdout"}
+{"group": "exact_id", "intent_id": "exact_035", "language": null, "query": "B0854M3MX2", "query_id": "exact_035", "query_type": "text", "split": "holdout"}
+{"group": "exact_id", "intent_id": "exact_036", "language": null, "query": "B0854CTNR9", "query_id": "exact_036", "query_type": "text", "split": "holdout"}
+{"group": "exact_id", "intent_id": "exact_037", "language": null, "query": "B0856B1646", "query_id": "exact_037", "query_type": "text", "split": "holdout"}
+{"group": "exact_id", "intent_id": "exact_038", "language": null, "query": "B07TG4VZ6M", "query_id": "exact_038", "query_type": "text", "split": "holdout"}
+{"group": "exact_id", "intent_id": "exact_039", "language": null, "query": "B07TCWSWY4", "query_id": "exact_039", "query_type": "text", "split": "holdout"}
+{"group": "exact_id", "intent_id": "exact_040", "language": null, "query": "B0853XGSJ1", "query_id": "exact_040", "query_type": "text", "split": "holdout"}

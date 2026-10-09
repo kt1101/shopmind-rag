@@ -19,7 +19,7 @@ def render_run_summary(payload: dict[str, Any]) -> str:
         f"- Embedding version: `{payload['embedding_version']}`",
         f"- Retrieval mode: `{payload['retrieval']['mode']}`",
         "",
-        "## Aggregate Metrics",
+        "## Aggregate Metrics (all attempts; failures score zero)",
         "",
         "| Metric | Value |",
         "|---|---:|",
@@ -37,6 +37,19 @@ def render_run_summary(payload: dict[str, Any]) -> str:
     ]
     for query_type, values in payload["metrics_by_query_type"].items():
         lines.append(f"- {query_type}: Recall@10={values['Recall@10']:.6f}, nDCG@10={values['nDCG@10']:.6f}, MRR@10={values['MRR@10']:.6f}")
+    for key in ("language", "group", "split"):
+        lines.extend(["", f"## Metrics by {key}", ""])
+        for label, values in payload.get(f"metrics_by_{key}", {}).items():
+            lines.append(f"- {label}: Recall@10={values['Recall@10']:.6f}, nDCG@10={values['nDCG@10']:.6f}, MRR@10={values['MRR@10']:.6f}")
+    lines.extend(["", "## Successful requests only (diagnostic)", ""])
+    for metric, value in payload.get("metrics_successful_only", {}).items():
+        lines.append(f"- {metric}: {value:.6f}")
+    if "success_rate" in payload:
+        lines.append(f"- Success rate: {payload['success_rate']:.6f}")
+    if "recall_at_10_ceiling" in payload:
+        lines.append(f"- Mean Recall@10 ceiling: {payload['recall_at_10_ceiling']:.6f}")
+    if payload.get("exact_id_top_1_hit_rate") is not None:
+        lines.append(f"- Exact ID top-1 hit rate: {payload['exact_id_top_1_hit_rate']:.6f}")
     lines.extend([
         "",
         "## Query Outcomes",

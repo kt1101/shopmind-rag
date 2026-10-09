@@ -16,6 +16,8 @@ class EvaluationQuery:
     image_path: Path | None = None
     group: str = "general"
     language: Literal["en", "vi"] | None = None
+    split: Literal["dev", "holdout"] | None = None
+    intent_id: str | None = None
 
 
 def _jsonl(path: Path) -> Iterable[tuple[int, dict]]:
@@ -41,6 +43,16 @@ def load_queries(path: str | Path) -> list[EvaluationQuery]:
         query = str(row.get("query") or "").strip() or None
         group = str(row.get("group") or "general").strip()
         language = str(row.get("language") or "").strip() or None
+        split = row.get("split")
+        intent_id = row.get("intent_id")
+        if split is not None and (not isinstance(split, str) or split not in {"dev", "holdout"}):
+            raise ValueError(f"{path}:{line_number} split must be dev or holdout")
+        if intent_id is not None and (not isinstance(intent_id, str) or not intent_id.strip()):
+            raise ValueError(f"{path}:{line_number} intent_id must be a nonempty string")
+        if "intent_id" in row and intent_id is None:
+            raise ValueError(f"{path}:{line_number} intent_id must be a nonempty string")
+        if "split" in row and split is None:
+            raise ValueError(f"{path}:{line_number} split must be dev or holdout")
         if not query_id:
             raise ValueError(f"{path}:{line_number} query_id must not be blank")
         if query_id in seen:
@@ -65,7 +77,7 @@ def load_queries(path: str | Path) -> list[EvaluationQuery]:
             except (FileNotFoundError, UnidentifiedImageError, OSError) as exc:
                 raise ValueError(f"{path}:{line_number} image_path must reference a valid image") from exc
         seen.add(query_id)
-        queries.append(EvaluationQuery(query_id, query, query_type, image_path, group, language))
+        queries.append(EvaluationQuery(query_id, query, query_type, image_path, group, language, split, intent_id))
     return queries
 
 

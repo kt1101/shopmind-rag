@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import yaml
+import pytest
 from PIL import Image
 
 from evaluation.datasets import EvaluationQuery
@@ -63,6 +64,13 @@ def test_run_continues_after_one_query_failure(tmp_path):
     summary = run_experiment(config, FakeSearchService(), queries, qrels, tmp_path / "runs")
     assert summary.successful_queries == 1
     assert summary.failed_queries == 1
+    assert summary.metrics["nDCG@10"] == 0.5
+    payload = json.loads((summary.run_dir / "metrics.json").read_text())
+    assert payload["metrics_successful_only"]["nDCG@10"] == 1.0
+    assert payload["success_rate"] == 0.5
+    assert summary.metrics_successful_only["nDCG@10"] == 1.0
+    assert summary.success_rate == 0.5
+    assert payload["metrics_by_group"]["general"]["nDCG@10"] == 0.5
     errors = [json.loads(line) for line in (summary.run_dir / "errors.jsonl").read_text().splitlines()]
     assert errors[0]["query_id"] == "q1"
     assert errors[0]["error_type"] == "RuntimeError"
@@ -105,3 +113,34 @@ def test_query_type_filter_runs_only_requested_queries(tmp_path):
     summary = run_experiment(config, FakeSearchService(), queries, qrels, tmp_path / "runs", query_type="text")
 
     assert summary.successful_queries == 1
+
+
+def test_runner_exports_split_metrics_exact_id_hits_and_recall_ceiling(tmp_path):
+    config = tmp_path / "experiment.yaml"
+    _config(config)
+    queries = [
+        EvaluationQuery("q1", "oak chair", group="exact_id", split="dev", intent_id="id1"),
+        EvaluationQuery("q2", "broken", group="exact_id", split="holdout", intent_id="id2"),
+    ]
+    summary = run_experiment(config, FakeSearchService(), queries, {"q1": {"P3": 1}, "q2": {"P1": 1}}, tmp_path / "runs")
+    payload = json.loads((summary.run_dir / "metrics.json").read_text())
+    assert payload["metrics_by_split"]["dev"]["nDCG@10"] == 1.0
+    assert payload["metrics_by_split"]["holdout"]["nDCG@10"] == 0.0
+    assert payload["exact_id_top_1_hit_rate"] == 0.5
+    assert payload["exact_id_top_1_hit_rate_by_split"] == {"dev": 1.0, "holdout": 0.0}
+    assert payload["recall_at_10_ceiling"] == 1.0
+    row = json.loads((summary.run_dir / "results.jsonl").read_text())
+    assert row["intent_id"] == "id1"
+    assert row["split"] == "dev"
+    broad = run_experiment(config, FakeSearchService(), [queries[0]], {"q1": {f"P{i}": 1 for i in range(20)}}, tmp_path / "broad")
+    assert json.loads((broad.run_dir / "metrics.json").read_text())["recall_at_10_ceiling"] == 0.5
+
+
+def test_all_failed_retrieval_run_writes_zero_metrics_before_raising(tmp_path):
+    config = tmp_path / "experiment.yaml"
+    _config(config)
+    with pytest.raises(RuntimeError, match="all queries failed"):
+        run_experiment(config, FakeSearchService(), [EvaluationQuery("q1", "broken")], {"q1": {"P1": 1}}, tmp_path / "runs")
+    payload = json.loads(next((tmp_path / "runs").glob("*/metrics.json")).read_text())
+    assert payload["metrics"]["nDCG@10"] == 0.0
+    assert payload["success_rate"] == 0.0
