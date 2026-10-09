@@ -34,3 +34,18 @@ def test_empty_batches_return_correct_empty_shape():
 def test_real_siglip2_text_and_image_dimensions_match():
     if os.getenv("RUN_SLOW_MODEL_TESTS")!="1": pytest.skip("set RUN_SLOW_MODEL_TESTS=1 to download/load the configured SigLIP2 model")
     provider=SigLIP2EmbeddingProvider(model_name="google/siglip2-base-patch16-224"); text=provider.embed_texts(["black running shoe"]); image=provider.embed_images([Image.new("RGB",(224,224),"black")]); assert text.shape[1]==image.shape[1]==provider.dimension; assert provider.dimension>0
+
+
+def test_text_padding_is_fixed_across_batches():
+    class Processor(FakeProcessor):
+        def __call__(self, **kwargs):
+            assert kwargs["padding"] == "max_length"
+            assert kwargs["max_length"] == 64
+            return super().__call__(**kwargs)
+    provider=SigLIP2EmbeddingProvider("fake", processor=Processor(), model=FakeModel())
+    np.testing.assert_array_equal(provider.embed_texts(["one"])[0], provider.embed_texts(["one", "a very long companion"])[0])
+
+@pytest.mark.parametrize("features", [torch.zeros(1,3),torch.tensor([[float("nan"),1,2]]),torch.tensor([[float("inf"),1,2]])])
+def test_model_rejects_invalid_vectors(features):
+    provider=SigLIP2EmbeddingProvider("fake", processor=FakeProcessor(), model=FakeModel())
+    with pytest.raises(ValueError): provider._normalize_numpy(features)

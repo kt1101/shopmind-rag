@@ -90,13 +90,15 @@ class DebugSearchResult(BaseModel):
     reranker_score: float | None
     bm25_score: float | None
     dense_score: float | None
+    ordering_policy: str | None = None
 
     @classmethod
     def from_domain(cls, result: SearchResult, *, rrf_k: int) -> "DebugSearchResult":
         scores = result.retrieval_scores
-        fused = result.source == "hybrid"
+        fused = result.source == "hybrid" and scores.rrf_score is not None
         return cls(
             product_id=result.product_id, title=result.title, rank=result.rank, source=result.source,
+            ordering_policy=result.metadata.get("ordering_policy"),
             final_score=result.score, bm25_rank=scores.bm25_rank, dense_rank=scores.dense_rank,
             bm25_rrf_contribution=1 / (rrf_k + scores.bm25_rank) if fused and scores.bm25_rank is not None else None,
             dense_rrf_contribution=1 / (rrf_k + scores.dense_rank) if fused and scores.dense_rank is not None else None,

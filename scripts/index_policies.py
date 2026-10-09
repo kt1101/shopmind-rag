@@ -7,6 +7,7 @@ import numpy as np
 
 from scripts.generate_knowledge_embeddings import load_knowledge_documents
 from shopmind.app.core.config import load_app_config
+from shopmind.app.embedding.validation import index_embedding_metadata, validate_vectors
 from shopmind.app.infrastructure.elasticsearch.client import create_elasticsearch_client
 from shopmind.app.infrastructure.elasticsearch.index import switch_alias
 from shopmind.app.infrastructure.elasticsearch.knowledge_index import create_knowledge_index, validate_knowledge_index
@@ -17,6 +18,7 @@ from shopmind.pipeline.knowledge_embedding_artifacts import load_knowledge_embed
 def build_policy_index_documents(rows, document_ids, vectors, *, embedding_model: str, embedding_version: str):
     row_ids = [str(row["document_id"]) for row in rows]
     if row_ids != list(document_ids): raise ValueError("processed policy order must exactly match embedding document IDs")
+    validate_vectors(vectors, vectors.shape[1])
     output=[]
     for row,vector in zip(rows,vectors,strict=True):
         meta=dict(row.get("metadata") or {}); section_id=str(row["document_id"]).removeprefix("policy:")
@@ -28,7 +30,7 @@ def main() -> None:
     if args.batch_size<=0: raise ValueError("batch-size must be positive")
     rows=[document.to_dict() for document in load_knowledge_documents(args.input,"policy")];manifest,document_ids,vectors=load_knowledge_embedding_artifacts(args.embeddings);documents=build_policy_index_documents(rows,document_ids,vectors,embedding_model=manifest.model,embedding_version=manifest.model_revision or "default")
     if not documents: raise ValueError("cannot build policy index from an empty document set")
-    config=load_app_config(args.config);client=create_elasticsearch_client(config.elasticsearch);create_knowledge_index(client,args.index_name,"policy",manifest.dimension,recreate=args.recreate);repository=ElasticsearchKnowledgeRepository(client,args.index_name,source="policy");success,errors=0,[]
+    config=load_app_config(args.config);client=create_elasticsearch_client(config.elasticsearch);create_knowledge_index(client,args.index_name,"policy",manifest.dimension,recreate=args.recreate, embedding_metadata=index_embedding_metadata(manifest));repository=ElasticsearchKnowledgeRepository(client,args.index_name,source="policy");success,errors=0,[]
     for start in range(0,len(documents),args.batch_size): batch_success,batch_errors=repository.bulk_index(args.index_name,documents[start:start+args.batch_size]);success+=batch_success;errors.extend(batch_errors)
     if errors or success!=len(documents): raise RuntimeError(f"bulk indexing failed: {success}/{len(documents)}")
     client.indices.refresh(index=args.index_name);validate_knowledge_index(client,args.index_name,"policy",len(documents),manifest.dimension,documents[0]["title"],documents[0]["text_vector"])

@@ -40,3 +40,27 @@ def test_repository_bm25_vector_filter_and_alias_lifecycle():
     finally:
         try: client.indices.delete(index=index_name,ignore_unavailable=True)
         except Exception: pass
+
+
+def test_embedding_contract_pins_alias_and_rejects_wrong_identity_and_vectors():
+    from types import SimpleNamespace
+    from shopmind.app.embedding.validation import index_embedding_metadata
+    from shopmind.app.infrastructure.elasticsearch.index import create_versioned_index, switch_alias
+    from shopmind.app.infrastructure.elasticsearch.repository import ElasticsearchProductRepository
+    client=_client_or_skip();a=f"test_contract_{uuid.uuid4().hex}";b=f"test_contract_{uuid.uuid4().hex}";alias=f"test_contract_alias_{uuid.uuid4().hex}"
+    embedder=SimpleNamespace(model_name="fake",model_revision="rev",dimension=4,text_preprocessing={"padding":"fixed"})
+    try:
+        create_versioned_index(client,a,4,embedding_metadata=index_embedding_metadata(embedder))
+        create_versioned_index(client,b,4)
+        switch_alias(client,alias=alias,target=a)
+        repo=ElasticsearchProductRepository(client,alias);repo.bind_embedding(embedder)
+        switch_alias(client,alias=alias,target=b)
+        assert repo.index_alias==a
+        repo.bind_embedding(embedder)
+        with pytest.raises(ValueError):ElasticsearchProductRepository(client,alias).bind_embedding(embedder)
+        for vector in ([0,0,0,0],[float("nan"),0,0,1],[1,0,0]):
+            with pytest.raises(ValueError):repo.vector_search("text_vector",vector,1,1,{})
+        with pytest.raises(ValueError):repo.bulk_index(a,[{"product_id":"P", "text_vector":[1,0,0,0], "embedding_model":"fake", "embedding_version":"wrong"}])
+        assert client.count(index=a)["count"]==0
+    finally:
+        client.indices.delete(index=f"{a},{b}",ignore_unavailable=True)

@@ -34,6 +34,11 @@ class SigLIP2EmbeddingProvider:
         self.model = model.to(self.device)
         self.model.eval()
         self.dimension = self._resolve_dimension(self.model)
+        self.model_revision = getattr(self.model.config, "_commit_hash", None) or model_revision
+        self.text_preprocessing = {"padding": "max_length", "max_length": 64, "truncation": True}
+        image_processor = getattr(processor, "image_processor", None)
+        self.image_preprocessing = {"processor": type(image_processor).__name__,
+                                    "config": image_processor.to_dict() if image_processor is not None else {}}
         self.is_ready = True
 
     @staticmethod
@@ -66,13 +71,16 @@ class SigLIP2EmbeddingProvider:
             raise ValueError(f"expected 2D feature tensor, got shape {tuple(features.shape)}")
         if features.shape[1] != self.dimension:
             raise ValueError(f"model returned feature dimension {features.shape[1]}, expected {self.dimension}")
+        norms = torch.linalg.vector_norm(features.float(), dim=1)
+        if not torch.isfinite(features).all() or not torch.isfinite(norms).all() or torch.any(norms <= 1e-12):
+            raise ValueError("model features must be finite with nonzero norm")
         normalized = F.normalize(features.float(), p=2, dim=1)
         return normalized.detach().cpu().numpy().astype(np.float32, copy=False)
 
     def embed_texts(self, texts: Sequence[str]) -> np.ndarray:
         if not texts:
             return np.empty((0, self.dimension), dtype=np.float32)
-        inputs = self.processor(text=list(texts), padding=True, truncation=True, return_tensors="pt")
+        inputs = self.processor(text=list(texts), padding="max_length", max_length=64, truncation=True, return_tensors="pt")
         moved = self._to_device(inputs)
         with torch.inference_mode():
             features = self.model.get_text_features(**moved)

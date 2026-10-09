@@ -20,6 +20,8 @@ class EmbeddingManifest:
     product_count: int
     normalized: bool
     created_at: str
+    text_preprocessing: dict[str, Any] | None = None
+    image_preprocessing: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         if self.dimension <= 0:
@@ -70,6 +72,8 @@ def validate_artifacts(directory: str | Path, manifest: EmbeddingManifest) -> No
     product_ids = _load_product_ids(directory)
     text = _load_matrix(directory / "text_embeddings.npy")
     image = _load_matrix(directory / "image_embeddings.npy")
+    if len(set(product_ids)) != len(product_ids):
+        raise ValueError("product IDs must be unique")
     if len(product_ids) != manifest.product_count:
         raise ValueError(f"product ID count {len(product_ids)} does not match manifest product_count {manifest.product_count}")
     if text.shape[0] != manifest.product_count or image.shape[0] != manifest.product_count:
@@ -80,6 +84,9 @@ def validate_artifacts(directory: str | Path, manifest: EmbeddingManifest) -> No
         raise ValueError("embedding matrices must use float32 dtype")
     if not np.isfinite(text).all() or not np.isfinite(image).all():
         raise ValueError("embedding matrices must not contain NaN or Inf")
+    from shopmind.app.embedding.validation import validate_vectors
+    validate_vectors(text, manifest.dimension)
+    validate_vectors(image, manifest.dimension, allow_zero=True)
     if manifest.normalized:
         _validate_normalized(text, allow_zero_rows=False, name="text_embeddings")
         _validate_normalized(image, allow_zero_rows=True, name="image_embeddings")

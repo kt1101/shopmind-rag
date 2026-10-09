@@ -10,13 +10,19 @@ def build_products_mapping(dimension: int) -> dict[str, Any]:
     return {"mappings": {"dynamic": "strict", "properties": {"product_id": {"type": "keyword"}, "title": {"type": "text", "fields": keyword_subfield}, "description": {"type": "text"}, "brand": {"type": "text", "fields": keyword_subfield}, "category": {"type": "text", "fields": keyword_subfield}, "attributes": {"type": "object", "enabled": False}, "attributes_text": {"type": "text"}, "search_text": {"type": "text"}, "image_url": {"type": "keyword", "index": False}, "text_vector": {"type": "dense_vector", "dims": dimension, "index": True, "similarity": "cosine"}, "image_vector": {"type": "dense_vector", "dims": dimension, "index": True, "similarity": "cosine"}, "embedding_model": {"type": "keyword"}, "embedding_version": {"type": "keyword"}, "metadata": {"type": "object", "dynamic": True}}}}
 
 
-def create_versioned_index(client: Any, index_name: str, dimension: int, *, recreate: bool = False) -> None:
+def create_versioned_index(client: Any, index_name: str, dimension: int, *, recreate: bool = False, embedding_metadata: dict[str, Any] | None = None) -> None:
     exists = bool(client.indices.exists(index=index_name))
     if exists and not recreate:
         raise FileExistsError(f"Elasticsearch index already exists: {index_name}")
     if exists:
+        indices = client.indices.get(index=index_name)
+        if any(name != index_name or details.get("aliases") for name, details in indices.items()):
+            raise ValueError("cannot recreate an index with aliases; use a new versioned index")
         client.indices.delete(index=index_name)
-    client.indices.create(index=index_name, **build_products_mapping(dimension))
+    mapping = build_products_mapping(dimension)
+    if embedding_metadata is not None:
+        mapping["mappings"]["_meta"] = embedding_metadata
+    client.indices.create(index=index_name, **mapping)
 
 
 def _mapping_dimension(client: Any, index_name: str, field: str) -> int:

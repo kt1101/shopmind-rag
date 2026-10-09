@@ -20,3 +20,31 @@ def test_hybrid_uses_shared_candidate_request_fuses_then_reranks():
 
 def test_noop_reranker_is_stable_and_truncates():
     values=[result("A",1,"hybrid"),result("B",2,"hybrid")]; assert NoOpReranker().rerank("q",values,1)==values[:1]
+
+
+def test_lowercase_exact_id_stays_first_despite_fusion_and_reranking():
+    bm=FakeRetriever([result("B07EXACT12",1,"bm25"),result("other",2,"bm25")]);dense=FakeRetriever([result("other",1,"dense"),result("B07EXACT12",99,"dense")])
+    output=HybridRetriever(bm,dense,RecordingReranker()).search(SearchRequest("b07exact12",top_k=1,candidate_k=5))
+    assert output[0].product_id=="B07EXACT12"
+
+
+def test_lexical_preserving_hybrid_does_not_promote_dense_disagreements():
+    bm=FakeRetriever([result("A",1,"bm25"),result("B",2,"bm25")]);dense=FakeRetriever([result("B",1,"dense"),result("C",2,"dense")])
+    assert [r.product_id for r in HybridRetriever(bm,dense,NoOpReranker(),lexical_preserving=True).search(SearchRequest("q",top_k=3,candidate_k=5))]==["A","B","C"]
+
+
+def test_exact_id_debug_does_not_claim_semantic_or_rrf_contributions():
+    from shopmind.app.api.schemas.search import DebugSearchResult
+    bm=FakeRetriever([result("B07EXACT12",1,"bm25")]);dense=FakeRetriever([])
+    hit=HybridRetriever(bm,dense,NoOpReranker()).search(SearchRequest("b07exact12",top_k=1,candidate_k=5))[0]
+    debug=DebugSearchResult.from_domain(hit,rrf_k=60)
+    assert debug.ordering_policy=="exact_id"
+    assert debug.rrf_score is None and debug.bm25_rrf_contribution is None and debug.dense_rrf_contribution is None
+    assert not dense.requests
+
+
+def test_lexical_preserving_keeps_all_lexical_candidates_before_truncation():
+    bm=FakeRetriever([result(f"lexical{i}",i,"bm25") for i in range(1,6)])
+    dense=FakeRetriever([result(f"dense{i}",i,"dense") for i in range(1,6)])
+    output=HybridRetriever(bm,dense,NoOpReranker(),lexical_preserving=True).search(SearchRequest("q",top_k=5,candidate_k=5))
+    assert [r.product_id for r in output]==[f"lexical{i}" for i in range(1,6)]

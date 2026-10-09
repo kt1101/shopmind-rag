@@ -76,7 +76,9 @@ def test_review_repository_filters_both_search_modes_by_exact_product_id():
 
     class Client:
         def __init__(self):
+            from types import SimpleNamespace
             self.calls = []
+            self.indices = SimpleNamespace(get_mapping=lambda **kwargs: {"reviews_v1": {"mappings": {"properties": {"text_vector": {"dims": 2}}}}})
 
         def search(self, **kwargs):
             self.calls.append(kwargs)

@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 from shopmind.app.domain.search_result import RawSearchHit
+from shopmind.app.retrieval.language import normalize_lexical_query
+from shopmind.app.embedding.validation import embedding_identity, validate_index_identity, validate_vectors
 
 _FILTER_FIELDS = {"brand": "brand.keyword", "category": "category.keyword", "product_id": "product_id"}
 _VECTOR_FIELDS = {"text_vector", "image_vector"}
@@ -74,6 +76,14 @@ class ElasticsearchProductRepository:
         self.client = client
         self.index_alias = index_alias
 
+    def bind_embedding(self, embedder: Any, field: str = "text_vector", modality: str = "text") -> None:
+        self.index_alias = validate_index_identity(self.client, self.index_alias, embedding_identity(embedder, modality), field)
+
+    def exact_id_search(self, query: str, filters: dict[str, str | list[str]]) -> list[RawSearchHit]:
+        clauses = self._resolved_filter_clauses(filters)
+        response = self.client.search(index=self.index_alias, query={"bool": {"filter": clauses + [{"term": {"product_id": {"value": query.strip(), "case_insensitive": True}}}]}}, size=1, source_excludes=["text_vector", "image_vector"])
+        return [_to_raw_hit(hit) for hit in response.get("hits", {}).get("hits", [])]
+
     def ping(self) -> bool:
         return bool(self.client.ping())
 
@@ -95,7 +105,8 @@ class ElasticsearchProductRepository:
         return clauses
 
     def _lexical_once(self, query: str | None, size: int, clauses: list[dict[str, Any]]) -> list[RawSearchHit]:
-        must = [{"match_all": {}}] if query is None else [{"multi_match": {"query": query, "fields": ["title^3", "brand^2", "category^2", "description", "attributes_text", "search_text"]}}]
+        lexical_query = normalize_lexical_query(query) if query else query
+        must = [{"match_all": {}}] if query is None else [{"multi_match": {"query": lexical_query, "fields": ["title^3", "brand^2", "category^2", "description", "attributes_text", "search_text"]}}]
         search_query: dict[str, Any] = {"bool": {"must": must, "filter": clauses}}
         if query:
             search_query = {"bool": {"filter": clauses, "minimum_should_match": 1, "should": [
@@ -119,6 +130,11 @@ class ElasticsearchProductRepository:
             raise ValueError(f"unsupported vector field: {field}")
         if size <= 0 or num_candidates < size:
             raise ValueError("num_candidates must be >= positive size")
+        mappings = self.client.indices.get_mapping(index=self.index_alias)
+        if len(mappings) != 1:
+            raise ValueError("vector queries require one physical index")
+        self.index_alias, mapping = next(iter(mappings.items()))
+        validate_vectors([vector], int(mapping["mappings"]["properties"][field]["dims"]))
         clauses = self._resolved_filter_clauses(filters)
 
         def search_with(filter_clauses: list[dict[str, Any]]) -> list[RawSearchHit]:
@@ -151,9 +167,24 @@ class ElasticsearchProductRepository:
         buckets = response.get("aggregations", {}).get("options", {}).get("buckets", [])
         return [{"value": str(bucket["key"]), "count": int(bucket.get("doc_count", 0))} for bucket in buckets]
 
+    def _validate_bulk(self, index_name: str, documents: list[dict[str, Any]]) -> None:
+        mappings = self.client.indices.get_mapping(index=index_name)
+        if list(mappings) != [index_name]:
+            raise ValueError("bulk writes require a physical index")
+        mapping = mappings[index_name]["mappings"]
+        for document in documents:
+            for field in ("text_vector", "image_vector"):
+                if field not in document:
+                    continue
+                validate_vectors([document[field]], int(mapping["properties"][field]["dims"]))
+                identity = mapping.get("_meta", {}).get("embedding_identity", {}).get(field)
+                if identity and (document.get("embedding_model") != identity["model"] or document.get("embedding_version") != identity["model_revision"]):
+                    raise ValueError("document model/revision does not match index identity")
+
     def bulk_index(self, index_name: str, documents: list[dict[str, Any]]) -> tuple[int, list[dict[str, Any]]]:
         if not documents:
             return 0, []
+        self._validate_bulk(index_name, documents)
         try:
             from elasticsearch.helpers import bulk
         except ImportError as exc:

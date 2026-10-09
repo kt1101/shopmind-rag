@@ -58,7 +58,7 @@ def build_policies_mapping(dimension: int) -> dict[str, Any]:
     }
 
 
-def create_knowledge_index(client: Any, index_name: str, source: str, dimension: int, *, recreate: bool = False) -> None:
+def create_knowledge_index(client: Any, index_name: str, source: str, dimension: int, *, recreate: bool = False, embedding_metadata: dict[str, Any] | None = None) -> None:
     if source not in {"review", "policy"}:
         raise ValueError("source must be review or policy")
     mapping = build_reviews_mapping(dimension) if source == "review" else build_policies_mapping(dimension)
@@ -70,6 +70,8 @@ def create_knowledge_index(client: Any, index_name: str, source: str, dimension:
         if any(name != index_name or details.get("aliases") for name, details in indices.items()):
             raise ValueError(f"cannot recreate {index_name} while it has an alias; use a new versioned index")
         client.indices.delete(index=index_name)
+    if embedding_metadata is not None:
+        mapping["mappings"]["_meta"] = embedding_metadata
     client.indices.create(index=index_name, **mapping)
 
 
