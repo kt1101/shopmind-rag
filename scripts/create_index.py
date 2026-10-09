@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from shopmind.app.core.config import load_app_config
+from shopmind.app.embedding.validation import index_embedding_metadata
 from shopmind.app.infrastructure.elasticsearch.client import create_elasticsearch_client
 from shopmind.app.infrastructure.elasticsearch.index import create_versioned_index
 from shopmind.pipeline.embedding_artifacts import EmbeddingManifest
@@ -34,7 +35,7 @@ def main() -> None:
     manifest_path = args.manifest if args.manifest is not None else args.artifacts_dir / "manifest.json"
     manifest = _read_manifest(manifest_path)
     client = create_elasticsearch_client(config.elasticsearch)
-    create_versioned_index(client, args.index_name, manifest.dimension, recreate=args.recreate)
+    create_versioned_index(client, args.index_name, manifest.dimension, recreate=args.recreate, embedding_metadata=index_embedding_metadata(manifest, image=True))
     print(f"created {args.index_name} with dimension {manifest.dimension}")
 
 

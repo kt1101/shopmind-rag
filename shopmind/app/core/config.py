@@ -20,6 +20,7 @@ class EmbeddingConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     provider: str = "siglip2"
     model_name: str
+    model_revision: str | None = None
     batch_size: int = Field(default=32, gt=0)
     hf_token: str | None = None
 
@@ -34,6 +35,7 @@ class RetrievalConfig(BaseModel):
 class FusionConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     method: str = "rrf"
+    lexical_preserving: bool = False
     rrf_k: int = Field(default=60, gt=0)
 
 

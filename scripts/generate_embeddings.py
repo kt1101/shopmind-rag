@@ -98,7 +98,7 @@ def generate_embeddings(input_path: str | Path, output_dir: str | Path, provider
     texts = [build_search_text(product) for product in products]
     text_embeddings = _embed_texts(provider, texts, batch_size)
     image_embeddings = _embed_images(provider, records, batch_size)
-    manifest = EmbeddingManifest(model=provider.model_name, model_revision=provider.model_revision, dimension=provider.dimension, dataset_version=dataset_version, product_count=len(products), normalized=True, created_at=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"))
+    manifest = EmbeddingManifest(model=provider.model_name, model_revision=provider.model_revision, dimension=provider.dimension, dataset_version=dataset_version, product_count=len(products), normalized=True, created_at=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"), text_preprocessing=getattr(provider, "text_preprocessing", None), image_preprocessing=getattr(provider, "image_preprocessing", None))
     return write_embedding_artifacts(output_dir, product_ids, text_embeddings, image_embeddings, manifest, force=force)
 
 
@@ -117,7 +117,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     args = build_parser().parse_args()
     config = load_app_config(args.config)
-    provider = SigLIP2EmbeddingProvider(model_name=config.embedding.model_name, model_revision=None, device=None if args.device == "auto" else args.device, hf_token=config.embedding.hf_token)
+    provider = SigLIP2EmbeddingProvider(model_name=config.embedding.model_name, model_revision=config.embedding.model_revision, device=None if args.device == "auto" else args.device, hf_token=config.embedding.hf_token)
     output = generate_embeddings(input_path=args.input, output_dir=args.output_dir, provider=provider, dataset_version=args.dataset_version, limit=args.limit, batch_size=config.embedding.batch_size, force=args.force)
     print(f"wrote embedding artifacts to {output}")
 

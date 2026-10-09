@@ -1,4 +1,4 @@
-from __future__ import annotations
+from shopmind.app.embedding.validation import index_embedding_metadata
 
 import os
 import uuid
@@ -18,6 +18,7 @@ pytestmark = pytest.mark.integration
 
 
 class Fake4DEmbedder:
+    text_preprocessing={"fixture":1}; image_preprocessing={"fixture":1}
     model_name="fake-4d"; model_revision="test"; dimension=4; is_ready=True
     def embed_texts(self,texts):
         rows=[]
@@ -49,7 +50,7 @@ def _documents():
 def test_end_to_end_all_retrieval_modes_and_image_search():
     client=_client_or_skip(); index_name=f"test_e2e_products_{uuid.uuid4().hex}"; alias=f"test_e2e_alias_{uuid.uuid4().hex}"
     try:
-        create_versioned_index(client,index_name,4); direct_repo=ElasticsearchProductRepository(client,index_name); success,errors=direct_repo.bulk_index(index_name,_documents()); assert success==3 and errors==[]; client.indices.refresh(index=index_name); switch_alias(client,alias=alias,target=index_name)
+        create_versioned_index(client,index_name,4,embedding_metadata=index_embedding_metadata(Fake4DEmbedder(),image=True)); direct_repo=ElasticsearchProductRepository(client,index_name); success,errors=direct_repo.bulk_index(index_name,_documents()); assert success==3 and errors==[]; client.indices.refresh(index=index_name); switch_alias(client,alias=alias,target=index_name)
         repository=ElasticsearchProductRepository(client,alias); embedder=Fake4DEmbedder(); bm25=BM25Retriever(repository); dense=TextDenseRetriever(repository,embedder); cross_modal=CrossModalRetriever(repository,embedder); hybrid=HybridRetriever(bm25,dense,NoOpReranker(),rrf_k=60); image=ImageDenseRetriever(repository,embedder); service=SearchService(bm25=bm25,dense=dense,hybrid=hybrid,cross_modal=cross_modal,image=image)
         for mode in (SearchMode.BM25,SearchMode.DENSE,SearchMode.CROSS_MODAL,SearchMode.HYBRID):
             results=service.search_text(SearchRequest("black running shoe",mode=mode,top_k=2,candidate_k=3)); assert results; assert "P1" in {result.product_id for result in results}

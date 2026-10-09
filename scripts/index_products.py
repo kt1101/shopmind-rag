@@ -8,6 +8,8 @@ from typing import Any
 import numpy as np
 
 from shopmind.app.core.config import load_app_config
+from shopmind.app.retrieval.language import catalog_color_terms
+from shopmind.app.embedding.validation import index_embedding_metadata, validate_index_identity, validate_vectors
 from shopmind.app.infrastructure.elasticsearch.client import create_elasticsearch_client
 from shopmind.app.infrastructure.elasticsearch.index import switch_alias, validate_product_index
 from shopmind.app.infrastructure.elasticsearch.repository import ElasticsearchProductRepository
@@ -36,12 +38,14 @@ def build_index_documents(processed_rows: list[dict[str, Any]], product_ids: lis
         raise ValueError("processed product order must exactly match embedding product_ids.json")
     if text_embeddings.shape[0] != len(row_ids) or image_embeddings.shape[0] != len(row_ids):
         raise ValueError("embedding row count does not match processed products")
+    validate_vectors(text_embeddings, text_embeddings.shape[1])
+    validate_vectors(image_embeddings, text_embeddings.shape[1], allow_zero=True)
     documents: list[dict[str, Any]] = []
     for row, text_vector, image_vector in zip(processed_rows, text_embeddings, image_embeddings, strict=True):
         attributes = dict(row.get("attributes") or {})
         metadata = dict(row.get("metadata") or {})
         metadata["missing_image"] = bool(np.isclose(np.linalg.norm(image_vector), 0.0, atol=1e-6))
-        document = {"product_id": str(row["product_id"]), "title": str(row.get("title") or ""), "description": str(row.get("description") or ""), "brand": row.get("brand"), "category": row.get("category"), "attributes": attributes, "attributes_text": "\n".join(f"{key}: {attributes[key]}" for key in sorted(attributes)), "search_text": str(row.get("search_text") or ""), "image_url": public_image_url(row.get("main_image_path")), "text_vector": text_vector.astype(np.float32, copy=False).tolist(), "embedding_model": embedding_model, "embedding_version": embedding_version, "metadata": metadata}
+        document = {"product_id": str(row["product_id"]), "title": str(row.get("title") or ""), "description": str(row.get("description") or ""), "brand": row.get("brand"), "category": row.get("category"), "attributes": attributes, "attributes_text": "\n".join(f"{key}: {attributes[key]}" for key in sorted(attributes)), "search_text": str(row.get("search_text") or "") + "\n" + catalog_color_terms(str(attributes.get("color") or "")), "image_url": public_image_url(row.get("main_image_path")), "text_vector": text_vector.astype(np.float32, copy=False).tolist(), "embedding_model": embedding_model, "embedding_version": embedding_version, "metadata": metadata}
         if not metadata["missing_image"]:
             document["image_vector"] = image_vector.astype(np.float32, copy=False).tolist()
         documents.append(document)
@@ -82,9 +86,12 @@ def main() -> None:
     config = load_app_config(args.config)
     manifest, product_ids, text, image = load_embedding_artifacts(args.artifacts_dir)
     rows = _read_processed(args.products)
+    metadata = index_embedding_metadata(manifest, image=True)
     documents = build_index_documents(rows, product_ids, text, image, embedding_model=manifest.model, embedding_version=manifest.model_revision or manifest.dataset_version)
     client = create_elasticsearch_client(config.elasticsearch)
     repository = ElasticsearchProductRepository(client, args.index_name)
+    for field, identity in metadata["embedding_identity"].items():
+        validate_index_identity(client, args.index_name, identity, field)
     success, errors = index_products(repository, index_name=args.index_name, documents=documents, batch_size=args.batch_size)
     if errors or success != len(documents):
         raise RuntimeError(f"bulk indexing failed: {success}/{len(documents)} succeeded; errors={len(errors)}")

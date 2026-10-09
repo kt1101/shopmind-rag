@@ -36,6 +36,7 @@ class Repository:
 
 
 class Embedder:
+    dimension = 2
     def __init__(self):
         self.calls = 0
 

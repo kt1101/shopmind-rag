@@ -6,7 +6,11 @@ import numpy as np
 @dataclass(frozen=True)
 class KnowledgeEmbeddingManifest:
     model:str;model_revision:str|None;dimension:int;dataset_version:str;document_count:int;normalized:bool;created_at:str
+    text_preprocessing:dict|None=None
 def _validate(ids,matrix,manifest):
+    from shopmind.app.embedding.validation import validate_vectors
+    validate_vectors(matrix,manifest.dimension)
+    if len(set(ids))!=len(ids) or not all(isinstance(x,str) and x for x in ids):raise ValueError('knowledge document IDs must be unique nonempty strings')
     if manifest.dimension<=0 or manifest.document_count<0:raise ValueError('invalid knowledge embedding manifest')
     if len(ids)!=manifest.document_count or matrix.shape!=(manifest.document_count,manifest.dimension):raise ValueError('knowledge embedding shape/count mismatch')
     if matrix.dtype!=np.float32 or not np.isfinite(matrix).all():raise ValueError('knowledge embeddings must be finite float32')

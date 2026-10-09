@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from shopmind.app.retrieval.dense import _single_vector
+
 from shopmind.app.domain.search_result import RetrievedDocument
 from shopmind.app.knowledge.base import KnowledgeMode, resolve_knowledge_mode, rrf_knowledge_hits
 
@@ -14,10 +16,12 @@ class ReviewDocumentRetriever:
 
     def retrieve(self, query: str, top_k: int, product_id: str | None = None) -> list[RetrievedDocument]:
         mode = resolve_knowledge_mode(self.mode, query)
+        if mode in (KnowledgeMode.DENSE, KnowledgeMode.HYBRID) and hasattr(self.repository, "bind_embedding"):
+            self.repository.bind_embedding(self.embedder)
         lexical = self.repository.lexical_search(query, self.candidate_k, product_id=product_id) if mode in (KnowledgeMode.BM25, KnowledgeMode.HYBRID) else []
         dense = []
         if mode in (KnowledgeMode.DENSE, KnowledgeMode.HYBRID):
-            vector = self.embedder.embed_texts([query])[0].astype("float32").tolist()
+            vector = _single_vector(self.embedder.embed_texts([query]), self.embedder.dimension, kind="review")
             dense = self.repository.vector_search(vector, self.candidate_k, self.candidate_k, product_id=product_id)
         if product_id is not None:
             lexical = [hit for hit in lexical if hit.metadata.get("product_id") == product_id]

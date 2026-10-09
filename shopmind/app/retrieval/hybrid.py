@@ -10,18 +10,30 @@ from shopmind.app.retrieval.reranker import Reranker
 
 
 class HybridRetriever:
-    def __init__(self, bm25: Retriever, dense: Retriever, reranker: Reranker, rrf_k: int = 60) -> None:
+    def __init__(self, bm25: Retriever, dense: Retriever, reranker: Reranker, rrf_k: int = 60, *, lexical_preserving: bool = False) -> None:
         if rrf_k <= 0:
             raise ValueError("rrf_k must be positive")
         self.bm25 = bm25
         self.dense = dense
         self.reranker = reranker
         self.rrf_k = rrf_k
+        self.lexical_preserving = lexical_preserving
 
     def search(self, request: SearchRequest) -> list[SearchResult]:
+        if hasattr(self.bm25, "exact_id_search"):
+            exact = self.bm25.exact_id_search(request)
+            if exact:
+                return [replace(result, rank=1, source="hybrid", metadata={**result.metadata, "ordering_policy": "exact_id"}) for result in exact]
         candidate_request = replace(request, top_k=request.candidate_k, candidate_k=request.candidate_k)
         bm25_results = self.bm25.search(candidate_request)
+        exact = [result for result in bm25_results if request.query and result.product_id.casefold() == request.query.strip().casefold()]
+        if exact:
+            return [replace(result, rank=1, source="hybrid", metadata={**result.metadata, "ordering_policy": "exact_id"}) for result in exact]
         dense_results = self.dense.search(candidate_request)
-        fused = rrf_fuse([bm25_results, dense_results], k=self.rrf_k, top_k=request.candidate_k)
+        fused = rrf_fuse([bm25_results, dense_results], k=self.rrf_k, top_k=request.candidate_k * (2 if self.lexical_preserving else 1))
+        if self.lexical_preserving:
+            by_id = {result.product_id: result for result in fused}
+            lexical_ids = {result.product_id for result in bm25_results}
+            fused = [by_id[result.product_id] for result in bm25_results] + [result for result in fused if result.product_id not in lexical_ids]
         reranked = self.reranker.rerank(request.query, fused, request.top_k)
-        return [replace(result, rank=rank, source="hybrid") for rank, result in enumerate(reranked[: request.top_k], start=1)]
+        return [replace(result, rank=rank, source="hybrid", metadata={**result.metadata, "ordering_policy": "lexical_preserving" if self.lexical_preserving else "rrf"}) for rank, result in enumerate(reranked[: request.top_k], start=1)]

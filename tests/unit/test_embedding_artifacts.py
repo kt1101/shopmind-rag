@@ -77,3 +77,16 @@ def test_index_documents_publish_media_url_instead_of_local_path():
 
     assert public_image_url(rows[0]["main_image_path"]) == "/media/products/P1.jpg"
     assert documents[0]["image_url"] == "/media/products/P1.jpg"
+
+
+def test_identity_rejects_legacy_and_changed_preprocessing_or_revision():
+    from dataclasses import replace
+    from types import SimpleNamespace
+    from shopmind.app.embedding.validation import embedding_identity, validate_index_identity
+    legacy = _manifest()
+    with pytest.raises(ValueError): embedding_identity(legacy)
+    manifest = replace(legacy, text_preprocessing={"padding":"max_length", "max_length":64})
+    expected = embedding_identity(manifest)
+    for mismatch in (replace(manifest,model_revision="wrong"),replace(manifest,text_preprocessing={"padding":"longest"})):
+        client = SimpleNamespace(indices=SimpleNamespace(get_mapping=lambda **kwargs: {"physical":{"mappings":{"properties":{"text_vector":{"dims":4}},"_meta":{"embedding_identity":{"text_vector":embedding_identity(mismatch)}}}}}))
+        with pytest.raises(ValueError): validate_index_identity(client,"alias",expected,"text_vector")

@@ -14,6 +14,15 @@ class BM25Retriever:
     def __init__(self, repository: _LexicalRepository) -> None:
         self.repository = repository
 
+    def exact_id_search(self, request: SearchRequest) -> list[SearchResult]:
+        if request.query and hasattr(self.repository, "exact_id_search"):
+            hits = self.repository.exact_id_search(request.query, request.filters)
+            return [SearchResult(product_id=hit.product_id, title=hit.title, rank=1, score=hit.score, source="bm25", metadata=dict(hit.metadata), retrieval_scores=RetrievalScores(bm25_rank=1)) for hit in hits]
+        return []
+
     def search(self, request: SearchRequest) -> list[SearchResult]:
+        exact = self.exact_id_search(request)
+        if exact:
+            return exact
         hits = self.repository.lexical_search(request.query, size=request.candidate_k, filters=request.filters)
         return [SearchResult(product_id=hit.product_id, title=hit.title, rank=rank, score=hit.score, source="bm25", metadata=dict(hit.metadata), retrieval_scores=RetrievalScores(bm25_rank=rank)) for rank, hit in enumerate(hits[: request.top_k], start=1)]

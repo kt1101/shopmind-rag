@@ -38,3 +38,12 @@ def test_bm25_empty_hits_become_empty_results_and_filters_forward_unchanged():
     request = SearchRequest("runner", mode=SearchMode.BM25, filters=filters)
     assert BM25Retriever(repo).search(request) == []
     assert repo.calls[0][2] == filters
+
+
+def test_lexical_normalization_translates_catalog_terms_without_changing_ids():
+    from shopmind.app.retrieval.language import normalize_lexical_query, catalog_color_terms
+    assert "pillow" in normalize_lexical_query("Tìm gối màu xám của Ravenna Home.")
+    assert "gray" in normalize_lexical_query("Tìm gối màu xám của Ravenna Home.")
+    assert normalize_lexical_query("b07ABC1234")=="b07ABC1234"
+    assert catalog_color_terms("Noir")=="black"
+    assert catalog_color_terms("Black/white stripes")==""
