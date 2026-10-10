@@ -161,3 +161,31 @@ Rollback requires deploying the previous backend/runtime configuration (source `
 The selected lexical-preserving hybrid retains dense computation: candidate holdout latency p50 **667.96 ms**, p95 **1701.00 ms**, versus old BM25 p50 **21.81 ms**, p95 **78.97 ms** in this local CPU environment. DEV BM25 tied its quality; no hybrid latency or semantic superiority is claimed. Finite static vocabulary leaves unsupported language/category/color expressions unchanged. The small holdout is metadata grounded and establishes only this benchmark’s improvement.
 
 Skipped: real LLM/review answer measurements and human visual/semantic relevance review; they remain null. Risk: API startup requires verified candidate identity, and alias activation/restart remains pending independent review.
+
+
+## Review round 1 corrections — 2026-10-10
+
+Base: `a89afb8d51c9b03322e27d5ab8666966b29a9e43`. Both Important findings in `task-2-review.md` are addressed without changing retrieval configuration, vocabulary, frozen queries/qrels, vector artifacts or index targets.
+
+1. **Validate the text preprocessing used by cross-modal queries (P2).** `CrossModalRetriever` now validates text identity first, which pins the physical target, then image identity on that same physical index before encoding or kNN. Regression cases reject wrong text or image preprocessing before either provider/vector call; the valid case moves the fake alias between checks and verifies both validation and vector search remain on the pinned target.
+2. **Skip dense when lexical results already determine the whole NoOp output (P2).** With `lexical_preserving=true`, the actual `NoOpReranker` type, and at least `top_k` lexical hits, hybrid returns the lexical results directly. Exact-ID priority/filters still run first. Scores and BM25 ranks are genuine lexical values; dense rank, RRF score/contributions and reranker score are null, while ordering policy remains `lexical_preserving`. Debug output exposes the genuine BM25 score. Insufficient lexical results, custom rerankers and subclasses with custom behavior keep the existing full dense/fusion path.
+
+Verification commands (host `/Users/yuji/anaconda3/bin/python`, with the same live Elasticsearch candidate index):
+
+```sh
+python -m pytest -q tests/unit/test_dense_retriever.py tests/unit/test_hybrid_retriever.py
+python -m pytest -q tests/unit/test_dense_retriever.py tests/unit/test_hybrid_retriever.py tests/unit/test_embedding_contract.py tests/unit/test_embedding_artifacts.py tests/api tests/integration
+python runs/accuracy/review_round1_dev_check.py
+python -m ruff check shopmind/app/retrieval/dense.py shopmind/app/retrieval/hybrid.py shopmind/app/api/schemas/search.py tests/unit/test_dense_retriever.py tests/unit/test_hybrid_retriever.py
+git diff --check
+```
+
+Red evidence: `runs/accuracy/review_round1_red.log` has exactly the two reproduced failures before correction. Focused verification: **58 passed**, including live Elasticsearch integration (`review_round1_tests.log`); correctness lint/whitespace checks pass (`review_round1_lint.log`). Regression coverage includes failed dense being skipped, honest lexical debug fields, insufficient lexical candidates, ordinary custom rerankers and a NoOp subclass with custom behavior.
+
+Live DEV comparison: **130/130 queries preserved recorded winner IDs and ranks**, with **zero dense calls** while dense was deliberately unavailable. Reference: `runs/accuracy/20261009T163848Z_candidate_dev_lexical/results.jsonl`, SHA256 `ee098f121fb287a9a3a08f19f9bd34d18fee4e05b6fa75c61101b85fb1c4eb98`. Full current debug rows are in `runs/accuracy/review_round1_dev_check.json`; stdout is in `review_round1_dev_check.log`. This check uses the actual lexical repository/index and only the development split. No holdout measurement or quality selection was repeated; the earlier frozen holdout result stays historical evidence. Numeric scores change to lexical scores on the skipped path, while IDs/order remain unchanged.
+
+Round 1 code/evidence hashes and unchanged input checks: `runs/accuracy/review_round1_provenance.json`. Original `final_measurements.json` source hashes describe the original measured commit `a89afb8`, not this revision. Old/candidate vector and frozen config/vocabulary/benchmark hashes were checked unchanged. Alias `products` still targets `products_a1_1500_v1` pending scoped independent re-review.
+
+No new timing experiment was required: avoiding dense calls is directly verified, and the earlier local CPU latency values are historical measurements, not a controlled short-circuit speedup claim. Real LLM/review semantic measurements remain **null**.
+
+Skipped: model regeneration, holdout rerun and new latency benchmark. Risk: activation/restart remains pending independent re-review; the static vocabulary and narrow metadata benchmark retain their documented limits.

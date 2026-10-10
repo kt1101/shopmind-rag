@@ -50,3 +50,39 @@ def test_dense_retrievers_return_only_top_k_even_if_repo_returns_more():
             self.calls.append((field,vector,size,num_candidates,filters)); return [RawSearchHit(f"P{i}", f"Item {i}", 1.0-i/100, {}) for i in range(12)]
     repo = ManyRepo(); results = TextDenseRetriever(repo, FakeEmbedder()).search(SearchRequest("item", top_k=2, candidate_k=7))
     assert len(results) == 2; assert repo.calls[0][2:4] == (7,7)
+
+
+@pytest.mark.parametrize("wrong_modality", ["text", "image", None])
+def test_cross_modal_checks_both_identities_before_encoding_and_pins_alias(wrong_modality):
+    from types import SimpleNamespace
+    from shopmind.app.embedding.validation import index_embedding_metadata
+    from shopmind.app.infrastructure.elasticsearch.repository import ElasticsearchProductRepository
+    provider=FakeEmbedder()
+    provider.text_preprocessing={"padding":"max_length"}
+    provider.image_preprocessing={"size":224}
+    mapping={"mappings":{"properties":{"text_vector":{"dims":4},"image_vector":{"dims":4}},"_meta":index_embedding_metadata(provider,image=True)}}
+    if wrong_modality:
+        setattr(provider,f"{wrong_modality}_preprocessing",{"wrong":True})
+    class Client:
+        def __init__(self):
+            self.calls=[];self.mapping_calls=[];self.alias_target="physical_a"
+            self.indices=SimpleNamespace(get_mapping=self.get_mapping)
+        def get_mapping(self,*,index):
+            self.mapping_calls.append(index)
+            target=self.alias_target if index=="alias" else index
+            self.alias_target="physical_b"
+            return {target:mapping if target=="physical_a" else {"mappings":{}}}
+        def search(self,**kwargs):
+            self.calls.append(kwargs)
+            return {"hits":{"hits":[{"_source":{"product_id":"P1","title":"Item"},"_score":.8}]}}
+    client=Client();repository=ElasticsearchProductRepository(client,"alias")
+    retriever=CrossModalRetriever(repository,provider)
+    if wrong_modality:
+        with pytest.raises(ValueError,match="incompatible embedding identity"):
+            retriever.search(SearchRequest("shoe"))
+        assert provider.text_calls==[] and client.calls==[]
+    else:
+        assert retriever.search(SearchRequest("shoe"))[0].product_id=="P1"
+        assert client.mapping_calls[:2]==["alias","physical_a"]
+        assert repository.index_alias==client.calls[0]["index"]=="physical_a"
+        assert provider.text_calls==[["shoe"]]

@@ -3,10 +3,10 @@ from __future__ import annotations
 from dataclasses import replace
 
 from shopmind.app.domain.search_query import SearchRequest
-from shopmind.app.domain.search_result import SearchResult
+from shopmind.app.domain.search_result import RetrievalScores, SearchResult
 from shopmind.app.retrieval.base import Retriever
 from shopmind.app.retrieval.fusion import rrf_fuse
-from shopmind.app.retrieval.reranker import Reranker
+from shopmind.app.retrieval.reranker import NoOpReranker, Reranker
 
 
 class HybridRetriever:
@@ -29,6 +29,8 @@ class HybridRetriever:
         exact = [result for result in bm25_results if request.query and result.product_id.casefold() == request.query.strip().casefold()]
         if exact:
             return [replace(result, rank=1, source="hybrid", metadata={**result.metadata, "ordering_policy": "exact_id"}) for result in exact]
+        if self.lexical_preserving and type(self.reranker) is NoOpReranker and len(bm25_results) >= request.top_k:
+            return [replace(result, rank=rank, source="hybrid", metadata={**result.metadata, "ordering_policy": "lexical_preserving"}, retrieval_scores=RetrievalScores(bm25_rank=result.retrieval_scores.bm25_rank or result.rank)) for rank, result in enumerate(bm25_results[:request.top_k], start=1)]
         dense_results = self.dense.search(candidate_request)
         fused = rrf_fuse([bm25_results, dense_results], k=self.rrf_k, top_k=request.candidate_k * (2 if self.lexical_preserving else 1))
         if self.lexical_preserving:

@@ -48,3 +48,48 @@ def test_lexical_preserving_keeps_all_lexical_candidates_before_truncation():
     dense=FakeRetriever([result(f"dense{i}",i,"dense") for i in range(1,6)])
     output=HybridRetriever(bm,dense,NoOpReranker(),lexical_preserving=True).search(SearchRequest("q",top_k=5,candidate_k=5))
     assert [r.product_id for r in output]==[f"lexical{i}" for i in range(1,6)]
+
+
+class UnavailableDense:
+    def __init__(self): self.calls=0
+    def search(self,request):
+        self.calls+=1
+        raise RuntimeError("dense unavailable")
+
+
+def test_sufficient_lexical_noop_skips_failing_dense_and_reports_lexical_scores():
+    from shopmind.app.api.schemas.search import DebugSearchResult
+    bm=FakeRetriever([result("A",1,"bm25"),result("B",2,"bm25"),result("C",3,"bm25")]);dense=UnavailableDense()
+    output=HybridRetriever(bm,dense,NoOpReranker(),lexical_preserving=True).search(SearchRequest("q",top_k=2,candidate_k=5,filters={"brand":"Acme"}))
+    assert [r.product_id for r in output]==["A","B"] and dense.calls==0
+    assert bm.requests[0].filters=={"brand":"Acme"}
+    for rank,hit in enumerate(output,1):
+        assert hit.rank==rank and hit.score==1.0 and hit.source=="hybrid"
+        debug=DebugSearchResult.from_domain(hit,rrf_k=60)
+        assert debug.ordering_policy=="lexical_preserving" and debug.bm25_rank==rank
+        assert debug.bm25_score==hit.score
+        assert debug.dense_rank is None and debug.dense_score is None
+        assert debug.rrf_score is None and debug.bm25_rrf_contribution is None and debug.dense_rrf_contribution is None
+
+
+def test_insufficient_lexical_noop_still_calls_dense_and_fuses():
+    bm=FakeRetriever([result("A",1,"bm25")]);dense=FakeRetriever([result("B",1,"dense")])
+    output=HybridRetriever(bm,dense,NoOpReranker(),lexical_preserving=True).search(SearchRequest("q",top_k=2,candidate_k=5))
+    assert [r.product_id for r in output]==["A","B"] and len(dense.requests)==1
+    assert all(r.retrieval_scores.rrf_score is not None for r in output)
+
+
+def test_sufficient_lexical_custom_reranker_keeps_dense_full_path():
+    bm=FakeRetriever([result("A",1,"bm25"),result("B",2,"bm25")]);dense=FakeRetriever([result("C",1,"dense")]);reranker=RecordingReranker()
+    output=HybridRetriever(bm,dense,reranker,lexical_preserving=True).search(SearchRequest("q",top_k=2,candidate_k=5))
+    assert len(dense.requests)==1 and len(reranker.calls)==1
+    assert [r.product_id for r in output]==["C","B"]
+    assert all(r.retrieval_scores.rrf_score is not None for r in output)
+
+
+def test_noop_subclass_with_custom_behavior_keeps_dense_full_path():
+    class CustomNoOp(NoOpReranker):
+        def rerank(self,query,results,top_k): return list(reversed(results))[:top_k]
+    bm=FakeRetriever([result("A",1,"bm25"),result("B",2,"bm25")]);dense=FakeRetriever([result("C",1,"dense")])
+    output=HybridRetriever(bm,dense,CustomNoOp(),lexical_preserving=True).search(SearchRequest("q",top_k=2,candidate_k=5))
+    assert len(dense.requests)==1 and [r.product_id for r in output]==["C","B"]
