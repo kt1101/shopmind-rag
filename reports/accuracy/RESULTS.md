@@ -12,21 +12,21 @@ Frozen corpus: 1,500 products, 215 categories. Benchmark supports 43 categories/
 
 Selection was frozen on DEV at `2026-10-09T16:40:31.055368+00:00`: public hybrid mode, lexical_preserving=true, top_k=10, candidate_k=100, RRF k=60. BM25 and lexical-preserving hybrid tied. The equal-RRF DEV ablation named `candidate_dev_hybrid` below was weaker; it is not the selected runtime policy. Candidate holdout ran once. No holdout tuning or rerun followed. All recorded query attempts succeeded; failures would enter primary denominators as zero.
 
-All table cells are **nDCG@10 / Recall@10 / MRR@10**. Exact IDs are reported separately from natural language.
+All table cells are **nDCG@10 / Recall@10 / MRR@10**. Exact IDs are reported separately from natural language. Top1 counts are derived from each first returned product ID against its full frozen positive qrels; all exact-ID attempts enter the denominator, including failures.
 
 | Split/mode | Overall | Natural language only | Exact ID top1 | Success |
 |---|---|---|---|---|
-| baseline_dev_hybrid | 0.258555 / 0.306410 / 0.260211 | 0.080349 / 0.116013 / 0.091445 | 0/28 | 130/130 |
-| baseline_dev_bm25 | 0.416507 / 0.508462 / 0.402250 | 0.256332 / 0.373529 / 0.238161 | 0/28 | 130/130 |
+| baseline_dev_hybrid | 0.258555 / 0.306410 / 0.260211 | 0.080349 / 0.116013 / 0.091445 | 21/28 | 130/130 |
+| baseline_dev_bm25 | 0.416507 / 0.508462 / 0.402250 | 0.256332 / 0.373529 / 0.238161 | 28/28 | 130/130 |
 | baseline_dev_dense | 0.007118 / 0.007692 / 0.011538 | 0.009072 / 0.009804 / 0.014706 | 0/28 | 130/130 |
-| candidate_dev_hybrid | 0.361680 / 0.488520 / 0.365601 | 0.186455 / 0.348113 / 0.191453 | 0/28 | 130/130 |
+| candidate_dev_hybrid | 0.361680 / 0.488520 / 0.365601 | 0.186455 / 0.348113 / 0.191453 | 28/28 | 130/130 |
 | candidate_dev_dense | 0.012602 / 0.013333 / 0.024432 | 0.016062 / 0.016993 / 0.031139 | 0/28 | 130/130 |
-| candidate_dev_bm25 | 0.663563 / 0.772448 / 0.637277 | 0.571207 / 0.709982 / 0.537706 | 0/28 | 130/130 |
-| candidate_dev_lexical | 0.663563 / 0.772448 / 0.637277 | 0.571207 / 0.709982 / 0.537706 | 0/28 | 130/130 |
-| baseline_holdout_hybrid | 0.370035 / 0.466667 / 0.337500 | 0.073081 / 0.111111 / 0.062500 | 0/12 | 30/30 |
-| baseline_holdout_bm25 | 0.525510 / 0.600000 / 0.502910 | 0.209183 / 0.333333 / 0.171517 | 0/12 | 30/30 |
+| candidate_dev_bm25 | 0.663563 / 0.772448 / 0.637277 | 0.571207 / 0.709982 / 0.537706 | 28/28 | 130/130 |
+| candidate_dev_lexical | 0.663563 / 0.772448 / 0.637277 | 0.571207 / 0.709982 / 0.537706 | 28/28 | 130/130 |
+| baseline_holdout_hybrid | 0.370035 / 0.466667 / 0.337500 | 0.073081 / 0.111111 / 0.062500 | 6/12 | 30/30 |
+| baseline_holdout_bm25 | 0.525510 / 0.600000 / 0.502910 | 0.209183 / 0.333333 / 0.171517 | 12/12 | 30/30 |
 | baseline_holdout_dense | 0.000000 / 0.000000 / 0.000000 | 0.000000 / 0.000000 / 0.000000 | 0/12 | 30/30 |
-| candidate_holdout_winner | 0.607537 / 0.666667 / 0.588095 | 0.345896 / 0.444444 / 0.313492 | 0/12 | 30/30 |
+| candidate_holdout_winner | 0.607537 / 0.666667 / 0.588095 | 0.345896 / 0.444444 / 0.313492 | 12/12 | 30/30 |
 
 | Holdout subset | Old hybrid | Old BM25 | Frozen candidate | Δ hybrid | Δ BM25 |
 |---|---|---|---|---|---|
@@ -65,7 +65,7 @@ Remaining corrected dense DEV nDCG = 0.012602. Fixed padding solves batch incons
 ## Embedding, image and runtime evidence
 
 - Actual six-probe CPU batch diagnostic: dynamic padding minimum cosine 0.54245919; fixed 64-token padding minimum 0.9999997616 and maximum L2 difference 0.0. Pinned model `google/siglip2-base-patch16-224`, cached revision `75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2`, 768 normalized dimensions. Both regenerated 1,500-row matrices are finite/nonzero; mapping/artifact identities are validated before inference. Legacy index generation revision remains unknown.
-- Image identity retrieval: old 20/20 and candidate 20/20, nDCG/Recall/MRR all 1.0. These are identical source-image probes; independent cross-view/image relevance is unmeasured.
+- Image identity retrieval: old 20/20 and candidate 20/20, nDCG/Recall/MRR all 1.0. These are transformed catalog-image identity probes: margin crop, resize to source dimensions, contrast 0.95 and JPEG quality 75. All 20 query JPEG files differ from their original catalog image bytes; independent cross-view/image relevance is unmeasured.
 - Docker CPU cached image `test-api:latest` digest `sha256:60b2f93d954b856774f946b6b1daa1b6a2d022ba454e68a9a1dd999d1f2111c0`; torch2.14.0+cu130, transformers4.57.6, numpy2.5.3, Elasticsearch server 8.15.3/client 8.19.3, CUDA unavailable; 4 CPU threads.
 - Historical local holdout timing before dense short-circuit: candidate p50/p95 667.96/1701.00ms, old BM25 21.81/78.97ms. Runs were uncontrolled; no specific latency speedup or hybrid advantage is claimed. Current DEV check directly proves zero dense calls and unchanged IDs/order.
 

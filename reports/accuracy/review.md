@@ -13,3 +13,5 @@ Embedding compatibility, alias pinning/rollback and bounded malformed/blank cita
 After scoped re-review PASS, the owner restarted current-source API1aa8f67. Task 4 independently verified ready200, lowercase exact-ID hybrid top1, natural-language10results and missing-key503llm_unavailable. Reports are qualified for the final whole-branch review; that subsequent review is not claimed complete here. No additional owner code changes, benchmark tuning or dependency additions were made by Task4.
 
 Skipped: real LLM/review judgment and cross-view visual relevance. Risk: narrow metadata labels and30 holdout rows limit general accuracy claims.
+
+Report audit correction: initial exact-ID counts used Python boolean identity on numeric raw hit values, incorrectly displaying zero. Counts are now independently derived from first-ranked IDs against full qrels with every attempt in the denominator and asserted against numeric raw hits/aggregate rates. Image wording now says transformed catalog-image identity: all 20 query JPEGs differ from their source bytes and match the documented crop/resize/contrast/JPEG transform. Raw metrics, source files and inputs remain unchanged.
