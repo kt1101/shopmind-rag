@@ -15,3 +15,5 @@ After scoped re-review PASS, the owner restarted current-source API1aa8f67. Task
 Skipped: real LLM/review judgment and cross-view visual relevance. Risk: narrow metadata labels and30 holdout rows limit general accuracy claims.
 
 Report audit correction: initial exact-ID counts used Python boolean identity on numeric raw hit values, incorrectly displaying zero. Counts are now independently derived from first-ranked IDs against full qrels with every attempt in the denominator and asserted against numeric raw hits/aggregate rates. Image wording now says transformed catalog-image identity: all 20 query JPEGs differ from their source bytes and match the documented crop/resize/contrast/JPEG transform. Raw metrics, source files and inputs remain unchanged.
+
+Final QA provenance correction: refreshed only the SHA256 digests for `runs/accuracy/task4/audit.py` after the exact-ID count correction and `runs/accuracy/task4/scripted-server.log` after server shutdown finalized the log. All 21 referenced QA digests match their finalized files; historical measurement/source hashes are preserved. Final whole-branch closure remains pending independent re-review.
