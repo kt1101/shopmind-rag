@@ -1,0 +1,594 @@
+{
+  "schema_version": 1,
+  "status": "Integrated acceptance PASS; whole-branch final review is a subsequent manager gate",
+  "measured_backend_commit": "a89afb8d51c9b03322e27d5ab8666966b29a9e43",
+  "current_backend_commit": "1aa8f6768f129f9b6b4f2373d31707b3e7eb18a2",
+  "current_frontend_commit": "c9fbfb21fac90bc42424f52c5725b63035663599",
+  "benchmark": {
+    "categories_by_split": {"dev": 30,"holdout": 13},
+    "corpus_categories": 215,
+    "corpus_products": 1500,
+    "exact_id_probes": 40,
+    "predicate_groups": 60,
+    "qrels": 278,
+    "queries": 160,
+    "queries_by_group": {"category_brand": 40,"category_brand_color": 40,"category_color": 40,"exact_id": 40},
+    "queries_by_split": {"dev": 130,"holdout": 30},
+    "supported_categories": 43,
+    "supported_products": 812
+  },
+  "positive_product_count": 135,
+  "selection": {
+    "selected_at_utc": "2026-10-09T16:40:31.055368+00:00",
+    "physical_index": "products_accuracy_20261009_v2",
+    "winner": "hybrid",
+    "lexical_preserving": true,
+    "top_k": 10,
+    "candidate_k": 100,
+    "rrf_k": 60,
+    "selection_split": "dev",
+    "rationale": "BM25 and lexical-preserving hybrid tie for best dev nDCG/Recall/MRR. Keep existing public hybrid mode with explicit lexical ordering; no measured semantic quality advantage over BM25 is claimed.",
+    "dev_runs": {
+      "bm25": "20261009T163716Z_candidate_dev_bm25",
+      "hybrid": "20261009T163733Z_candidate_dev_hybrid",
+      "dense": "20261009T163817Z_candidate_dev_dense",
+      "lexical": "20261009T163848Z_candidate_dev_lexical"
+    },
+    "dev_metrics": {
+      "bm25": {"MRR@10": 0.6372771672771672,"Recall@10": 0.7724475524475525,"nDCG@10": 0.6635625703681737},
+      "hybrid": {"MRR@10": 0.3656013431013431,"Recall@10": 0.4885198135198135,"nDCG@10": 0.3616801779811764},
+      "dense": {"MRR@10": 0.02443223443223443,"Recall@10": 0.013333333333333334,"nDCG@10": 0.012602171215817911},
+      "lexical": {"MRR@10": 0.6372771672771672,"Recall@10": 0.7724475524475525,"nDCG@10": 0.6635625703681737}
+    },
+    "frozen_hashes": {
+      "configs/app.yaml": "feacfa847aa0b9f047d704866e8286b1f96fa99a3d4f2229635c3dde3a9152d0",
+      "configs/retrieval.yaml": "7b549fcb601ca704c7ae70f88643a72cc2b3ac784d0016137235e15cb572c3b9",
+      "shopmind/app/retrieval/language.py": "de527db9adbe943a9518e8a4384d33c4208d1c3251e6203dfeea7b7c98a710cf",
+      "evaluation/benchmarks/accuracy_v2/queries.jsonl": "a9ad335e7ca8c830322f58de74d8733bc937853fadd154592554edb188362844",
+      "evaluation/benchmarks/accuracy_v2/qrels.jsonl": "d2fa9c41bccfe35969b8cb0d67048d0a92c0d6640db5bd55e80d8df388b11d99"
+    },
+    "holdout_run": "runs/accuracy/20261009T164219Z_frozen_winner_holdout"
+  },
+  "runs": {
+    "baseline_dev_bm25": {
+      "attempted": 130,
+      "success_rate": 1.0,
+      "overall": {"nDCG@10": 0.41650685295649603,"Recall@10": 0.5084615384615384,"MRR@10": 0.40224969474969474},
+      "by_group": {
+        "category_brand": {"nDCG@10": 0.2161756046178613,"Recall@10": 0.38235294117647056,"MRR@10": 0.18585434173669468},
+        "category_brand_color": {"nDCG@10": 0.48994362120463103,"Recall@10": 0.65625,"MRR@10": 0.4653149801587302},
+        "category_color": {"nDCG@10": 0.08660345691080557,"Recall@10": 0.11388888888888887,"MRR@10": 0.08564814814814815},
+        "exact_id": {"nDCG@10": 1.0,"Recall@10": 1.0,"MRR@10": 1.0}
+      },
+      "natural_language_by_language": {
+        "en": {"nDCG@10": 0.3245861242292015,"Recall@10": 0.4326797385620915,"MRR@10": 0.32573140367258013},
+        "vi": {"nDCG@10": 0.1880784029148079,"Recall@10": 0.3143790849673203,"MRR@10": 0.15059134765017118}
+      },
+      "natural_language": {"nDCG@10": 0.25633226357200467,"Recall@10": 0.3735294117647059,"MRR@10": 0.23816137566137566},
+      "exact_id_top1": 0,
+      "exact_id_count": 28
+    },
+    "baseline_dev_hybrid": {
+      "attempted": 130,
+      "success_rate": 1.0,
+      "overall": {"nDCG@10": 0.25855474328574785,"Recall@10": 0.30641025641025643,"MRR@10": 0.2602106227106227},
+      "by_group": {
+        "category_brand": {"nDCG@10": 0.09028949256441511,"Recall@10": 0.09803921568627451,"MRR@10": 0.1365546218487395},
+        "category_brand_color": {"nDCG@10": 0.1192946370998562,"Recall@10": 0.2109375,"MRR@10": 0.09430803571428571},
+        "category_color": {"nDCG@10": 0.036342700493375256,"Recall@10": 0.04861111111111111,"MRR@10": 0.046296296296296294},
+        "exact_id": {"nDCG@10": 0.9077324383928644,"Recall@10": 1.0,"MRR@10": 0.875}
+      },
+      "natural_language_by_language": {
+        "en": {"nDCG@10": 0.04864560934042546,"Recall@10": 0.06176470588235294,"MRR@10": 0.07761437908496732},
+        "vi": {"nDCG@10": 0.11205259364284947,"Recall@10": 0.17026143790849674,"MRR@10": 0.10527544351073762}
+      },
+      "natural_language": {"nDCG@10": 0.08034910149163746,"Recall@10": 0.11601307189542484,"MRR@10": 0.09144491129785248},
+      "exact_id_top1": 0,
+      "exact_id_count": 28
+    },
+    "baseline_dev_dense": {
+      "attempted": 130,
+      "success_rate": 1.0,
+      "overall": {"nDCG@10": 0.0071178586412814935,"Recall@10": 0.007692307692307693,"MRR@10": 0.011538461538461539},
+      "by_group": {
+        "category_brand": {"nDCG@10": 0.027215341863723357,"Recall@10": 0.029411764705882353,"MRR@10": 0.04411764705882353},
+        "category_brand_color": {"nDCG@10": 0.0,"Recall@10": 0.0,"MRR@10": 0.0},
+        "category_color": {"nDCG@10": 0.0,"Recall@10": 0.0,"MRR@10": 0.0},
+        "exact_id": {"nDCG@10": 0.0,"Recall@10": 0.0,"MRR@10": 0.0}
+      },
+      "natural_language_by_language": {
+        "en": {"nDCG@10": 0.00886693347120565,"Recall@10": 0.00784313725490196,"MRR@10": 0.0196078431372549},
+        "vi": {"nDCG@10": 0.00927662777127659,"Recall@10": 0.011764705882352941,"MRR@10": 0.00980392156862745}
+      },
+      "natural_language": {"nDCG@10": 0.009071780621241119,"Recall@10": 0.00980392156862745,"MRR@10": 0.014705882352941176},
+      "exact_id_top1": 0,
+      "exact_id_count": 28
+    },
+    "baseline_holdout_bm25": {
+      "attempted": 30,
+      "success_rate": 1.0,
+      "overall": {"nDCG@10": 0.525509769418959,"Recall@10": 0.6,"MRR@10": 0.5029100529100529},
+      "by_group": {
+        "category_brand": {"nDCG@10": 0.0,"Recall@10": 0.0,"MRR@10": 0.0},
+        "category_brand_color": {"nDCG@10": 0.43303288586309885,"Recall@10": 0.625,"MRR@10": 0.37202380952380953},
+        "category_color": {"nDCG@10": 0.0752574989159953,"Recall@10": 0.25,"MRR@10": 0.027777777777777776},
+        "exact_id": {"nDCG@10": 1.0,"Recall@10": 1.0,"MRR@10": 1.0}
+      },
+      "natural_language_by_language": {
+        "en": {"nDCG@10": 0.2702177499150487,"Recall@10": 0.4444444444444444,"MRR@10": 0.21604938271604937},
+        "vi": {"nDCG@10": 0.14814814814814814,"Recall@10": 0.2222222222222222,"MRR@10": 0.12698412698412698}
+      },
+      "natural_language": {"nDCG@10": 0.20918294903159845,"Recall@10": 0.3333333333333333,"MRR@10": 0.1715167548500882},
+      "exact_id_top1": 0,
+      "exact_id_count": 12
+    },
+    "baseline_holdout_hybrid": {
+      "attempted": 30,
+      "success_rate": 1.0,
+      "overall": {"nDCG@10": 0.37003477994048245,"Recall@10": 0.4666666666666667,"MRR@10": 0.3375},
+      "by_group": {
+        "category_brand": {"nDCG@10": 0.0,"Recall@10": 0.0,"MRR@10": 0.0},
+        "category_brand_color": {"nDCG@10": 0.1644331095982161,"Recall@10": 0.25,"MRR@10": 0.140625},
+        "category_color": {"nDCG@10": 0.0,"Recall@10": 0.0,"MRR@10": 0.0},
+        "exact_id": {"nDCG@10": 0.8154648767857288,"Recall@10": 1.0,"MRR@10": 0.75}
+      },
+      "natural_language_by_language": {
+        "en": {"nDCG@10": 0.03505165297619209,"Recall@10": 0.1111111111111111,"MRR@10": 0.013888888888888888},
+        "vi": {"nDCG@10": 0.1111111111111111,"Recall@10": 0.1111111111111111,"MRR@10": 0.1111111111111111}
+      },
+      "natural_language": {"nDCG@10": 0.07308138204365161,"Recall@10": 0.1111111111111111,"MRR@10": 0.0625},
+      "exact_id_top1": 0,
+      "exact_id_count": 12
+    },
+    "baseline_holdout_dense": {
+      "attempted": 30,
+      "success_rate": 1.0,
+      "overall": {"nDCG@10": 0.0,"Recall@10": 0.0,"MRR@10": 0.0},
+      "by_group": {
+        "category_brand": {"nDCG@10": 0.0,"Recall@10": 0.0,"MRR@10": 0.0},
+        "category_brand_color": {"nDCG@10": 0.0,"Recall@10": 0.0,"MRR@10": 0.0},
+        "category_color": {"nDCG@10": 0.0,"Recall@10": 0.0,"MRR@10": 0.0},
+        "exact_id": {"nDCG@10": 0.0,"Recall@10": 0.0,"MRR@10": 0.0}
+      },
+      "natural_language_by_language": {"en": {"nDCG@10": 0.0,"Recall@10": 0.0,"MRR@10": 0.0},"vi": {"nDCG@10": 0.0,"Recall@10": 0.0,"MRR@10": 0.0}},
+      "natural_language": {"nDCG@10": 0.0,"Recall@10": 0.0,"MRR@10": 0.0},
+      "exact_id_top1": 0,
+      "exact_id_count": 12
+    },
+    "candidate_dev_bm25": {
+      "attempted": 130,
+      "success_rate": 1.0,
+      "overall": {"nDCG@10": 0.6635625703681737,"Recall@10": 0.7724475524475525,"MRR@10": 0.6372771672771672},
+      "by_group": {
+        "category_brand": {"nDCG@10": 0.6960597185481417,"Recall@10": 0.8299465240641711,"MRR@10": 0.6662464985994397},
+        "category_brand_color": {"nDCG@10": 0.7181119751208367,"Recall@10": 0.8125,"MRR@10": 0.7145833333333333},
+        "category_color": {"nDCG@10": 0.32270890314886036,"Recall@10": 0.5055555555555555,"MRR@10": 0.2590828924162258},
+        "exact_id": {"nDCG@10": 1.0,"Recall@10": 1.0,"MRR@10": 1.0}
+      },
+      "natural_language_by_language": {
+        "en": {"nDCG@10": 0.5674145229473336,"Recall@10": 0.7050802139037433,"MRR@10": 0.5377061935885465},
+        "vi": {"nDCG@10": 0.5749998721087952,"Recall@10": 0.7148841354723708,"MRR@10": 0.5377061935885465}
+      },
+      "natural_language": {"nDCG@10": 0.5712071975280644,"Recall@10": 0.709982174688057,"MRR@10": 0.5377061935885465},
+      "exact_id_top1": 0,
+      "exact_id_count": 28
+    },
+    "candidate_dev_hybrid": {
+      "attempted": 130,
+      "success_rate": 1.0,
+      "overall": {"nDCG@10": 0.3616801779811764,"Recall@10": 0.4885198135198135,"MRR@10": 0.3656013431013431},
+      "by_group": {
+        "category_brand": {"nDCG@10": 0.22959309651984824,"Recall@10": 0.34826203208556145,"MRR@10": 0.2655578898225957},
+        "category_brand_color": {"nDCG@10": 0.13421290162499647,"Recall@10": 0.34375,"MRR@10": 0.09521329365079365},
+        "category_color": {"nDCG@10": 0.192151250107728,"Recall@10": 0.35185185185185186,"MRR@10": 0.207010582010582},
+        "exact_id": {"nDCG@10": 1.0,"Recall@10": 1.0,"MRR@10": 1.0}
+      },
+      "natural_language_by_language": {
+        "en": {"nDCG@10": 0.18253691381853743,"Recall@10": 0.33202614379084966,"MRR@10": 0.18395580454403984},
+        "vi": {"nDCG@10": 0.19037334378053972,"Recall@10": 0.36420083184789065,"MRR@10": 0.1989495798319328}
+      },
+      "natural_language": {"nDCG@10": 0.18645512879953854,"Recall@10": 0.3481134878193702,"MRR@10": 0.1914526921879863},
+      "exact_id_top1": 0,
+      "exact_id_count": 28
+    },
+    "candidate_dev_dense": {
+      "attempted": 130,
+      "success_rate": 1.0,
+      "overall": {"nDCG@10": 0.012602171215817911,"Recall@10": 0.013333333333333334,"MRR@10": 0.02443223443223443},
+      "by_group": {
+        "category_brand": {"nDCG@10": 0.025674165325520783,"Recall@10": 0.03137254901960784,"MRR@10": 0.04929971988795518},
+        "category_brand_color": {"nDCG@10": 0.0,"Recall@10": 0.0,"MRR@10": 0.0},
+        "category_color": {"nDCG@10": 0.02126001769412838,"Recall@10": 0.018518518518518517,"MRR@10": 0.041666666666666664},
+        "exact_id": {"nDCG@10": 0.0,"Recall@10": 0.0,"MRR@10": 0.0}
+      },
+      "natural_language_by_language": {
+        "en": {"nDCG@10": 0.014325695820898016,"Recall@10": 0.015359477124183006,"MRR@10": 0.026330532212885158},
+        "vi": {"nDCG@10": 0.017797485709618227,"Recall@10": 0.018627450980392157,"MRR@10": 0.03594771241830065}
+      },
+      "natural_language": {"nDCG@10": 0.01606159076525812,"Recall@10": 0.016993464052287584,"MRR@10": 0.0311391223155929},
+      "exact_id_top1": 0,
+      "exact_id_count": 28
+    },
+    "candidate_dev_lexical": {
+      "attempted": 130,
+      "success_rate": 1.0,
+      "overall": {"nDCG@10": 0.6635625703681737,"Recall@10": 0.7724475524475525,"MRR@10": 0.6372771672771672},
+      "by_group": {
+        "category_brand": {"nDCG@10": 0.6960597185481417,"Recall@10": 0.8299465240641711,"MRR@10": 0.6662464985994397},
+        "category_brand_color": {"nDCG@10": 0.7181119751208367,"Recall@10": 0.8125,"MRR@10": 0.7145833333333333},
+        "category_color": {"nDCG@10": 0.32270890314886036,"Recall@10": 0.5055555555555555,"MRR@10": 0.2590828924162258},
+        "exact_id": {"nDCG@10": 1.0,"Recall@10": 1.0,"MRR@10": 1.0}
+      },
+      "natural_language_by_language": {
+        "en": {"nDCG@10": 0.5674145229473336,"Recall@10": 0.7050802139037433,"MRR@10": 0.5377061935885465},
+        "vi": {"nDCG@10": 0.5749998721087952,"Recall@10": 0.7148841354723708,"MRR@10": 0.5377061935885465}
+      },
+      "natural_language": {"nDCG@10": 0.5712071975280644,"Recall@10": 0.709982174688057,"MRR@10": 0.5377061935885465},
+      "exact_id_top1": 0,
+      "exact_id_count": 28
+    },
+    "candidate_baseline_image": {
+      "attempted": 20,
+      "success_rate": 1.0,
+      "overall": {"nDCG@10": 1.0,"Recall@10": 1.0,"MRR@10": 1.0},
+      "by_group": {"image": {"nDCG@10": 1.0,"Recall@10": 1.0,"MRR@10": 1.0}},
+      "natural_language_by_language": {},
+      "natural_language": null,
+      "exact_id_top1": 0,
+      "exact_id_count": 0
+    },
+    "candidate_candidate_image": {
+      "attempted": 20,
+      "success_rate": 1.0,
+      "overall": {"nDCG@10": 1.0,"Recall@10": 1.0,"MRR@10": 1.0},
+      "by_group": {"image": {"nDCG@10": 1.0,"Recall@10": 1.0,"MRR@10": 1.0}},
+      "natural_language_by_language": {},
+      "natural_language": null,
+      "exact_id_top1": 0,
+      "exact_id_count": 0
+    },
+    "candidate_holdout_winner": {
+      "attempted": 30,
+      "success_rate": 1.0,
+      "overall": {"nDCG@10": 0.6075374198015902,"Recall@10": 0.6666666666666666,"MRR@10": 0.5880952380952381},
+      "by_group": {
+        "category_brand": {"nDCG@10": 0.0,"Recall@10": 0.0,"MRR@10": 0.0},
+        "category_brand_color": {"nDCG@10": 0.6205328858630988,"Recall@10": 0.75,"MRR@10": 0.5803571428571429},
+        "category_color": {"nDCG@10": 0.31546487678572877,"Recall@10": 0.5,"MRR@10": 0.25},
+        "exact_id": {"nDCG@10": 1.0,"Recall@10": 1.0,"MRR@10": 1.0}
+      },
+      "natural_language_by_language": {
+        "en": {"nDCG@10": 0.36242883412699056,"Recall@10": 0.4444444444444444,"MRR@10": 0.3333333333333333},
+        "vi": {"nDCG@10": 0.3293625652116434,"Recall@10": 0.4444444444444444,"MRR@10": 0.29365079365079366}
+      },
+      "natural_language": {"nDCG@10": 0.345895699669317,"Recall@10": 0.4444444444444444,"MRR@10": 0.3134920634920635},
+      "exact_id_top1": 0,
+      "exact_id_count": 12
+    }
+  },
+  "examples": [
+    {
+      "query_id": "predicate_014_en",
+      "query": "Find planters from AmazonBasics.",
+      "language": "en",
+      "candidate": {"MRR@10": 0.0,"Recall@10": 0.0,"nDCG@10": 0.0},
+      "old_bm25": {"MRR@10": 0.0,"Recall@10": 0.0,"nDCG@10": 0.0},
+      "old_hybrid": {"MRR@10": 0.0,"Recall@10": 0.0,"nDCG@10": 0.0},
+      "positive_ids": ["B07S6BCR69"],
+      "candidate_top1": "B07L49FNQ7"
+    },
+    {
+      "query_id": "predicate_022_vi",
+      "query": "Tìm ba lô màu xanh lá.",
+      "language": "vi",
+      "candidate": {"MRR@10": 0.5,"Recall@10": 1.0,"nDCG@10": 0.6309297535714575},
+      "old_bm25": {"MRR@10": 0.0,"Recall@10": 0.0,"nDCG@10": 0.0},
+      "old_hybrid": {"MRR@10": 0.0,"Recall@10": 0.0,"nDCG@10": 0.0},
+      "positive_ids": ["B06Y6LRWZQ"],
+      "candidate_top1": "B07RSYDWWS"
+    },
+    {
+      "query_id": "predicate_031_vi",
+      "query": "Tìm mũ màu đỏ.",
+      "language": "vi",
+      "candidate": {"MRR@10": 0.0,"Recall@10": 0.0,"nDCG@10": 0.0},
+      "old_bm25": {"MRR@10": 0.0,"Recall@10": 0.0,"nDCG@10": 0.0},
+      "old_hybrid": {"MRR@10": 0.0,"Recall@10": 0.0,"nDCG@10": 0.0},
+      "positive_ids": ["B07RKLJW68"],
+      "candidate_top1": "B072MTH21W"
+    },
+    {
+      "query_id": "predicate_044_vi",
+      "query": "Tìm ba lô màu xám của AmazonBasics.",
+      "language": "vi",
+      "candidate": {"MRR@10": 0.0,"Recall@10": 0.0,"nDCG@10": 0.0},
+      "old_bm25": {"MRR@10": 0.0,"Recall@10": 0.0,"nDCG@10": 0.0},
+      "old_hybrid": {"MRR@10": 0.0,"Recall@10": 0.0,"nDCG@10": 0.0},
+      "positive_ids": ["B07PGMRKSC"],
+      "candidate_top1": "B072JCNWQD"
+    },
+    {
+      "query_id": "predicate_057_vi",
+      "query": "Tìm chai màu hồng của Amazon Brand - Solimo.",
+      "language": "vi",
+      "candidate": {"MRR@10": 1.0,"Recall@10": 1.0,"nDCG@10": 1.0},
+      "old_bm25": {"MRR@10": 0.0,"Recall@10": 0.0,"nDCG@10": 0.0},
+      "old_hybrid": {"MRR@10": 0.0,"Recall@10": 0.0,"nDCG@10": 0.0},
+      "positive_ids": ["B072WW22SH"],
+      "candidate_top1": "B072WW22SH"
+    },
+    {
+      "query_id": "predicate_060_en",
+      "query": "Find backpacks in yellow from AmazonBasics.",
+      "language": "en",
+      "candidate": {"MRR@10": 1.0,"Recall@10": 1.0,"nDCG@10": 1.0},
+      "old_bm25": {"MRR@10": 0.5,"Recall@10": 1.0,"nDCG@10": 0.6309297535714575},
+      "old_hybrid": {"MRR@10": 0.0,"Recall@10": 0.0,"nDCG@10": 0.0},
+      "positive_ids": ["B07PGMSL4D"],
+      "candidate_top1": "B07PGMSL4D"
+    }
+  ],
+  "checks": {
+    "raw_artifact_hashes": 78,
+    "measured_source_commit": "a89afb8d51c9b03322e27d5ab8666966b29a9e43",
+    "measured_source_hashes": 35,
+    "frozen_inputs_unchanged": true,
+    "qrel_complete": true,
+    "category_split_disjoint": true,
+    "unique_positive_products": 135,
+    "corpus_sha256": "addc2b80493d9bda334af1130aabab401f4287806324f56b55c8a7cfc87472e4",
+    "all_metrics_recomputed": true
+  },
+  "real_llm_semantic_accuracy": null,
+  "real_reviews_semantic_accuracy": null,
+  "measurement_file": {"path": "runs/accuracy/final_measurements.json","sha256": "fd4f7efc279b8f98246ab811a505e6bab33f47a1490047cee6a521b25458d200"},
+  "raw_artifact_sha256": {
+    "runs/accuracy/20261009T114540Z_baseline_dev_bm25/metrics.json": "83672cb37505921381b026b46118656b418e8070f36e1e4edcb60d648e8cd612",
+    "runs/accuracy/20261009T114540Z_baseline_dev_bm25/summary.md": "d661b60dd8b03900bb35c682d8fb5e22a6bd5f67b9e2449bf8bc8cc872b8e68e",
+    "runs/accuracy/20261009T114540Z_baseline_dev_bm25/config.yaml": "1d38ca41f063a55fa19b0469ea2923b666b7440f21dea83b8562811af418fb17",
+    "runs/accuracy/20261009T114540Z_baseline_dev_bm25/results.jsonl": "e3a3408ca83ebcb9cde07c1511740e996004a210002846e7d2cc7771361f0d7c",
+    "runs/accuracy/20261009T114540Z_baseline_dev_bm25/runtime_identity.json": "638f607e5da4dc6ad93bc2f550cf5abd160f285f4c7a87a7b0b777f0dfcb9077",
+    "runs/accuracy/20261009T114540Z_baseline_dev_bm25/errors.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runs/accuracy/20261009T114545Z_baseline_dev_hybrid/metrics.json": "30bb2e67a7b9cbd9ed6fc0b339d52e9959562b51cb10b9095ff3106b5b202948",
+    "runs/accuracy/20261009T114545Z_baseline_dev_hybrid/summary.md": "265e307d658962d9171f52958c927d2fc289c56dfcaca679e6ed852abae11c82",
+    "runs/accuracy/20261009T114545Z_baseline_dev_hybrid/config.yaml": "15d1e3cace5d7fae435d23b8591aa975b4fa30b243520829a0891d764236e907",
+    "runs/accuracy/20261009T114545Z_baseline_dev_hybrid/results.jsonl": "41049ba13e5c583432cc9d194e1c404ee7de3798a04958fd3a3f982b797ac4f1",
+    "runs/accuracy/20261009T114545Z_baseline_dev_hybrid/runtime_identity.json": "638f607e5da4dc6ad93bc2f550cf5abd160f285f4c7a87a7b0b777f0dfcb9077",
+    "runs/accuracy/20261009T114545Z_baseline_dev_hybrid/errors.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runs/accuracy/20261009T114625Z_baseline_dev_dense/metrics.json": "fdb4235e6ed31f8a4a0a2275917b8d79e0bbf7dc82266a4ab14bb0828ecf9856",
+    "runs/accuracy/20261009T114625Z_baseline_dev_dense/summary.md": "e176264d14f64889abf64cc76bff490c5edc57c631cd8b0aed86ee52da9852e9",
+    "runs/accuracy/20261009T114625Z_baseline_dev_dense/config.yaml": "18001605764bfa25f39aa3797363ab80ef53d833e7ff0e8d6462805f5c97aafc",
+    "runs/accuracy/20261009T114625Z_baseline_dev_dense/results.jsonl": "3af6f6404dc41823559025e4381845b5233bbd5fecb0a65bb14551cd9680689a",
+    "runs/accuracy/20261009T114625Z_baseline_dev_dense/runtime_identity.json": "638f607e5da4dc6ad93bc2f550cf5abd160f285f4c7a87a7b0b777f0dfcb9077",
+    "runs/accuracy/20261009T114625Z_baseline_dev_dense/errors.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runs/accuracy/20261009T114645Z_baseline_holdout_bm25/metrics.json": "09806b2b75d4529709ae74a10e3eb586ca10640b166840de1bf4acdd9e293969",
+    "runs/accuracy/20261009T114645Z_baseline_holdout_bm25/summary.md": "74933fa809313777809e26c3de8dd6e7a71e7e0234c96325cdbaea02b92c97c7",
+    "runs/accuracy/20261009T114645Z_baseline_holdout_bm25/config.yaml": "0ae2ffd06a00323aecf3672cded65bd1203ee069701d5a0537bf4203446abeda",
+    "runs/accuracy/20261009T114645Z_baseline_holdout_bm25/results.jsonl": "6472d44f97d76deba4fed43331911b1f2b6aa26bc57e679b30cc21543f8fc1fa",
+    "runs/accuracy/20261009T114645Z_baseline_holdout_bm25/runtime_identity.json": "638f607e5da4dc6ad93bc2f550cf5abd160f285f4c7a87a7b0b777f0dfcb9077",
+    "runs/accuracy/20261009T114645Z_baseline_holdout_bm25/errors.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runs/accuracy/20261009T114646Z_baseline_holdout_hybrid/metrics.json": "0110b77f17546bdf4a41934136a40df06895541db720fb12a4aa0f46bacc2a2d",
+    "runs/accuracy/20261009T114646Z_baseline_holdout_hybrid/summary.md": "2f54221a02bf37d76653e92332857f8c7990baff5e4bbfd4dff430ab8ed5aa23",
+    "runs/accuracy/20261009T114646Z_baseline_holdout_hybrid/config.yaml": "554abc0e64fa99cd599ec9ada6c130b822fc9dc65b44976d7300822f412cb130",
+    "runs/accuracy/20261009T114646Z_baseline_holdout_hybrid/results.jsonl": "c6becec973e5487504421f2248df4ecb75d4d8b3449e37b4ced285b3b978c7c3",
+    "runs/accuracy/20261009T114646Z_baseline_holdout_hybrid/runtime_identity.json": "638f607e5da4dc6ad93bc2f550cf5abd160f285f4c7a87a7b0b777f0dfcb9077",
+    "runs/accuracy/20261009T114646Z_baseline_holdout_hybrid/errors.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runs/accuracy/20261009T114653Z_baseline_holdout_dense/metrics.json": "9787305b43d88f503031a80b13d9fe4ccaee00322ffcce671b278e8cfdc52961",
+    "runs/accuracy/20261009T114653Z_baseline_holdout_dense/summary.md": "be927786b04435c02958bab8e9d2e82e1313d651abe2f6121c26072ceeb762aa",
+    "runs/accuracy/20261009T114653Z_baseline_holdout_dense/config.yaml": "4e1f1c7c1c903c94cd60935088dd383829bde287e322fbdca47d0ed8f259ec69",
+    "runs/accuracy/20261009T114653Z_baseline_holdout_dense/results.jsonl": "d0d5b29634d307c85b99d74f96cbfe60b30546d1a74fe2a25c746f1b6c1b7d13",
+    "runs/accuracy/20261009T114653Z_baseline_holdout_dense/runtime_identity.json": "638f607e5da4dc6ad93bc2f550cf5abd160f285f4c7a87a7b0b777f0dfcb9077",
+    "runs/accuracy/20261009T114653Z_baseline_holdout_dense/errors.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runs/accuracy/20261009T163716Z_candidate_dev_bm25/metrics.json": "ea2c277ec35d88b27f3a84292cac8db73cd059530c2fd279d2606eb5b786015e",
+    "runs/accuracy/20261009T163716Z_candidate_dev_bm25/summary.md": "5437a2d338c2a23573050d4be63cb2ce669c74dacb920f8781b93d4a29c2d7b9",
+    "runs/accuracy/20261009T163716Z_candidate_dev_bm25/config.yaml": "15d4c30408b16ff41817e74674c1086b75ac84d8cf55f0479cbd7bfc61cf69c4",
+    "runs/accuracy/20261009T163716Z_candidate_dev_bm25/results.jsonl": "49afc0a82a04b68a7e17bfe1036bef21e396e37a0683e0fd05446c588ab352c7",
+    "runs/accuracy/20261009T163716Z_candidate_dev_bm25/runtime_identity.json": "b9c6b3980c857ffbbf92a1a8b0606ee67853f371bd522dc476e91c13c1a87119",
+    "runs/accuracy/20261009T163716Z_candidate_dev_bm25/errors.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runs/accuracy/20261009T163733Z_candidate_dev_hybrid/metrics.json": "2e2eb19db9cec5c82e4d5e97981ce6cb907af4daea4fc5f1812c160db4ca06f1",
+    "runs/accuracy/20261009T163733Z_candidate_dev_hybrid/summary.md": "2a8e0672d24d08f58536c43639687939315c90cb95a6ccf9a866c3fbc7c021cf",
+    "runs/accuracy/20261009T163733Z_candidate_dev_hybrid/config.yaml": "a71e9005f522e9c6a3db14a3622501b41320b76e1af91e36f2eb7345753dadcc",
+    "runs/accuracy/20261009T163733Z_candidate_dev_hybrid/results.jsonl": "bfb8d24283226c10f2f45297aa0b3c04ba99b6e3ef4ab7e3008d3d07775b6348",
+    "runs/accuracy/20261009T163733Z_candidate_dev_hybrid/runtime_identity.json": "b9c6b3980c857ffbbf92a1a8b0606ee67853f371bd522dc476e91c13c1a87119",
+    "runs/accuracy/20261009T163733Z_candidate_dev_hybrid/errors.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runs/accuracy/20261009T163817Z_candidate_dev_dense/metrics.json": "a06998c45089a2f8cd350ff81565d1632b3c9ca9098187da9e70669cc673acca",
+    "runs/accuracy/20261009T163817Z_candidate_dev_dense/summary.md": "1268ea2de37bd5649017c8eccc56117976711cc01a067b78df8e78ca393576e7",
+    "runs/accuracy/20261009T163817Z_candidate_dev_dense/config.yaml": "1b22290f0aff713ab853b2ceb3a91ac236fe19ebe1a7b5870f93c1ce563f7a74",
+    "runs/accuracy/20261009T163817Z_candidate_dev_dense/results.jsonl": "661d6f3d6d12ad5232d1e80fa93bbc91574c2b85aba9b36bd01098f8ca5f73f0",
+    "runs/accuracy/20261009T163817Z_candidate_dev_dense/runtime_identity.json": "b9c6b3980c857ffbbf92a1a8b0606ee67853f371bd522dc476e91c13c1a87119",
+    "runs/accuracy/20261009T163817Z_candidate_dev_dense/errors.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runs/accuracy/20261009T163848Z_candidate_dev_lexical/metrics.json": "1e5e4af1957323c6e0c8d0f4f652d6047691aa055d5d476860f3ca035f115f9f",
+    "runs/accuracy/20261009T163848Z_candidate_dev_lexical/summary.md": "017673b7c8abf18935a2aa9d78ada56764e247769276ca171cc54bd2acb4e2ca",
+    "runs/accuracy/20261009T163848Z_candidate_dev_lexical/config.yaml": "bb8c75efb32ac3625415ef30f126ece328a664cc64d4294ae956603f588a463e",
+    "runs/accuracy/20261009T163848Z_candidate_dev_lexical/results.jsonl": "ee098f121fb287a9a3a08f19f9bd34d18fee4e05b6fa75c61101b85fb1c4eb98",
+    "runs/accuracy/20261009T163848Z_candidate_dev_lexical/runtime_identity.json": "79f9e5bd8912d6ea3bb20ac7eaf57b787f51c1c255cfe5363379c3e598613140",
+    "runs/accuracy/20261009T163848Z_candidate_dev_lexical/errors.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runs/accuracy/20261009T163935Z_baseline_image/metrics.json": "490e98d5f5c40274b893ae91dc8c6a83d9a7498b48c9ac6bfd399e6318edcd24",
+    "runs/accuracy/20261009T163935Z_baseline_image/summary.md": "6431b6818e8be45a2277d3a614fe4d35c5fd579cb5a43b257d940c9f7d5d5184",
+    "runs/accuracy/20261009T163935Z_baseline_image/config.yaml": "71e54b285bca52ca4751feb4b14bf1fb6f6ca18fda1b776c59c4b0bf291ae693",
+    "runs/accuracy/20261009T163935Z_baseline_image/results.jsonl": "1229779c00d952797b89e11dac5d237490ee618ad49a02bd157a0d141c7bd8b5",
+    "runs/accuracy/20261009T163935Z_baseline_image/runtime_identity.json": "638f607e5da4dc6ad93bc2f550cf5abd160f285f4c7a87a7b0b777f0dfcb9077",
+    "runs/accuracy/20261009T163935Z_baseline_image/errors.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runs/accuracy/20261009T163950Z_candidate_image/metrics.json": "11a451f6898604613655b027f83cbd325791b1a440635b0076bdc8612c3d49b2",
+    "runs/accuracy/20261009T163950Z_candidate_image/summary.md": "024c8452ee481cf8b975ccdd41519cc9af4ad443c36be8ecbb7b9cb204ff5467",
+    "runs/accuracy/20261009T163950Z_candidate_image/config.yaml": "24d37c6495a636fc62d60e1b72b1e712789c84884fd7860260b718e6a7ed9af2",
+    "runs/accuracy/20261009T163950Z_candidate_image/results.jsonl": "4d9d3c117ad2f93a8ee825459ac752959e8bece4201f642f0aeecff7e19cb170",
+    "runs/accuracy/20261009T163950Z_candidate_image/runtime_identity.json": "b9c6b3980c857ffbbf92a1a8b0606ee67853f371bd522dc476e91c13c1a87119",
+    "runs/accuracy/20261009T163950Z_candidate_image/errors.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runs/accuracy/20261009T164219Z_frozen_winner_holdout/metrics.json": "cac33a058a320b0107f5525cfd7cf9236fedbb70a3a8d9490f1d4775fa0c0df9",
+    "runs/accuracy/20261009T164219Z_frozen_winner_holdout/summary.md": "2bb288e790682de972e56f57a439c2be1ab9646ccbb6572cb4ab565e023061d4",
+    "runs/accuracy/20261009T164219Z_frozen_winner_holdout/config.yaml": "a41f22b764f062804af73c48fdf4fbf8aaa3171624d474337370cdffa86a24af",
+    "runs/accuracy/20261009T164219Z_frozen_winner_holdout/results.jsonl": "0a255357ee677a88307a0379679ca8b4c930c682b0f2d9f1792ded41bf53fcec",
+    "runs/accuracy/20261009T164219Z_frozen_winner_holdout/runtime_identity.json": "79f9e5bd8912d6ea3bb20ac7eaf57b787f51c1c255cfe5363379c3e598613140",
+    "runs/accuracy/20261009T164219Z_frozen_winner_holdout/errors.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "measured_source_files_sha256": {
+    "configs/app.yaml": "feacfa847aa0b9f047d704866e8286b1f96fa99a3d4f2229635c3dde3a9152d0",
+    "configs/retrieval.yaml": "7b549fcb601ca704c7ae70f88643a72cc2b3ac784d0016137235e15cb572c3b9",
+    "scripts/create_index.py": "254b4f50408bdf8a8a0e4cd9ee709d7a3020335c4838be8d383a376598dc89a4",
+    "scripts/generate_embeddings.py": "2be65b90b00b97877fee05b11f23eb3ca3bf68df29ef3dc5c9691cdec217a97a",
+    "scripts/generate_knowledge_embeddings.py": "abcc627319b8a1aaa80f9946fb07d085c0ed85d6a277987e81874331646eebe2",
+    "scripts/index_policies.py": "c497621ace1e125c27d45db503eb8ac072cd94e948056ec47f7d6c8d8909b778",
+    "scripts/index_products.py": "3b09ada2908f22639c65582cd6368002256193850475d719757ecc50bcb8943f",
+    "scripts/index_reviews.py": "6156be5762c520a4d588d956298870f69404cdb86b91695dbdbd766c5201101a",
+    "shopmind/app/api/schemas/search.py": "553cb8f74b0bc49179fefb74d55dffee29a0fb8ca769118a87f50941bcf7bd24",
+    "shopmind/app/core/config.py": "425ab8a175b4c1ab33a4f57ab7f2c94eaf24babffeb14995b19f9a1fa9c616f3",
+    "shopmind/app/embedding/siglip2.py": "6b4e662572b8764cb8bca769ebb269a36c2f9a3427f72069c5bc672ada11d9f9",
+    "shopmind/app/infrastructure/elasticsearch/index.py": "1b48531342d3c6a146f0134f65797ed5d48f86a739dd955d854785b6ea7b3787",
+    "shopmind/app/infrastructure/elasticsearch/knowledge_index.py": "dab09304230b6d855f7129a92db521b6fd706ffab8d0bbded1055366b1cdedb0",
+    "shopmind/app/infrastructure/elasticsearch/knowledge_repository.py": "4c084e1668365ac406ac8228e5edf7c6c4d47a076fa684b23cb5c8b9d6075e19",
+    "shopmind/app/infrastructure/elasticsearch/repository.py": "b9658ccc86f89bf315a76c087975015d433a18ac9e65ffe278cddbc78e76f9a8",
+    "shopmind/app/knowledge/policy_retriever.py": "d6914102a6966c7b0feb6c731ad3a6a3a625e7f4a74c56d684b592c930509fb6",
+    "shopmind/app/knowledge/review_retriever.py": "b8b0cc998e820ea1e54e0e330f7961abfdd9f842a0e8843aa374b26e0a3d7b03",
+    "shopmind/app/main.py": "47a6d108a166c63b56cc84adc1b360dc14dda17d4c172a878477ef263fea7426",
+    "shopmind/app/retrieval/bm25.py": "540d17ff5ebe36a70ba75ef14621848907322ddf9f69aa74a768616df55311a5",
+    "shopmind/app/retrieval/dense.py": "38d647a1e85c267f06e34c09a177b400d1c2699637c0527d066c0a12c5198849",
+    "shopmind/app/retrieval/hybrid.py": "7c3c394937eda110afd909a87d4592548798a4d94719eccb21ea3222d1813431",
+    "shopmind/pipeline/embedding_artifacts.py": "7fc930a8e5a9138e23253cfbba14b72f122b82b0982a6a13c7aab27aa9509d69",
+    "shopmind/pipeline/knowledge_embedding_artifacts.py": "230bc63d98408032386f3b0c5253556898655981c4aaa976914b6dd9c8b05562",
+    "tests/a3/test_a3_adaptive.py": "5e2edd939f77b9b9711c05e2ec30fb6be6d14d5d9c2f51500517d8b3a6370e29",
+    "tests/a3/test_a3_storage.py": "7e6e6df93376812261d56fc1ddbe50f6ceb612f3b6d8a2579496aa8efc012b4a",
+    "tests/integration/test_elasticsearch_repository.py": "729b576570a445c14142e401ab7c228e4b241a3d2460f8b7620e7b008ece880c",
+    "tests/integration/test_end_to_end_search.py": "8b50e554f94c98afe3bf03a5ccd51e5a6d786c8e8ed67580907206f24d15f7c0",
+    "tests/unit/test_bm25_retriever.py": "32976eb0970bc45bd86ae4f44f56420116ed77f90779346fb3ff2a7e8a86199e",
+    "tests/unit/test_embedding_artifacts.py": "173056fba5aa4e58d45c82bca991c077c31d59269de09e3977d6c489f0291917",
+    "tests/unit/test_embedding_contract.py": "684dbdcaab88a8ffc91909d0a595b1fb51ed7654cd4a3c3d638d06e30e7234cc",
+    "tests/unit/test_hybrid_retriever.py": "4ad6c7d5c021ddd273978706df151d044fc2597f41071a94fa281a9577f0e12a",
+    "tests/unit/test_siglip2_adapter.py": "cc7673b2ec2f86610a727c9cae492449443f56452f557e734b4c9e534975a174",
+    "scripts/diagnose_embedding_accuracy.py": "9459a3fea247471cb8ca29d1f01241aa47a3a60132c10dd225c6714565d8ab88",
+    "shopmind/app/embedding/validation.py": "a9cc0f42532efe65b8a7906ce5b2af5d054ab3348efaf294b4477f591124cf62",
+    "shopmind/app/retrieval/language.py": "de527db9adbe943a9518e8a4384d33c4208d1c3251e6203dfeea7b7c98a710cf"
+  },
+  "candidate_artifacts": {
+    "image_embeddings.npy": "c4862953053a32f104b12899115d4151c7f1f87b710cd19af991740ac229baf0",
+    "text_embeddings.npy": "44951d3afce966ca10bb7117e05cf064929175261d1df61e5913eeaf524ff8ec",
+    "manifest.json": "fee00a21ae1d885bcf823eda88117ef47c155c8b0984be331008d1c28c78fad4",
+    "product_ids.json": "954e6d8b8622907e9ef4c2062cdab926edbfbce43f8c96d0f3f0e8c09b19c606",
+    "cached_docker_image": "sha256:60b2f93d954b856774f946b6b1daa1b6a2d022ba454e68a9a1dd999d1f2111c0"
+  },
+  "index_snapshots": {
+    "products_a1_1500_v1": {
+      "count": 1500,
+      "product_ids_sha256": "8123d4b443449e72969febb23fe92347ebf2bea278d17a0b86543422c75b11a5",
+      "all_sources_sha256": "f24a03be743a977b28e83f7e73dcc2b43cf8e826d582d2fbc7d12dffcc77994f",
+      "vector_sha256": {"text_vector": "ea7dcddea06d09ae9a7a226381c5255fc28625a8a5012a81fe2341a10d356145","image_vector": "d6995f34930662fd98cec5717ec62ddab930375c7dc9fe8b8f06ef18d37ac53c"}
+    },
+    "products_accuracy_20261009_v2": {
+      "count": 1500,
+      "product_ids_sha256": "8123d4b443449e72969febb23fe92347ebf2bea278d17a0b86543422c75b11a5",
+      "all_sources_sha256": "6576223127b9673b0f0fc76289df9594ebe3c07b9b9bb26f66452631f27e4337",
+      "vector_sha256": {"text_vector": "ea7dcddea06d09ae9a7a226381c5255fc28625a8a5012a81fe2341a10d356145","image_vector": "d6995f34930662fd98cec5717ec62ddab930375c7dc9fe8b8f06ef18d37ac53c"}
+    }
+  },
+  "current_source_sha256": {
+    "configs/app.yaml": "feacfa847aa0b9f047d704866e8286b1f96fa99a3d4f2229635c3dde3a9152d0",
+    "configs/retrieval.yaml": "7b549fcb601ca704c7ae70f88643a72cc2b3ac784d0016137235e15cb572c3b9",
+    "scripts/create_index.py": "254b4f50408bdf8a8a0e4cd9ee709d7a3020335c4838be8d383a376598dc89a4",
+    "scripts/diagnose_embedding_accuracy.py": "9459a3fea247471cb8ca29d1f01241aa47a3a60132c10dd225c6714565d8ab88",
+    "scripts/generate_embeddings.py": "2be65b90b00b97877fee05b11f23eb3ca3bf68df29ef3dc5c9691cdec217a97a",
+    "scripts/generate_knowledge_embeddings.py": "abcc627319b8a1aaa80f9946fb07d085c0ed85d6a277987e81874331646eebe2",
+    "scripts/index_policies.py": "c497621ace1e125c27d45db503eb8ac072cd94e948056ec47f7d6c8d8909b778",
+    "scripts/index_products.py": "3b09ada2908f22639c65582cd6368002256193850475d719757ecc50bcb8943f",
+    "scripts/index_reviews.py": "6156be5762c520a4d588d956298870f69404cdb86b91695dbdbd766c5201101a",
+    "shopmind/app/api/schemas/search.py": "8f7e74949d4ce12a20d2b1580850fc27e448842bf81b0e4312fc7ce55199e0eb",
+    "shopmind/app/core/config.py": "425ab8a175b4c1ab33a4f57ab7f2c94eaf24babffeb14995b19f9a1fa9c616f3",
+    "shopmind/app/embedding/siglip2.py": "6b4e662572b8764cb8bca769ebb269a36c2f9a3427f72069c5bc672ada11d9f9",
+    "shopmind/app/embedding/validation.py": "a9cc0f42532efe65b8a7906ce5b2af5d054ab3348efaf294b4477f591124cf62",
+    "shopmind/app/infrastructure/elasticsearch/index.py": "1b48531342d3c6a146f0134f65797ed5d48f86a739dd955d854785b6ea7b3787",
+    "shopmind/app/infrastructure/elasticsearch/knowledge_index.py": "dab09304230b6d855f7129a92db521b6fd706ffab8d0bbded1055366b1cdedb0",
+    "shopmind/app/infrastructure/elasticsearch/knowledge_repository.py": "4c084e1668365ac406ac8228e5edf7c6c4d47a076fa684b23cb5c8b9d6075e19",
+    "shopmind/app/infrastructure/elasticsearch/repository.py": "b9658ccc86f89bf315a76c087975015d433a18ac9e65ffe278cddbc78e76f9a8",
+    "shopmind/app/knowledge/policy_retriever.py": "d6914102a6966c7b0feb6c731ad3a6a3a625e7f4a74c56d684b592c930509fb6",
+    "shopmind/app/knowledge/review_retriever.py": "b8b0cc998e820ea1e54e0e330f7961abfdd9f842a0e8843aa374b26e0a3d7b03",
+    "shopmind/app/llm/openai_provider.py": "cb33a8f05139cce3111059bc2b1b571962286afb11581021097830e426013b58",
+    "shopmind/app/main.py": "47a6d108a166c63b56cc84adc1b360dc14dda17d4c172a878477ef263fea7426",
+    "shopmind/app/rag/citations.py": "41c15a2cf1ffd823ba97205ed2e04ede72da6d6b71b5fa1e664dde9b559525f8",
+    "shopmind/app/rag/context.py": "7ab26a58a9696442533fa4f65e28a4f3da1c35b68887f8a5c88af2b41a7e0a82",
+    "shopmind/app/rag/service.py": "ca9034f723c27dd198254a8a7421504eaafca8a39b016b2084e7f1078d4dd7cc",
+    "shopmind/app/retrieval/bm25.py": "540d17ff5ebe36a70ba75ef14621848907322ddf9f69aa74a768616df55311a5",
+    "shopmind/app/retrieval/dense.py": "ae3f8ff2f4bee3c1bdc3c643d965509d74642a844d01439270bff83c70441ab2",
+    "shopmind/app/retrieval/hybrid.py": "7f8ac64abc1f800b08c6b4e474b17e026da669208f016090c840e527689511aa",
+    "shopmind/app/retrieval/language.py": "de527db9adbe943a9518e8a4384d33c4208d1c3251e6203dfeea7b7c98a710cf",
+    "shopmind/pipeline/embedding_artifacts.py": "7fc930a8e5a9138e23253cfbba14b72f122b82b0982a6a13c7aab27aa9509d69",
+    "shopmind/pipeline/knowledge_embedding_artifacts.py": "230bc63d98408032386f3b0c5253556898655981c4aaa976914b6dd9c8b05562",
+    "tests/a3/test_a3_adaptive.py": "5e2edd939f77b9b9711c05e2ec30fb6be6d14d5d9c2f51500517d8b3a6370e29",
+    "tests/a3/test_a3_quality.py": "d27c7dfb5e64e2f0910afd623895f436817b9782f10a4f15428e4d7e39a63136",
+    "tests/a3/test_a3_storage.py": "7e6e6df93376812261d56fc1ddbe50f6ceb612f3b6d8a2579496aa8efc012b4a",
+    "tests/api/test_rag_api.py": "d3e9965481899f9be5ae9ae91f2759fcec9d0e57ad9e3a9dfbfe5dd8160a5cf4",
+    "tests/integration/test_elasticsearch_repository.py": "729b576570a445c14142e401ab7c228e4b241a3d2460f8b7620e7b008ece880c",
+    "tests/integration/test_end_to_end_search.py": "8b50e554f94c98afe3bf03a5ccd51e5a6d786c8e8ed67580907206f24d15f7c0",
+    "tests/unit/test_bm25_retriever.py": "32976eb0970bc45bd86ae4f44f56420116ed77f90779346fb3ff2a7e8a86199e",
+    "tests/unit/test_embedding_artifacts.py": "173056fba5aa4e58d45c82bca991c077c31d59269de09e3977d6c489f0291917",
+    "tests/unit/test_embedding_contract.py": "684dbdcaab88a8ffc91909d0a595b1fb51ed7654cd4a3c3d638d06e30e7234cc",
+    "tests/unit/test_hybrid_retriever.py": "94df7a633e291287e8df4885ca86b9a8355ed4125d6ac56279fa4234afe622e0",
+    "tests/unit/test_siglip2_adapter.py": "cc7673b2ec2f86610a727c9cae492449443f56452f557e734b4c9e534975a174"
+  },
+  "benchmark_sha256": {
+    "evaluation/benchmarks/accuracy_v2/queries.jsonl": "a9ad335e7ca8c830322f58de74d8733bc937853fadd154592554edb188362844",
+    "evaluation/benchmarks/accuracy_v2/qrels.jsonl": "d2fa9c41bccfe35969b8cb0d67048d0a92c0d6640db5bd55e80d8df388b11d99",
+    "evaluation/benchmarks/accuracy_v2/manifest.json": "09326307ab61dbb882f182777e5b5aa26b14da2a6d6807ccf1e1029df259c5b7",
+    "data/a1_abo_1500/products.jsonl": "addc2b80493d9bda334af1130aabab401f4287806324f56b55c8a7cfc87472e4"
+  },
+  "active_alias": {"alias": "products","target": "products_accuracy_20261009_v2","documents": 1500,"old_target_preserved": "products_a1_1500_v1","old_documents": 1500},
+  "batch_cosine": {"old_dynamic_minimum": 0.54245919,"fixed_minimum": 0.9999997616,"fixed_max_l2_difference": 0.0,"probes": 6},
+  "zero_dense_dev_check": {"queries": 130,"same_ids_and_order": 130,"dense_calls": 0,"evidence": "runs/accuracy/review_round1_dev_check.json"},
+  "acceptance": {
+    "backend_initial": "198 passed,1 skipped at9e0907c",
+    "backend_final_owner": "200 passed,1 skipped at1aa8f67",
+    "fairness_focused_independent": "32 passed at1aa8f67",
+    "live_es": "4 passed",
+    "ui": "12 passed;build passed",
+    "whitespace": "both passed",
+    "browser_actual": "real catalog search,selectedproduct,sourcechoices,missingkeyerror,selectionclearsquestion/error",
+    "browser_scripted": "citation/excerpt/experimentalpolicy/link/relevance/unavailablereviews;2turnhistorycleared;delayedobsoleteanswer0",
+    "real_api_final_restart": "PASS at1aa8f67:ready200;hybrid exactID;natural10results;RAG503llm_unavailable",
+    "task3_rereview": "PASS:original source-fairness finding ADDRESSED;2000 independent budget/source-order assertions"
+  },
+  "qa_evidence_sha256": {
+    "runs/accuracy/task4/audit.json": "5e3d15ba9e92c0b02dfea7e6668fca47fa79284bd85e14b7f4eb4676aa8eb896",
+    "runs/accuracy/task4/audit.log": "515089ad618aae3a1a719733b9cc15615471828f35264001f006918ea9e4ed4d",
+    "runs/accuracy/task4/audit.py": "ea1fe1aa9a2ca36536c93d1585a4b2ac68b24c163c7c9cbb304196907c66f40d",
+    "runs/accuracy/task4/backend-diff-check.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runs/accuracy/task4/browser-actual-503.png": "b39a11655ccd39a1e093a8a0ecdd4f23ef0e07077ad9bb29f8709539f711a2df",
+    "runs/accuracy/task4/browser-actual-503.txt": "5ba042797a313976aa4ec5849ce95663dc5390c408502ba7501346474747301e",
+    "runs/accuracy/task4/browser-scripted-answer.png": "8f2280ff8a31cc7fd9adc3aed1cfc66ee55ea93f0b400ec53a180c7f6d35e889",
+    "runs/accuracy/task4/browser-scripted-answer.txt": "15d30b5ea38d6d3e1592c39908790de01fa52f9fce3facbf7ddcb6de0faf0e1c",
+    "runs/accuracy/task4/browser-scripted-cancelled.txt": "4d05070b8cece00276ca4253df56d831c2513e59ac2a1de3669a4c3f758fcae0",
+    "runs/accuracy/task4/browser-scripted-selection-b.txt": "76367582cc11e4735f6530f9931f1d51faf9e15458b8ac80065f50e17554e626",
+    "runs/accuracy/task4/browser_fixture_server.py": "30a31663f019ff381517fad668e2afa87772ad105ba8e93450fc0e1f3da85bea",
+    "runs/accuracy/task4/fairness-focused.log": "89e594487d83a6acd7d73a4ca8d1899c03b86fac60d4194a9251ffcc0e56b902",
+    "runs/accuracy/task4/integration.log": "f141513d0f26221033324f7646186cb71839ef5e9a90ccb1095fcf5aeae879e1",
+    "runs/accuracy/task4/pytest.log": "e6cdf77d1f359070d781c5062f74a9b83008de5f37e7982612bb39b98c571b82",
+    "runs/accuracy/task4/scripted-browser-requests.jsonl": "4d4cc72a1a6120068ec93b1ded94c8c3ee1e3a9c9ba1095bfe47c13c950d3046",
+    "runs/accuracy/task4/scripted-server.log": "6ed55fc68e02df67b00fefaf987b5d2b130919e54c8fdb7f0eb72c255d37cbaa",
+    "runs/accuracy/task4/ui-build.log": "e5e57379538f028e802745f00a7541aaf76048cd358c3ce5448376b98969c3b9",
+    "runs/accuracy/task4/ui-diff-check.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runs/accuracy/task4/ui-test.log": "df8bc15b1e016f13607fbd275745ac72dff01b62b9a75cb03ef6d096d8b14c0c",
+    "runs/accuracy/task4/final-api-smoke.json": "e47ec535459bf712fddc6532cb792dc52c2e59d157f64d0e304af6e21f74362a",
+    "runs/accuracy/task4/final-api-smoke.log": "8feda9ea279d077351300415d45449d129a1a0772fddf0a28816457d6e34bdb4"
+  },
+  "run_paths": {
+    "baseline_dev_bm25": "runs/accuracy/20261009T114540Z_baseline_dev_bm25",
+    "baseline_dev_hybrid": "runs/accuracy/20261009T114545Z_baseline_dev_hybrid",
+    "baseline_dev_dense": "runs/accuracy/20261009T114625Z_baseline_dev_dense",
+    "baseline_holdout_bm25": "runs/accuracy/20261009T114645Z_baseline_holdout_bm25",
+    "baseline_holdout_hybrid": "runs/accuracy/20261009T114646Z_baseline_holdout_hybrid",
+    "baseline_holdout_dense": "runs/accuracy/20261009T114653Z_baseline_holdout_dense",
+    "candidate_dev_bm25": "runs/accuracy/20261009T163716Z_candidate_dev_bm25",
+    "candidate_dev_hybrid": "runs/accuracy/20261009T163733Z_candidate_dev_hybrid",
+    "candidate_dev_dense": "runs/accuracy/20261009T163817Z_candidate_dev_dense",
+    "candidate_dev_lexical": "runs/accuracy/20261009T163848Z_candidate_dev_lexical",
+    "candidate_baseline_image": "runs/accuracy/20261009T163935Z_baseline_image",
+    "candidate_candidate_image": "runs/accuracy/20261009T163950Z_candidate_image",
+    "candidate_holdout_winner": "runs/accuracy/20261009T164219Z_frozen_winner_holdout"
+  },
+  "stage_reviews": {
+    "task1": "spec/quality PASS",
+    "task2": "initial2Important findings addressed;scoped re-review PASS before activation",
+    "task3": "initial1Important finding addressed at1aa8f67;scoped re-review PASS",
+    "task4": "raw audit/integrated/browser acceptance PASS",
+    "whole_branch": "pending manager final review after report commit"
+  },
+  "browser_scripted_backend_fixture_commit": "9e0907cf9d3b7a4d61b34cdd4e86bf573df85ea1",
+  "browser_scripted_frontend_commit": "c9fbfb21fac90bc42424f52c5725b63035663599"
+}
