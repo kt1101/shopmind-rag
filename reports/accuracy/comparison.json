@@ -65,7 +65,7 @@
         "vi": {"nDCG@10": 0.1880784029148079,"Recall@10": 0.3143790849673203,"MRR@10": 0.15059134765017118}
       },
       "natural_language": {"nDCG@10": 0.25633226357200467,"Recall@10": 0.3735294117647059,"MRR@10": 0.23816137566137566},
-      "exact_id_top1": 0,
+      "exact_id_top1": 28,
       "exact_id_count": 28
     },
     "baseline_dev_hybrid": {
@@ -83,7 +83,7 @@
         "vi": {"nDCG@10": 0.11205259364284947,"Recall@10": 0.17026143790849674,"MRR@10": 0.10527544351073762}
       },
       "natural_language": {"nDCG@10": 0.08034910149163746,"Recall@10": 0.11601307189542484,"MRR@10": 0.09144491129785248},
-      "exact_id_top1": 0,
+      "exact_id_top1": 21,
       "exact_id_count": 28
     },
     "baseline_dev_dense": {
@@ -119,7 +119,7 @@
         "vi": {"nDCG@10": 0.14814814814814814,"Recall@10": 0.2222222222222222,"MRR@10": 0.12698412698412698}
       },
       "natural_language": {"nDCG@10": 0.20918294903159845,"Recall@10": 0.3333333333333333,"MRR@10": 0.1715167548500882},
-      "exact_id_top1": 0,
+      "exact_id_top1": 12,
       "exact_id_count": 12
     },
     "baseline_holdout_hybrid": {
@@ -137,7 +137,7 @@
         "vi": {"nDCG@10": 0.1111111111111111,"Recall@10": 0.1111111111111111,"MRR@10": 0.1111111111111111}
       },
       "natural_language": {"nDCG@10": 0.07308138204365161,"Recall@10": 0.1111111111111111,"MRR@10": 0.0625},
-      "exact_id_top1": 0,
+      "exact_id_top1": 6,
       "exact_id_count": 12
     },
     "baseline_holdout_dense": {
@@ -170,7 +170,7 @@
         "vi": {"nDCG@10": 0.5749998721087952,"Recall@10": 0.7148841354723708,"MRR@10": 0.5377061935885465}
       },
       "natural_language": {"nDCG@10": 0.5712071975280644,"Recall@10": 0.709982174688057,"MRR@10": 0.5377061935885465},
-      "exact_id_top1": 0,
+      "exact_id_top1": 28,
       "exact_id_count": 28
     },
     "candidate_dev_hybrid": {
@@ -188,7 +188,7 @@
         "vi": {"nDCG@10": 0.19037334378053972,"Recall@10": 0.36420083184789065,"MRR@10": 0.1989495798319328}
       },
       "natural_language": {"nDCG@10": 0.18645512879953854,"Recall@10": 0.3481134878193702,"MRR@10": 0.1914526921879863},
-      "exact_id_top1": 0,
+      "exact_id_top1": 28,
       "exact_id_count": 28
     },
     "candidate_dev_dense": {
@@ -224,7 +224,7 @@
         "vi": {"nDCG@10": 0.5749998721087952,"Recall@10": 0.7148841354723708,"MRR@10": 0.5377061935885465}
       },
       "natural_language": {"nDCG@10": 0.5712071975280644,"Recall@10": 0.709982174688057,"MRR@10": 0.5377061935885465},
-      "exact_id_top1": 0,
+      "exact_id_top1": 28,
       "exact_id_count": 28
     },
     "candidate_baseline_image": {
@@ -262,7 +262,7 @@
         "vi": {"nDCG@10": 0.3293625652116434,"Recall@10": 0.4444444444444444,"MRR@10": 0.29365079365079366}
       },
       "natural_language": {"nDCG@10": 0.345895699669317,"Recall@10": 0.4444444444444444,"MRR@10": 0.3134920634920635},
-      "exact_id_top1": 0,
+      "exact_id_top1": 12,
       "exact_id_count": 12
     }
   },
@@ -590,5 +590,188 @@
     "whole_branch": "pending manager final review after report commit"
   },
   "browser_scripted_backend_fixture_commit": "9e0907cf9d3b7a4d61b34cdd4e86bf573df85ea1",
-  "browser_scripted_frontend_commit": "c9fbfb21fac90bc42424f52c5725b63035663599"
+  "browser_scripted_frontend_commit": "c9fbfb21fac90bc42424f52c5725b63035663599",
+  "image_probe_type": "20 transformed catalog-image identity probes: margin crop, resize to source dimensions, contrast0.95, JPEG quality75; independent cross-view relevance unmeasured",
+  "image_probe_files": [
+    {
+      "query_id": "i001",
+      "query_file": "evaluation/benchmarks/a1/images/i001.jpg",
+      "source_file": "data/a1_abo_1500/images/B07WM5RGRQ.jpg",
+      "query_sha256": "0ca8aa3217aaf3ab568cfcc352cebfcd5ee4bf2d0f5aff7b0cce2fbcdbfdbfa4",
+      "source_sha256": "d880322b8619a8d449a82272b88448264a7c20b4ef13942bc08f0a038440f543",
+      "not_byte_identical": true,
+      "matches_documented_transform_bytes": true
+    },
+    {
+      "query_id": "i002",
+      "query_file": "evaluation/benchmarks/a1/images/i002.jpg",
+      "source_file": "data/a1_abo_1500/images/B07BDVKF11.jpg",
+      "query_sha256": "4bf5f2157e0168ab0793a8cfe3a50150ac6a429aac9fcd33b0fa17f58103634b",
+      "source_sha256": "bc65ff46eabab4e93578a044b9eb815638047d7d90743c7a140d94ed064531c1",
+      "not_byte_identical": true,
+      "matches_documented_transform_bytes": true
+    },
+    {
+      "query_id": "i003",
+      "query_file": "evaluation/benchmarks/a1/images/i003.jpg",
+      "source_file": "data/a1_abo_1500/images/B07QH7L26M.jpg",
+      "query_sha256": "4f3875b71b4df493338dcb63a8ac63d9428387dcfb925f727abc57fa455abfd3",
+      "source_sha256": "509adc6d9d802b15e208cafbf370f329e592ec8b0689f2b674575ac86c656b6f",
+      "not_byte_identical": true,
+      "matches_documented_transform_bytes": true
+    },
+    {
+      "query_id": "i004",
+      "query_file": "evaluation/benchmarks/a1/images/i004.jpg",
+      "source_file": "data/a1_abo_1500/images/B07DJ3MK8N.jpg",
+      "query_sha256": "aadf9f16ad5b425d3dfa3552cae1955a80595d8a23edf0d5bf751ed7c9c4d078",
+      "source_sha256": "9fdc4556dbd2049b549d4d788bd663c3042745f29f05ca590d35bc11f48d37c9",
+      "not_byte_identical": true,
+      "matches_documented_transform_bytes": true
+    },
+    {
+      "query_id": "i005",
+      "query_file": "evaluation/benchmarks/a1/images/i005.jpg",
+      "source_file": "data/a1_abo_1500/images/B071GKY7HV.jpg",
+      "query_sha256": "30d265f2eb773ad82df907f6beffa9b289e377af769e0a0183703b9a0dfa8fd7",
+      "source_sha256": "cd2eb8e472d9538546008e92bb4739dd21a1897e3f5d99ccbe1a5a5c51e419d7",
+      "not_byte_identical": true,
+      "matches_documented_transform_bytes": true
+    },
+    {
+      "query_id": "i006",
+      "query_file": "evaluation/benchmarks/a1/images/i006.jpg",
+      "source_file": "data/a1_abo_1500/images/B088MFJ76G.jpg",
+      "query_sha256": "b4f29b8cfb73f502453009fea5db5ea06c46f88cf8857f386e824beb1f3bff26",
+      "source_sha256": "cff39674fc3154d59f0434d580f93dcb1ab3b95e1cf0bcf2bb7505751501c82d",
+      "not_byte_identical": true,
+      "matches_documented_transform_bytes": true
+    },
+    {
+      "query_id": "i007",
+      "query_file": "evaluation/benchmarks/a1/images/i007.jpg",
+      "source_file": "data/a1_abo_1500/images/B0797KPWY4.jpg",
+      "query_sha256": "5c720049a8a4e56e79148d868f592fe1119637c4934ba1c5dcd62cf748b622d5",
+      "source_sha256": "61470eb4088a56ec0444e71ec813660b5ded846f1017e9efd044a1a81bb8e554",
+      "not_byte_identical": true,
+      "matches_documented_transform_bytes": true
+    },
+    {
+      "query_id": "i008",
+      "query_file": "evaluation/benchmarks/a1/images/i008.jpg",
+      "source_file": "data/a1_abo_1500/images/B07VZ7Y8N3.jpg",
+      "query_sha256": "0f5d68dbec5e4b43e894bf4cf803659643b40a3f1e744f5ad1162f7e3683e1c4",
+      "source_sha256": "5e41449f7e79bd94b66e05d4f69ae5ccacde99264b280379fa7933ebcdb23124",
+      "not_byte_identical": true,
+      "matches_documented_transform_bytes": true
+    },
+    {
+      "query_id": "i009",
+      "query_file": "evaluation/benchmarks/a1/images/i009.jpg",
+      "source_file": "data/a1_abo_1500/images/B074MFQS9B.jpg",
+      "query_sha256": "410376a4f65617f682e5d164e77eec52b1a844380533f97133fbea629f4c4e57",
+      "source_sha256": "e16759015f1bec02be3d0501e22383c9f6918da46302b87983a94b9fb7ea373c",
+      "not_byte_identical": true,
+      "matches_documented_transform_bytes": true
+    },
+    {
+      "query_id": "i010",
+      "query_file": "evaluation/benchmarks/a1/images/i010.jpg",
+      "source_file": "data/a1_abo_1500/images/B072M2WXDW.jpg",
+      "query_sha256": "5588bac7ea3f7d2259cfcb38d7082bd1ab6de59f35b79ba4b9857bb2b712e7b4",
+      "source_sha256": "409e629bbed42ea66ec79d605c92ce7c30e15e1f17abf49fe466a721be9b448e",
+      "not_byte_identical": true,
+      "matches_documented_transform_bytes": true
+    },
+    {
+      "query_id": "i011",
+      "query_file": "evaluation/benchmarks/a1/images/i011.jpg",
+      "source_file": "data/a1_abo_1500/images/B07CZ5SP7N.jpg",
+      "query_sha256": "cf7cd2667883f13a8fb7d0fcb37ad4df3466b0050a99e8af984c2fcc799e2eb6",
+      "source_sha256": "5730f56759280918f8c7df124bf94abd3078cd4bb805bb23ac3ac633b9dc5989",
+      "not_byte_identical": true,
+      "matches_documented_transform_bytes": true
+    },
+    {
+      "query_id": "i012",
+      "query_file": "evaluation/benchmarks/a1/images/i012.jpg",
+      "source_file": "data/a1_abo_1500/images/B074H5SRPW.jpg",
+      "query_sha256": "f973f4ee76454400ec2f82360ca844325b9f264c87316cc796f107ebe189e922",
+      "source_sha256": "e8f978019c2ee1d3b144d5b6d965e3d9d4a39707177bf3f603e7ff83e582dbcd",
+      "not_byte_identical": true,
+      "matches_documented_transform_bytes": true
+    },
+    {
+      "query_id": "i013",
+      "query_file": "evaluation/benchmarks/a1/images/i013.jpg",
+      "source_file": "data/a1_abo_1500/images/B07WTN8B8C.jpg",
+      "query_sha256": "593198ce1cb443a23bfad0f93203b91541542a97c090ca5af3dffe32adf4ab33",
+      "source_sha256": "6635ea4a3192addf0ce9750788f38de7ed876d37b8dc8efaba9513411f1b7b27",
+      "not_byte_identical": true,
+      "matches_documented_transform_bytes": true
+    },
+    {
+      "query_id": "i014",
+      "query_file": "evaluation/benchmarks/a1/images/i014.jpg",
+      "source_file": "data/a1_abo_1500/images/B07GF9PH3K.jpg",
+      "query_sha256": "7e678a4998eaa8d3b104c9ebdd481ad3a9d17aaf0a993d2deb5e6c86ea5812e0",
+      "source_sha256": "5d81deb9a2feaf6fd3a0a255556fe6625c8eef79636d0008e0efba7dd105f326",
+      "not_byte_identical": true,
+      "matches_documented_transform_bytes": true
+    },
+    {
+      "query_id": "i015",
+      "query_file": "evaluation/benchmarks/a1/images/i015.jpg",
+      "source_file": "data/a1_abo_1500/images/B07RWR52WN.jpg",
+      "query_sha256": "9b757be869339f88c6b98df0718dbf721e184ac8cb9b5a22e8d931faf3c3952c",
+      "source_sha256": "5c7bb470db408cb56fe7aa17371630bb2273d4fe9a5b4964b94df4daa36c560b",
+      "not_byte_identical": true,
+      "matches_documented_transform_bytes": true
+    },
+    {
+      "query_id": "i016",
+      "query_file": "evaluation/benchmarks/a1/images/i016.jpg",
+      "source_file": "data/a1_abo_1500/images/B082B165WW.jpg",
+      "query_sha256": "296828831264ad0dbbccf32170b04848afc4a387edc3da9f35e08caf86f75735",
+      "source_sha256": "37260f66fa37a94f593c509d9c05d226c57fb2f4c7ed103dc5a22d63438e7faf",
+      "not_byte_identical": true,
+      "matches_documented_transform_bytes": true
+    },
+    {
+      "query_id": "i017",
+      "query_file": "evaluation/benchmarks/a1/images/i017.jpg",
+      "source_file": "data/a1_abo_1500/images/B0853JGLT7.jpg",
+      "query_sha256": "18aa9bfcc168e9b21a27c1c51a9896309699a8005bf5c404a56a9534b84ae984",
+      "source_sha256": "b86673aee23923ab876cdf13554e75889807af919d57bbe880ab578a7a65f744",
+      "not_byte_identical": true,
+      "matches_documented_transform_bytes": true
+    },
+    {
+      "query_id": "i018",
+      "query_file": "evaluation/benchmarks/a1/images/i018.jpg",
+      "source_file": "data/a1_abo_1500/images/B079HRHJF4.jpg",
+      "query_sha256": "b06dc0db4bfd63251c37ad6091cc4c79f7bf15d3fca6f891599987e07b7ca27b",
+      "source_sha256": "90ca5e0f76c4793793167c00c648b221e6491a98efee25d086f3610096ac2867",
+      "not_byte_identical": true,
+      "matches_documented_transform_bytes": true
+    },
+    {
+      "query_id": "i019",
+      "query_file": "evaluation/benchmarks/a1/images/i019.jpg",
+      "source_file": "data/a1_abo_1500/images/B07GTDZJPF.jpg",
+      "query_sha256": "d08068622441f0c96b8940c76341e2365e3bd1561371bc5798f4a0320589d3dc",
+      "source_sha256": "38775f71ae533ef595b7ff1671fce5e182b94642add7d091f3cbd3cb98203669",
+      "not_byte_identical": true,
+      "matches_documented_transform_bytes": true
+    },
+    {
+      "query_id": "i020",
+      "query_file": "evaluation/benchmarks/a1/images/i020.jpg",
+      "source_file": "data/a1_abo_1500/images/B07KQKV7XM.jpg",
+      "query_sha256": "dea9c757c775774355821d2fe394e65ce41d1b681cb8dfbbece6be66ea5e2c34",
+      "source_sha256": "7f9a0521b8cdc57e51f252a91667e3e284e121bbad9c6856bb859c4a956bf74c",
+      "not_byte_identical": true,
+      "matches_documented_transform_bytes": true
+    }
+  ]
 }
