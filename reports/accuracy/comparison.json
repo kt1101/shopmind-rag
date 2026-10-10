@@ -547,7 +547,7 @@
   "qa_evidence_sha256": {
     "runs/accuracy/task4/audit.json": "5e3d15ba9e92c0b02dfea7e6668fca47fa79284bd85e14b7f4eb4676aa8eb896",
     "runs/accuracy/task4/audit.log": "515089ad618aae3a1a719733b9cc15615471828f35264001f006918ea9e4ed4d",
-    "runs/accuracy/task4/audit.py": "ea1fe1aa9a2ca36536c93d1585a4b2ac68b24c163c7c9cbb304196907c66f40d",
+    "runs/accuracy/task4/audit.py": "b65ba90c3133067fbc9f0c60973ef99d44949b0f195e0e90527ff17a45850aa2",
     "runs/accuracy/task4/backend-diff-check.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "runs/accuracy/task4/browser-actual-503.png": "b39a11655ccd39a1e093a8a0ecdd4f23ef0e07077ad9bb29f8709539f711a2df",
     "runs/accuracy/task4/browser-actual-503.txt": "5ba042797a313976aa4ec5849ce95663dc5390c408502ba7501346474747301e",
@@ -560,7 +560,7 @@
     "runs/accuracy/task4/integration.log": "f141513d0f26221033324f7646186cb71839ef5e9a90ccb1095fcf5aeae879e1",
     "runs/accuracy/task4/pytest.log": "e6cdf77d1f359070d781c5062f74a9b83008de5f37e7982612bb39b98c571b82",
     "runs/accuracy/task4/scripted-browser-requests.jsonl": "4d4cc72a1a6120068ec93b1ded94c8c3ee1e3a9c9ba1095bfe47c13c950d3046",
-    "runs/accuracy/task4/scripted-server.log": "6ed55fc68e02df67b00fefaf987b5d2b130919e54c8fdb7f0eb72c255d37cbaa",
+    "runs/accuracy/task4/scripted-server.log": "800e66e10a2194f346e7dc1392f8df86b4fd3c568d3191e08b2ceecb6ab9ce57",
     "runs/accuracy/task4/ui-build.log": "e5e57379538f028e802745f00a7541aaf76048cd358c3ce5448376b98969c3b9",
     "runs/accuracy/task4/ui-diff-check.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "runs/accuracy/task4/ui-test.log": "df8bc15b1e016f13607fbd275745ac72dff01b62b9a75cb03ef6d096d8b14c0c",
