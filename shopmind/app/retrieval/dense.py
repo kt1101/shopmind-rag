@@ -48,6 +48,7 @@ class CrossModalRetriever:
 
     def search(self, request: SearchRequest) -> list[SearchResult]:
         if hasattr(self.repository, "bind_embedding"):
+            self.repository.bind_embedding(self.embedder)
             self.repository.bind_embedding(self.embedder, "image_vector", "image")
         vector = _single_vector(self.embedder.embed_texts([request.query]), self.embedder.dimension, kind="text")
         hits = self.repository.vector_search("image_vector", vector, size=request.candidate_k, num_candidates=request.candidate_k, filters=request.filters)

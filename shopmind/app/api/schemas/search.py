@@ -96,6 +96,7 @@ class DebugSearchResult(BaseModel):
     def from_domain(cls, result: SearchResult, *, rrf_k: int) -> "DebugSearchResult":
         scores = result.retrieval_scores
         fused = result.source == "hybrid" and scores.rrf_score is not None
+        lexical_only = result.source == "bm25" or (result.metadata.get("ordering_policy") == "lexical_preserving" and scores.rrf_score is None)
         return cls(
             product_id=result.product_id, title=result.title, rank=result.rank, source=result.source,
             ordering_policy=result.metadata.get("ordering_policy"),
@@ -103,7 +104,7 @@ class DebugSearchResult(BaseModel):
             bm25_rrf_contribution=1 / (rrf_k + scores.bm25_rank) if fused and scores.bm25_rank is not None else None,
             dense_rrf_contribution=1 / (rrf_k + scores.dense_rank) if fused and scores.dense_rank is not None else None,
             rrf_score=scores.rrf_score, reranker_score=scores.reranker_score,
-            bm25_score=result.score if result.source == "bm25" else None,
+            bm25_score=result.score if lexical_only else None,
             dense_score=result.score if result.source in {"dense", "cross_modal"} else None,
         )
 
