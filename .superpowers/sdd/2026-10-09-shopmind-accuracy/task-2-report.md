@@ -1,6 +1,6 @@
 # Task 2: measured embedding/retrieval accuracy
 
-**Status:** implementation complete; candidate qualified on measured gates; product alias activation awaits independent review. Old artifacts/index and frozen benchmark remain unchanged.
+**Status:** activated after scoped independent review PASS. `products` targets `products_accuracy_20261009_v2`; current Docker CPU API startup and operational smoke pass. Old artifacts/index and frozen benchmark remain unchanged.
 
 **Source:** backend branch `codex/accuracy-improvement`, base `798b5d974555f71677c57469fb0cce25e2902350`. Candidate code/config SHA256 values are in `runs/accuracy/final_measurements.json` (`source_files_sha256`). This report and owned code are committed together as `fix: stabilize embeddings and retrieval accuracy`.
 
@@ -189,3 +189,29 @@ Round 1 code/evidence hashes and unchanged input checks: `runs/accuracy/review_r
 No new timing experiment was required: avoiding dense calls is directly verified, and the earlier local CPU latency values are historical measurements, not a controlled short-circuit speedup claim. Real LLM/review semantic measurements remain **null**.
 
 Skipped: model regeneration, holdout rerun and new latency benchmark. Risk: activation/restart remains pending independent re-review; the static vocabulary and narrow metadata benchmark retain their documented limits.
+
+
+## Qualified alias activation — 2026-10-10
+
+Scoped independent re-review (`task-2-rereview.md`) passed both corrections. At **2026-10-10T03:28:26.233702+00:00**, existing `switch_alias` atomically moved `products` from `products_a1_1500_v1` to **`products_accuracy_20261009_v2`**. Both text/image mapping identities matched the corrected artifact manifest before activation; candidate count was **1,500**, and the preserved old index also remains **1,500**. No vectors, labels or retrieval settings were regenerated or retuned.
+
+Current backend source at startup: `7dbcccc36d8ecfa844983edd6faef220a1d27c65`. Actual cached `test-api:latest` Docker CPU runtime serves **http://127.0.0.1:8000** in container **`shopmind-accuracy-api`**, ID `d0600f95c6ab`, uvicorn process **PID 1**. Current checkout/config and HF cache are mounted; `HF_HUB_OFFLINE=1`, `ELASTICSEARCH_URL=http://host.docker.internal:9200`, `PRODUCT_IMAGE_DIR=/app/data/a1_abo_1500/images`, OMP/MKL threads=4. CUDA unavailable was confirmed in `activation_runtime_environment.json`. No previous temporary API container remained running; unrelated containers were left unchanged.
+
+Operational commands and output:
+
+```sh
+python runs/accuracy/activate.py
+# validated identity/count/smoke, then switch_alias(client, alias="products", target="products_accuracy_20261009_v2")
+docker run -d --name shopmind-accuracy-api -p 127.0.0.1:8000:8000 -v /Users/yuji/research/rag/test:/app -v /Users/yuji/.cache/huggingface:/root/.cache/huggingface -w /app -e HF_HUB_OFFLINE=1 -e PYTHONPATH=/app -e ELASTICSEARCH_URL=http://host.docker.internal:9200 -e OMP_NUM_THREADS=4 -e MKL_NUM_THREADS=4 -e PRODUCT_IMAGE_DIR=/app/data/a1_abo_1500/images test-api:latest uvicorn shopmind.app.main:app --host 0.0.0.0 --port 8000
+python runs/accuracy/activation_smoke.py
+```
+
+API log confirms startup completed. **10 operational checks passed**, all HTTP 200: `/ready`, `/health`, lowercase literal `b00eq5jieo` top1 in BM25/hybrid, default hybrid natural-language text, truthful skipped-dense debug fields, actual dense text, cross-modal text, image identity probe `i001` top1 and the returned product media URL. Readiness plus actual dense/cross-modal/image inference verifies runtime/index compatibility. This is operational verification; no frozen holdout quality run was repeated.
+
+Machine log: **`runs/accuracy/activation.json`**, including before/after aliases, count, complete candidate mapping identity, source commit, container/port/process details, HTTP responses and evidence hashes. Supporting logs: `activation_switch.log`, `activation_smoke.log`, `activation_runtime.log`, `activation_runtime_environment.json` under `runs/accuracy/`.
+
+The process has no auto-reload. After Task 3 changes, `docker restart shopmind-accuracy-api` restarts the mounted current checkout and revalidates/pins the product target. Stop this task's process with `docker stop shopmind-accuracy-api` when replacing the runtime or releasing port 8000.
+
+Rollback remains: deploy previous backend/config source `798b5d9`, atomically `switch_alias(client, alias="products", target="products_a1_1500_v1")`, then restart that previous runtime. Changing only the alias while leaving corrected runtime would fail closed on unknown legacy identity; existing running repositories remain pinned until restarted. Old vectors/index were preserved specifically for that rollback.
+
+Skipped: additional quality/model/latency runs and real LLM/review answer measurements; semantic measurements remain **null**. Risk: the running mounted-code process needs restart after later edits; the narrow metadata/identity benchmark does not establish general answer accuracy.
