@@ -41,7 +41,7 @@ class OpenAIProvider:
             raise LLMProviderError("answer generation is unavailable") from exc
         try:
             raw = json.loads(response.output_text)
-            if not isinstance(raw, dict) or not isinstance(raw.get("answer"), str) or not isinstance(raw.get("citation_ids"), list) or not all(isinstance(item, str) for item in raw["citation_ids"]) or not isinstance(raw.get("insufficient_evidence"), bool):
+            if not isinstance(raw, dict) or not isinstance(raw.get("answer"), str) or not raw["answer"].strip() or not isinstance(raw.get("citation_ids"), list) or not all(isinstance(item, str) for item in raw["citation_ids"]) or not isinstance(raw.get("insufficient_evidence"), bool):
                 raise ValueError("invalid response shape")
             return LLMResponse(raw["answer"], tuple(raw["citation_ids"]), raw["insufficient_evidence"], {"provider": "openai", "model": getattr(response, "model", self.model), "response_id": getattr(response, "id", None)})
         except (ValueError, TypeError, AttributeError) as exc:

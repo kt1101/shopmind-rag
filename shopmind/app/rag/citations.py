@@ -12,6 +12,8 @@ class CitationValidationError(ValueError):
 
 class CitationValidator:
     def validate(self, citation_ids: tuple[str, ...], allowed_ids: set[str], *, answer: str, insufficient_evidence: bool) -> tuple[str, ...]:
+        if not isinstance(answer, str) or not answer.strip():
+            raise CitationValidationError("answer must contain nonempty text")
         if any(citation_id not in allowed_ids for citation_id in citation_ids):
             raise CitationValidationError("citation is outside the supplied evidence")
         unique = tuple(dict.fromkeys(citation_ids))
@@ -38,6 +40,6 @@ class CitationResolver:
                 product_id=details.get("product_id"),
                 policy_version=details.get("version"),
                 source_url=details.get("source_url"),
-                metadata={key: details[key] for key in ("rating", "verified_purchase", "helpful_vote", "matched_by", "effective_date", "policy_type", "provenance", "source_score", "score_type", "pre_rerank_score") if key in details},
+                metadata={key: details[key] for key in ("rating", "verified_purchase", "timestamp", "helpful_vote", "content_truncated", "matched_by", "effective_date", "policy_type", "provenance", "source_score", "score_type", "pre_rerank_score") if key in details},
             ))
         return tuple(output)

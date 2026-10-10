@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 
 from shopmind.app.domain.search_result import RetrievedDocument
 from shopmind.app.rag.models import RAGContext
@@ -15,24 +16,71 @@ class ContextBuilder:
         self.max_characters = max_characters
 
     def build(self, documents: list[RetrievedDocument]) -> RAGContext:
-        selected: list[RetrievedDocument] = []
-        chunks: list[str] = []
-        counts: dict[str, int] = {}
-        used = 0
+        # Reserve a slot and text budget for each source before additional same-source hits.
+        first_by_source = {}
         for document in documents:
-            if counts.get(document.source, 0) >= self.source_limits.get(document.source, self.max_documents):
+            first_by_source.setdefault(document.source, document)
+        ordered = list(first_by_source.values()) + documents
+        candidates = []
+        counts: dict[str, int] = {}
+        seen = set()
+        minimum_used = 0
+        for document in ordered:
+            if document.id in seen or counts.get(document.source, 0) >= self.source_limits.get(document.source, self.max_documents):
                 continue
+            seen.add(document.id)
             evidence = {"id": document.id, "source": document.source, "title": document.metadata.get("title", document.id), "content": document.content}
-            if document.source == "policy":
-                evidence.update({key: document.metadata[key] for key in ("version", "effective_date", "provenance") if key in document.metadata})
-            chunk = json.dumps(evidence, ensure_ascii=False)
-            size = len(chunk) + (1 if chunks else 0)
-            if used + size > self.max_characters:
+            keys = {
+                "product": ("product_id", "brand", "category", "color"),
+                "review": ("product_id", "rating", "verified_purchase", "timestamp", "helpful_vote"),
+                "policy": ("version", "effective_date", "policy_type", "provenance"),
+            }.get(document.source, ())
+            evidence.update({key: document.metadata[key] for key in keys if key in document.metadata})
+            if document.source == "product" and "color" not in evidence:
+                attributes = document.metadata.get("attributes")
+                if isinstance(attributes, dict) and "color" in attributes:
+                    evidence["color"] = attributes["color"]
+            full = json.dumps(evidence, ensure_ascii=False)
+            minimum = min(len(full), len(json.dumps({**evidence, "content": document.content[:1], "content_truncated": True}, ensure_ascii=False)))
+            if minimum_used + minimum + bool(candidates) > self.max_characters:
                 continue
+            candidates.append((document, evidence, full, minimum))
+            minimum_used += minimum + (1 if len(candidates) > 1 else 0)
+            counts[document.source] = counts.get(document.source, 0) + 1
+            if len(candidates) >= self.max_documents:
+                break
+
+        selected = []
+        chunks = []
+        truncated_ids = []
+        remaining = self.max_characters - max(0, len(candidates) - 1)
+        for index, (document, evidence, full, minimum) in enumerate(candidates):
+            reserved = sum(candidate[3] for candidate in candidates[index:])
+            budget = minimum + (remaining - reserved) // (len(candidates) - index)
+            chunk = full
+            if len(full) > budget:
+                evidence["content_truncated"] = True
+                low, high = 1, len(document.content)
+                while low < high:
+                    middle = (low + high + 1) // 2
+                    evidence["content"] = document.content[:middle]
+                    if len(json.dumps(evidence, ensure_ascii=False)) <= budget:
+                        low = middle
+                    else:
+                        high = middle - 1
+                evidence["content"] = document.content[:low]
+                chunk = json.dumps(evidence, ensure_ascii=False)
+                document = replace(document, content=evidence["content"], metadata={**document.metadata, "content_truncated": True})
+                truncated_ids.append(document.id)
             chunks.append(chunk)
             selected.append(document)
-            counts[document.source] = counts.get(document.source, 0) + 1
-            used += size
-            if len(selected) >= self.max_documents:
-                break
-        return RAGContext(tuple(selected), "\n".join(chunks), tuple(document.id for document in selected), {"source_counts": counts, "context_characters": used})
+            remaining -= len(chunk)
+        rendered = "\n".join(chunks)
+        selected_ids = {document.id for document in selected}
+        return RAGContext(tuple(selected), rendered, tuple(document.id for document in selected), {
+            "source_counts": counts,
+            "available_sources": list(first_by_source),
+            "context_characters": len(rendered),
+            "truncated_ids": truncated_ids,
+            "omitted_ids": list(dict.fromkeys(document.id for document in documents if document.id not in selected_ids)),
+        })

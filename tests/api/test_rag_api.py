@@ -55,3 +55,30 @@ def test_ask_returns_controlled_error_when_llm_is_unavailable():
 
     assert response.status_code == 503
     assert response.json()["error"]["code"] == "llm_unavailable"
+
+
+def test_actual_service_repairs_malformed_output_and_preserves_debug_scope():
+    from tests.a3.test_a3_quality import ScriptedProvider, product, structured
+    from tests.a3.test_a3_service import Retriever, _service
+
+    provider = ScriptedProvider(["malformed", structured()])
+    service = _service({"product": Retriever("product", [product()])}, provider)
+    with _client(service) as client:
+        response = client.post("/api/v1/rag/ask", json={"question": "Color?", "product_id": "P1", "sources": ["product"], "debug": True})
+    assert response.status_code == 200
+    assert response.json()["metadata"]["generation_attempts"] == 2
+    assert response.json()["metadata"]["context_ids"] == ["product:P1"]
+    assert response.json()["sources"][0]["product_id"] == "P1"
+
+
+def test_actual_service_rejects_two_blank_answers_with_controlled_error():
+    from tests.a3.test_a3_quality import ScriptedProvider, product, structured
+    from tests.a3.test_a3_service import Retriever, _service
+
+    provider = ScriptedProvider([structured(" "), structured(" ")])
+    service = _service({"product": Retriever("product", [product()])}, provider)
+    with _client(service) as client:
+        response = client.post("/api/v1/rag/ask", json={"question": "Color?", "sources": ["product"]})
+    assert response.status_code == 502
+    assert response.json()["error"]["code"] == "rag_generation_failed"
+    assert len(provider.calls) == 2
