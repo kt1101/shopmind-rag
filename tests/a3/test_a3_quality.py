@@ -138,3 +138,21 @@ def test_all_wrong_product_evidence_abstains_without_generation():
     assert answer.insufficient_evidence and answer.sources == ()
     assert answer.metadata["context_ids"] == [] and answer.metadata["generation_attempts"] == 0
     assert provider.calls == []
+
+
+@pytest.mark.parametrize("large_title_length", [2000, 800])
+def test_source_reservation_replaces_unusable_first_envelope_before_extra_reviews(large_title_length):
+    first = RetrievedDocument("review:R1", "Fits well", 1, "review", {"product_id": "P1", "verified_purchase": False, "helpful_vote": 0})
+    oversized = RetrievedDocument("policy:large", "Experimental returns", .9, "policy", {"title": "x" * large_title_length, "provenance": "shopmind_curated_experimental"})
+    second = RetrievedDocument("review:R2", "Also fits well", .8, "review", {"product_id": "P1"})
+    usable = RetrievedDocument("policy:small", "Experimental returns within 30 days", .7, "policy", {"provenance": "shopmind_curated_experimental"})
+    if large_title_length == 800:
+        assert ContextBuilder(1, {"policy": 1}, 1000).build([oversized]).citation_ids == ("policy:large",)
+    context = ContextBuilder(2, {"review": 2, "policy": 1}, 1000).build([first, oversized, second, usable])
+    assert context.citation_ids == ("review:R1", "policy:small")
+    assert context.metadata["source_counts"] == {"review": 1, "policy": 1}
+    assert context.metadata["omitted_ids"] == ["policy:large", "review:R2"]
+    assert len(context.rendered_context) <= 1000
+    rows = [json.loads(line) for line in context.rendered_context.splitlines()]
+    assert rows[0]["verified_purchase"] is False and rows[0]["helpful_vote"] == 0
+    assert rows[1]["provenance"] == "shopmind_curated_experimental"

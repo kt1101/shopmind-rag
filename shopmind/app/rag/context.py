@@ -17,15 +17,15 @@ class ContextBuilder:
 
     def build(self, documents: list[RetrievedDocument]) -> RAGContext:
         # Reserve a slot and text budget for each source before additional same-source hits.
-        first_by_source = {}
-        for document in documents:
-            first_by_source.setdefault(document.source, document)
-        ordered = list(first_by_source.values()) + documents
+        source_order = tuple(dict.fromkeys(document.source for document in documents))
+        ordered = [document for source in source_order for document in documents if document.source == source] + documents
         candidates = []
         counts: dict[str, int] = {}
         seen = set()
         minimum_used = 0
-        for document in ordered:
+        for position, document in enumerate(ordered):
+            if position < len(documents) and counts.get(document.source, 0):
+                continue
             if document.id in seen or counts.get(document.source, 0) >= self.source_limits.get(document.source, self.max_documents):
                 continue
             seen.add(document.id)
@@ -79,7 +79,7 @@ class ContextBuilder:
         selected_ids = {document.id for document in selected}
         return RAGContext(tuple(selected), rendered, tuple(document.id for document in selected), {
             "source_counts": counts,
-            "available_sources": list(first_by_source),
+            "available_sources": list(source_order),
             "context_characters": len(rendered),
             "truncated_ids": truncated_ids,
             "omitted_ids": list(dict.fromkeys(document.id for document in documents if document.id not in selected_ids)),
