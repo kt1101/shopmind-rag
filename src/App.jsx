@@ -151,9 +151,10 @@ function SourceCard({ source }) {
   const experimentalPolicy = source.source === 'policy' && source.metadata?.provenance === 'shopmind_curated_experimental'
   const sourceUrl = /^https?:\/\//i.test(source.source_url || '') ? source.source_url : null
   return <li className="answer-source">
-    <div className="source-heading"><span className="source-type">{source.source}</span>{experimentalPolicy && <span className="experimental-label">Experimental policy</span>}<span className="source-score">Score {Number.isFinite(source.score) ? source.score.toFixed(4) : '—'}</span></div>
+    <div className="source-heading"><span className="source-type">{source.source}</span>{experimentalPolicy && <span className="experimental-label">Experimental policy</span>}<span className="source-score">Relevance {Number.isFinite(source.score) ? source.score.toFixed(4) : '—'}</span></div>
     <strong>{source.title}</strong>
     <small>{source.document_id}{source.policy_version ? ` · version ${source.policy_version}` : ''}{source.metadata?.score_type ? ` · ${source.metadata.score_type} score` : ''}</small>
+    {source.metadata?.content_truncated && <p>Evidence excerpt; the full source was not included in the answer context.</p>}
     {experimentalPolicy && <p>Curated for this experiment; not actual store terms.</p>}
     {sourceUrl && <a href={sourceUrl} target="_blank" rel="noopener noreferrer">Open source ↗</a>}
   </li>
@@ -166,6 +167,8 @@ function AnswerPanel({ product, question, onQuestionChange, onSubmit, sources, o
       {answers.length > 0 && <ol className="answer-history" aria-label="Questions and answers">{answers.map((item, index) => <li className="answer-turn" key={index}>
         <p className="asked-question"><span>Question {index + 1}</span>{item.question}</p>
         <div className="answer-text">{item.answer}</div>
+        {item.metadata?.missing_sources?.length > 0 && <p className="evidence-warning">No usable evidence for: {item.metadata.missing_sources.join(', ')}.</p>}
+        {item.metadata?.truncated_ids?.length > 0 && <p className="evidence-warning">Some evidence was shortened to excerpts.</p>}
         {item.insufficient_evidence && <p className="evidence-warning">The indexed sources did not provide enough evidence for a reliable answer.</p>}
         {item.sources.length > 0 && <div className="answer-sources"><h3>Cited sources</h3><ol>{item.sources.map((source) => <SourceCard key={source.document_id} source={source} />)}</ol></div>}
       </li>)}</ol>}
@@ -177,7 +180,7 @@ function AnswerPanel({ product, question, onQuestionChange, onSubmit, sources, o
           <label><input type="checkbox" checked={sources.includes('review')} onChange={() => onToggleSource('review')} /> Reviews</label>
           <label><input type="checkbox" checked={sources.includes('policy')} onChange={() => onToggleSource('policy')} /> Experimental policies</label>
         </fieldset>
-        <div><span>Choose the evidence to use for this answer.</span><button type="submit" disabled={!question.trim() || status === 'loading'}>{status === 'loading' ? 'Finding evidence…' : 'Ask question'} <span aria-hidden="true">↗</span></button></div>
+        <div><span>Each question is answered independently; previous questions are not sent. Relevance scores rank sources and do not measure answer confidence.</span><button type="submit" disabled={!question.trim() || status === 'loading'}>{status === 'loading' ? 'Finding evidence…' : 'Ask question'} <span aria-hidden="true">↗</span></button></div>
         {error && <p className="form-error" role="alert">{error}</p>}
       </form>
       {status === 'loading' && <p className="ask-status" role="status">Finding evidence and composing an answer…</p>}
@@ -368,7 +371,7 @@ export default function App() {
     setAnswerStatus('loading')
     setAnswerError(null)
     try {
-      const { data } = await askProduct({ question: asked, productId: selectedProduct.product_id, sources: selectedSources, signal: requestController.signal })
+      const { data } = await askProduct({ question: asked, productId: selectedProduct.product_id, sources: selectedSources, debug: true, signal: requestController.signal })
       if (answerController.current !== requestController) return
       setAnswers((current) => [...current, { question: asked, ...data }])
       setQuestion('')

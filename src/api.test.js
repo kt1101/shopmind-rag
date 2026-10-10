@@ -152,3 +152,21 @@ test('resolveImageUrl maps only supported product image paths', () => {
   assert.equal(resolveImageUrl('data/raw/images/'), null)
   assert.equal(resolveImageUrl(null), null)
 })
+
+test('an obsolete product response cannot succeed after cancellation even when fetch ignores abort', async () => {
+  let resolveResponse
+  const controller = new AbortController()
+  const pending = askProduct({ question: 'Color?', productId: 'A', signal: controller.signal, fetchImpl: () => new Promise((resolve) => { resolveResponse = resolve }) })
+  controller.abort()
+  resolveResponse(jsonResponse({ answer: 'Product A is blue.', sources: [], insufficient_evidence: false, metadata: {} }))
+  await assert.rejects(pending, { name: 'AbortError' })
+})
+
+test('askProduct can request evidence availability diagnostics without changing its default contract', async () => {
+  let body
+  await askProduct({ question: 'Reviews?', productId: 'P1', debug: true, fetchImpl: async (_url, options) => {
+    body = JSON.parse(options.body)
+    return jsonResponse({ answer: 'No reviews.', sources: [], insufficient_evidence: true, metadata: { missing_sources: ['review'] } })
+  } })
+  assert.equal(body.debug, true)
+})

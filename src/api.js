@@ -7,6 +7,7 @@ async function request(url, options = {}, fetchImpl = fetch) {
   } catch {
     data = null
   }
+  options.signal?.throwIfAborted()
   if (!response.ok) {
     throw new Error(data?.error?.message || `Request failed (${response.status})`)
   }
@@ -50,11 +51,11 @@ export function searchImage({ file, topK, filters, signal, fetchImpl = fetch }) 
   return request(`/api/v1/search/image?${params}`, { method: 'POST', body, signal }, fetchImpl)
 }
 
-export function askProduct({ question, productId, sources = ['product'], signal, fetchImpl = fetch }) {
+export function askProduct({ question, productId, sources = ['product'], debug = false, signal, fetchImpl = fetch }) {
   return request('/api/v1/rag/ask', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ question: question.trim(), product_id: productId, sources }),
+    body: JSON.stringify({ question: question.trim(), product_id: productId, sources, ...(debug ? { debug: true } : {}) }),
     signal,
   }, fetchImpl)
 }
