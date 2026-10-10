@@ -1,10 +1,10 @@
 # ShopMind accuracy acceptance
 
-**Integrated acceptance PASS.** Task 1–3 stage review gates are closed; a final whole-branch review follows this report commit.
+**Integrated acceptance and final independent review PASS.** Task 1–4 gates are closed. The final scoped provenance re-review addressed the sole Important finding and passed specification and quality review at report head `10bd53b`; product source remains `1aa8f67`, frontend `c9fbfb2`.
 
 Metadata-grounded holdout nDCG@10 improved from **0.370035** (old deployed hybrid) to **0.607537**; improvement **+0.237503**. Against strongest old BM25, improvement is **+0.082028**. Both exceed the frozen +0.05 target. Real LLM answer accuracy and real review answer accuracy remain **null**.
 
-Backend `codex/accuracy-improvement`, current `1aa8f6768f129f9b6b4f2373d31707b3e7eb18a2`; UI `codex/accuracy-improvement-ui`, `c9fbfb21fac90bc42424f52c5725b63035663599`. Measured rankings belong to `a89afb8`; the later `7dbcccc` correction preserved 130/130 DEV IDs/order with zero dense calls. Task 3 changes affect answer context/validation/UI, not the frozen retrieval selection.
+Backend `codex/accuracy-improvement`, product source `1aa8f6768f129f9b6b4f2373d31707b3e7eb18a2`; UI `codex/accuracy-improvement-ui`, `c9fbfb21fac90bc42424f52c5725b63035663599`. Measured rankings belong to `a89afb8`; the later `7dbcccc` correction preserved 130/130 DEV IDs/order with zero dense calls. Task 3 changes affect answer context/validation/UI, not the frozen retrieval selection.
 
 ## Scope and measurement
 
@@ -78,7 +78,9 @@ Remaining corrected dense DEV nDCG = 0.012602. Fixed padding solves batch incons
 
 ## Provenance and reproduction
 
-Task4 independently validated 78 raw artifact hashes, 35 measured source hashes **against measured commit a89afb8**, all frozen inputs, qrel completeness over the entire corpus, category partition and every exported ranking metric. Current source hashes are recorded separately. `comparison.json` preserves per-run IDs/metrics, overall/NL/group/language/exact denominators, examples and raw/config/source/artifact/snapshot hashes. Full ignored raw exports remain under `runs/accuracy/`; they are required to reproduce this historical result and were not rewritten.
+Task4 independently validated 78 raw artifact hashes, 35 measured source hashes **against measured commit a89afb8**, all frozen inputs, qrel completeness over the entire corpus, category partition and every exported ranking metric. Current source hashes are recorded separately. `comparison.json` preserves per-run IDs/metrics, overall/NL/group/language/exact denominators, examples and raw/config/source/artifact/snapshot hashes. Full ignored raw exports remain under `runs/accuracy/`; they are required to reproduce this historical result and were not rewritten. Final review independently matched all 21 finalized QA artifact digests; historical metrics, 78 raw artifact digests and measured/source hashes remain unchanged.
+
+The plan workspace, including final reviews, task reports and Task 3 evidence, is preserved at `runs/accuracy/review_archive/2026-10-09-shopmind-accuracy/`. For historical reproduction commands that reference `.superpowers/sdd/2026-10-09-shopmind-accuracy/`, restore the archived directory to that original path before running them; recorded paths and hashes are preserved.
 
 | Frozen input | SHA256 |
 |---|---|
