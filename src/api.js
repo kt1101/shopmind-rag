@@ -9,7 +9,9 @@ async function request(url, options = {}, fetchImpl = fetch) {
   }
   options.signal?.throwIfAborted()
   if (!response.ok) {
-    throw new Error(data?.error?.message || `Request failed (${response.status})`)
+    throw Object.assign(new Error(data?.error?.message || `Request failed (${response.status})`), {
+      status: response.status,
+    })
   }
   return { data, durationMs: Math.round(performance.now() - started) }
 }
@@ -74,3 +76,43 @@ export function resolveImageUrl(imageUrl) {
   const relativePath = imageUrl.slice(prefix.length)
   return relativePath ? `/media/products/${relativePath.split('/').map(encodeURIComponent).join('/')}` : null
 }
+
+export async function getProducts(args = {}) {
+  if (import.meta.env?.VITE_MOCK_API === '1') {
+    return (await import('./mocks/mockApi.js')).getProducts(args)
+  }
+  const { category = [], brand = [], limit = 24, offset = 0, signal, fetchImpl = fetch } = args
+  const cleaned = cleanFilters({ category, brand })
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(cleaned)) {
+    for (const item of Array.isArray(value) ? value : [value]) {
+      params.append(key, item)
+    }
+  }
+  if (limit != null) params.set('limit', String(limit))
+  if (offset != null) params.set('offset', String(offset))
+  const qs = params.toString()
+  return request(`/api/v1/products${qs ? `?${qs}` : ''}`, { signal }, fetchImpl)
+}
+
+export async function getProduct(args = {}) {
+  if (import.meta.env?.VITE_MOCK_API === '1') {
+    return (await import('./mocks/mockApi.js')).getProduct(args)
+  }
+  const { productId, signal, fetchImpl = fetch } = args
+  return request(`/api/v1/products/${encodeURIComponent(productId)}`, { signal }, fetchImpl)
+}
+
+export async function sendChatMessage(args = {}) {
+  if (import.meta.env?.VITE_MOCK_API === '1') {
+    return (await import('./mocks/mockApi.js')).sendChatMessage(args)
+  }
+  const { messages, signal, fetchImpl = fetch } = args
+  return request('/api/v1/chat', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ messages }),
+    signal,
+  }, fetchImpl)
+}
+
