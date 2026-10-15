@@ -144,13 +144,17 @@ def test_chat_accepts_twelve_history_items(chat_client):
 @pytest.mark.asyncio
 async def test_client_disconnect_sets_cancel_flag():
     class SlowChatService(FakeChatService):
+        closed = False
+
         def stream(self, prepared, cancelled):
             self.cancelled = cancelled
-            yield ChatEvent("meta", {"standalone_question": "q", "rewrite_fallback": False})
-            for _ in range(100):
-                if cancelled.wait(0.05):
-                    return
-                yield ChatEvent("delta", {"text": "x"})
+            try:
+                yield ChatEvent("meta", {"standalone_question": "q", "rewrite_fallback": False})
+                for _ in range(100):
+                    time.sleep(0.05)  # never checks the flag: only close() can end it early
+                    yield ChatEvent("delta", {"text": "x"})
+            finally:
+                self.closed = True
 
     service = SlowChatService()
     app = create_app(search_service=FakeSearchService(), repository=FakeRepository(), embedder=FakeEmbedder(), chat_service=service, auto_wire=False)
@@ -188,7 +192,7 @@ async def test_client_disconnect_sets_cancel_flag():
     assert time.monotonic() - started < 4  # the fake would otherwise stream for ~5s
 
     assert service.cancelled is not None and service.cancelled.is_set()
-    # Closing the abandoned generator is left to the provider loop / GC (see sse_stream); the flag is the contract.
+    assert service.closed  # the generator's finally ran (upstream stream would be closed) before the call returned
 
 
 def test_logs_contain_no_message_or_answer_text(caplog):
@@ -202,6 +206,14 @@ def test_logs_contain_no_message_or_answer_text(caplog):
     assert any(record.name == "shopmind.chat" for record in caplog.records)
     assert MESSAGE_MARKER not in caplog.text
     assert ANSWER_MARKER not in caplog.text
+
+
+def test_normal_stream_close_logs_no_warning(caplog):
+    caplog.set_level(logging.WARNING)
+    with _client(FakeChatService()) as client:
+        with client.stream("POST", "/api/v1/chat/stream", json={"message": "Hi"}) as response:
+            "".join(response.iter_text())
+    assert [record for record in caplog.records if record.levelno >= logging.WARNING] == []
 
 
 def test_cors_only_when_configured(monkeypatch):
