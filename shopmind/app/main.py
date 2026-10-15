@@ -12,7 +12,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from shopmind.app.api.errors import EmbeddingUnavailable, ImageTooLarge, InvalidFilter, InvalidImage, SearchInfrastructureError, UnsupportedSearchMode
+from shopmind.app.api.errors import EmbeddingUnavailable, ImageTooLarge, InvalidFilter, InvalidImage, InvalidPagination, SearchInfrastructureError, UnsupportedSearchMode
 from shopmind.app.api.routes.debug import router as debug_router
 from shopmind.app.api.routes.health import router as health_router
 from shopmind.app.api.routes.rag import RAGUnavailable, router as rag_router
@@ -123,6 +123,10 @@ def create_app(*, search_service: Any | None = None, repository: Any | None = No
     @app.exception_handler(InvalidImage)
     async def invalid_image_handler(request: Request, exc: InvalidImage):
         return JSONResponse(status_code=400, content=_error_body(request, "invalid_image", str(exc)))
+
+    @app.exception_handler(InvalidPagination)
+    async def invalid_pagination_handler(request: Request, exc: InvalidPagination):
+        return JSONResponse(status_code=422, content=_error_body(request, "invalid_pagination", str(exc)))
 
     @app.exception_handler(ImageTooLarge)
     async def image_too_large_handler(request: Request, exc: ImageTooLarge):

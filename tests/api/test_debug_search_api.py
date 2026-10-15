@@ -50,3 +50,10 @@ def test_debug_search_direct_mode_has_native_score_without_rrf(client, fake_serv
     assert result["bm25_rrf_contribution"] is None
     assert result["rrf_score"] is None
     assert fake_service.text_requests[0].mode.value == "bm25"
+
+
+def test_debug_search_respects_offset(client_with_results):
+    response = client_with_results.post("/api/v1/debug/search", json={"query": "shoe", "top_k": 10, "offset": 10})
+
+    assert response.status_code == 200
+    assert [item["rank"] for item in response.json()["results"]] == list(range(11, 21))
