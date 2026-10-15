@@ -28,3 +28,7 @@ class InvalidPagination(SearchApplicationError):
 
 class ImageTooLarge(SearchApplicationError):
     """Uploaded image exceeds the configured request limit."""
+
+
+class ProductNotFound(SearchApplicationError):
+    """Requested product does not exist in the catalog."""
