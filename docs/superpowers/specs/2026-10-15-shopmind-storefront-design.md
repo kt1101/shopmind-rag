@@ -80,7 +80,7 @@ Rules:
 ### 3.3 FilterSidebar (catalog + search)
 
 - **Category**: checkbox list from `getFilterOptions({ field: 'category', limit: 50 })`, labels humanized (`running_shoes` → "Running Shoes"), counts on the right. Scrolls internally past ~12 rows.
-- **Brand**: the existing type-ahead `FilterField` (multi-select chips), extracted from `App.jsx` into `src/components/FilterField.jsx` with a `variant` prop (`dark` for the Lab, `light` for the shop). The Lab keeps the same look and behaviour.
+- **Brand**: the existing type-ahead `FilterField` (multi-select chips), extracted from `App.jsx` into `src/components/FilterField.jsx`. Its look comes from the page's scoped stylesheet (`.lab` dark, `.shop` light), so the Lab keeps the same look and behaviour and the component needs no styling prop.
 - Every change updates the URL; the page reacts to the URL.
 - Option-load errors show inline in that section ("Couldn't load categories · Retry").
 
@@ -134,7 +134,8 @@ src/
     format.js              humanizeCategory, formatPrice
     format.test.js
   components/
-    FilterField.jsx        extracted from App.jsx, variant prop
+    FilterField.jsx        extracted from App.jsx (styled by .lab / .shop scope)
+    useFilterOptions.js    debounced option loading for one filter field
   shop/
     ShopLayout.jsx, SiteHeader.jsx, SearchBar.jsx, ImageSearchContext.jsx
     FilterSidebar.jsx, ProductCard.jsx, ProductGrid.jsx, StatusBlock.jsx
