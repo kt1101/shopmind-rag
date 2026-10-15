@@ -141,6 +141,6 @@ def create_rag_service(search_service, client, embedder, rag_config: RAGConfig, 
     context = ContextBuilder(context_config.max_documents, {"product": context_config.max_product, "review": context_config.max_reviews, "policy": context_config.max_policies}, context_config.max_characters)
     reranker = CrossEncoderDocumentReranker(rag_config.reranker.model_name) if rag_config.reranker.enabled else NoOpDocumentReranker()
     if llm is None and rag_config.llm.api_key:
-        llm = OpenAIProvider(model=rag_config.llm.model, api_key=rag_config.llm.api_key)
+        llm = OpenAIProvider(model=rag_config.llm.model, api_key=rag_config.llm.api_key, timeout=rag_config.llm.timeout_seconds)
     fusion = rrf_fuse_documents if rag_config.fusion.method == "rrf" else concatenate_documents
     return RAGService(MultiSourceRetriever(retrievers, counts), fusion, reranker, context, llm, CitationValidator(), CitationResolver(), rag_config.llm.max_generation_attempts, rrf_k=rag_config.fusion.rrf_k, fused_top_k=rag_config.fusion.top_k, rerank_top_k=rag_config.reranker.top_k)
