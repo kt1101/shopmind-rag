@@ -31,8 +31,9 @@ The storefront can be explored and tested independently without requiring the ch
 
 ### Backend API contracts
 
-For full request and response schemas of the new endpoints, see the design spec:
-[`docs/superpowers/specs/2026-10-15-shopmind-storefront-design.md#5-api-contracts-new`](docs/superpowers/specs/2026-10-15-shopmind-storefront-design.md#5-api-contracts-new).
+For full request and response schemas of the required endpoints, see:
+- Quick reference: [`docs/backend-api-requirements.md`](docs/backend-api-requirements.md)
+- Storefront design spec: [`docs/superpowers/specs/2026-10-15-shopmind-storefront-design.md#5-api-contracts-new`](docs/superpowers/specs/2026-10-15-shopmind-storefront-design.md#5-api-contracts-new)
 
 ## Run with the backend
 
