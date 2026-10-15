@@ -16,6 +16,7 @@ class TextSearchRequest(BaseModel):
     mode: str = SearchMode.HYBRID.value
     top_k: int = Field(default=10, gt=0)
     candidate_k: int | None = Field(default=None, gt=0)
+    offset: int = Field(default=0, ge=0)
     filters: dict[str, str | list[str]] = Field(default_factory=dict)
 
     @field_validator("query", mode="before")
@@ -37,9 +38,14 @@ class TextSearchRequest(BaseModel):
     def candidate_window_must_cover_top_k(self) -> "TextSearchRequest":
         if self.candidate_k is not None and self.candidate_k < self.top_k:
             raise ValueError("candidate_k must be >= top_k")
+        if self.offset + self.top_k > self._effective_candidate_k():
+            raise ValueError("offset + top_k must be <= candidate_k")
         if self.query is None and not self.filters:
             raise ValueError("query or at least one filter is required")
         return self
+
+    def _effective_candidate_k(self) -> int:
+        return self.candidate_k if self.candidate_k is not None else max(100, self.top_k)
 
     def to_domain(self) -> SearchRequest:
         try:
@@ -51,8 +57,7 @@ class TextSearchRequest(BaseModel):
         unknown = sorted(set(self.filters) - _ALLOWED_FILTERS)
         if unknown:
             raise InvalidFilter(f"unsupported filter field: {unknown[0]}")
-        candidate_k = self.candidate_k if self.candidate_k is not None else max(100, self.top_k)
-        return SearchRequest(query=self.query, mode=mode, top_k=self.top_k, candidate_k=candidate_k, filters=dict(self.filters))
+        return SearchRequest(query=self.query, mode=mode, top_k=self.offset + self.top_k, candidate_k=self._effective_candidate_k(), filters=dict(self.filters))
 
 
 class ProductSearchResult(BaseModel):

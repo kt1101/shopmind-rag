@@ -7,7 +7,7 @@ from time import perf_counter
 from fastapi import APIRouter, Depends, File, Query, Request, UploadFile
 from PIL import Image, UnidentifiedImageError
 
-from shopmind.app.api.errors import ImageTooLarge, InvalidFilter, InvalidImage, SearchInfrastructureError
+from shopmind.app.api.errors import ImageTooLarge, InvalidFilter, InvalidImage, InvalidPagination, SearchInfrastructureError
 from shopmind.app.api.schemas.search import FilterOptionsResponse, ImageSearchResponse, ProductSearchResult, TextSearchRequest, TextSearchResponse, normalize_filters
 from shopmind.app.core.logging import log_search_event
 from shopmind.app.search.service import SearchService
@@ -38,7 +38,7 @@ def _collapse_singleton_filters(filters: dict[str, str | list[str]]) -> dict[str
 def search_text(payload: TextSearchRequest, request: Request, service: SearchService = Depends(get_search_service)) -> TextSearchResponse:
     started = perf_counter()
     domain_request = payload.to_domain()
-    results = service.search_text(domain_request)
+    results = service.search_text(domain_request)[payload.offset:]
     log_search_event(logger, request_id=request.state.request_id, query=domain_request.query, mode=domain_request.mode.value, latency_ms=round((perf_counter() - started) * 1000, 3), candidate_k=domain_request.candidate_k, result_count=len(results), index_alias=getattr(request.app.state, "index_alias", None), embedding_model=getattr(request.app.state, "embedding_model", None), embedding_version=getattr(request.app.state, "embedding_version", None))
     return TextSearchResponse(query=domain_request.query, mode=domain_request.mode.value, filter_only=domain_request.query is None, results=[ProductSearchResult.from_domain(result) for result in results])
 
@@ -53,9 +53,11 @@ def filter_options(field: str = Query(...), prefix: str = Query(default="", max_
 
 
 @router.post("/image", response_model=ImageSearchResponse)
-async def search_image(request: Request, image: UploadFile = File(...), top_k: int = Query(default=10, gt=0), candidate_k: int = Query(default=100, gt=0), brand: list[str] | None = Query(default=None), category: list[str] | None = Query(default=None), product_id: str | None = Query(default=None), service: SearchService = Depends(get_search_service)) -> ImageSearchResponse:
+async def search_image(request: Request, image: UploadFile = File(...), top_k: int = Query(default=10, gt=0), candidate_k: int = Query(default=100, gt=0), offset: int = Query(default=0, ge=0), brand: list[str] | None = Query(default=None), category: list[str] | None = Query(default=None), product_id: str | None = Query(default=None), service: SearchService = Depends(get_search_service)) -> ImageSearchResponse:
     if candidate_k < top_k:
         raise InvalidImage("candidate_k must be >= top_k")
+    if offset + top_k > candidate_k:
+        raise InvalidPagination("offset + top_k must be <= candidate_k")
     if not image.content_type or not image.content_type.lower().startswith("image/"):
         raise InvalidImage("uploaded file must have an image content type")
     max_bytes = int(getattr(request.app.state, "max_image_bytes", 5 * 1024 * 1024))
@@ -69,6 +71,6 @@ async def search_image(request: Request, image: UploadFile = File(...), top_k: i
         raise InvalidImage("uploaded bytes are not a valid image") from exc
     filters = _collapse_singleton_filters(normalize_filters({"brand": brand, "category": category, "product_id": product_id}))
     started = perf_counter()
-    results = service.search_image(rgb, top_k=top_k, candidate_k=candidate_k, filters=filters)
+    results = service.search_image(rgb, top_k=offset + top_k, candidate_k=candidate_k, filters=filters)[offset:]
     log_search_event(logger, request_id=request.state.request_id, mode="image_dense", latency_ms=round((perf_counter() - started) * 1000, 3), candidate_k=candidate_k, result_count=len(results), index_alias=getattr(request.app.state, "index_alias", None), embedding_model=getattr(request.app.state, "embedding_model", None), embedding_version=getattr(request.app.state, "embedding_version", None))
     return ImageSearchResponse(results=[ProductSearchResult.from_domain(result) for result in results])

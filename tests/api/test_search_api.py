@@ -107,3 +107,35 @@ def test_oversized_image_is_413():
 def test_request_id_is_returned_and_client_value_is_preserved(client):
     response = client.post("/api/v1/search/text", headers={"X-Request-ID": "req-test-123"}, json={"query": "runner"})
     assert response.headers["X-Request-ID"] == "req-test-123"
+
+
+def test_text_search_offset_returns_absolute_ranks(client_with_results, fake_30):
+    r = client_with_results.post("/api/v1/search/text", json={"query": "shoe", "top_k": 10, "offset": 10})
+    assert r.status_code == 200
+    assert [x["rank"] for x in r.json()["results"]] == list(range(11, 21))
+    assert fake_30.text_requests[-1].top_k == 20 and fake_30.text_requests[-1].candidate_k == 100
+
+
+def test_text_search_offset_beyond_candidate_window_is_422(client):
+    r = client.post("/api/v1/search/text", json={"query": "shoe", "top_k": 10, "offset": 95})
+    assert r.status_code == 422 and r.json()["error"]["code"] == "validation_error"
+
+
+def test_text_search_negative_offset_is_422(client):
+    r = client.post("/api/v1/search/text", json={"query": "shoe", "offset": -1})
+    assert r.status_code == 422 and r.json()["error"]["code"] == "validation_error"
+
+
+def test_filter_only_search_supports_offset(client_with_results):
+    r = client_with_results.post("/api/v1/search/text", json={"mode": "bm25", "filters": {"category": "SHOES"}, "top_k": 5, "offset": 5})
+    assert [x["rank"] for x in r.json()["results"]] == [6, 7, 8, 9, 10]
+
+
+def test_image_search_offset_and_window(client_with_results, fake_30):
+    files = {"image": ("query.png", _png_bytes(), "image/png")}
+    ok = client_with_results.post("/api/v1/search/image?top_k=10&offset=10", files=files)
+    assert ok.status_code == 200
+    assert [x["rank"] for x in ok.json()["results"]] == list(range(11, 21))
+    assert fake_30.image_requests[-1][1:3] == (20, 100)
+    bad = client_with_results.post("/api/v1/search/image?top_k=10&offset=95", files=files)
+    assert bad.status_code == 422 and bad.json()["error"]["code"] == "invalid_pagination"

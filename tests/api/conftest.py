@@ -17,11 +17,18 @@ class FakeSearchService:
 
     def search_text(self, request):
         self.text_requests.append(request)
-        return list(self.results)
+        return list(self.results[: request.top_k])
 
     def search_image(self, image, top_k=10, candidate_k=100, filters=None):
         self.image_requests.append((image, top_k, candidate_k, filters))
-        return list(self.results)
+        return list(self.results[:top_k])
+
+
+def make_results(n):
+    return [
+        SearchResult(product_id=f"P{i}", title=f"Product {i}", rank=i, score=1.0 / i, source="hybrid", metadata={"brand": "Acme", "category": "Shoes"})
+        for i in range(1, n + 1)
+    ]
 
 
 class FakeRepository:
@@ -65,5 +72,17 @@ def client(fake_service):
 @pytest.fixture
 def client_with_unready_repo(fake_service):
     app = create_app(search_service=fake_service, repository=FakeRepository(ready=False), embedder=FakeEmbedder(), index_alias="products", auto_wire=False)
+    with TestClient(app) as test_client:
+        yield test_client
+
+
+@pytest.fixture
+def fake_30():
+    return FakeSearchService(results=make_results(30))
+
+
+@pytest.fixture
+def client_with_results(fake_30):
+    app = create_app(search_service=fake_30, repository=FakeRepository(), embedder=FakeEmbedder(), index_alias="products", max_image_bytes=1024 * 1024, auto_wire=False)
     with TestClient(app) as test_client:
         yield test_client

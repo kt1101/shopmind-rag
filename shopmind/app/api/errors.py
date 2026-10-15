@@ -22,5 +22,9 @@ class InvalidImage(SearchApplicationError):
     """Uploaded bytes are not a supported decodable image."""
 
 
+class InvalidPagination(SearchApplicationError):
+    """Requested page lies outside the retrievable candidate window."""
+
+
 class ImageTooLarge(SearchApplicationError):
     """Uploaded image exceeds the configured request limit."""
