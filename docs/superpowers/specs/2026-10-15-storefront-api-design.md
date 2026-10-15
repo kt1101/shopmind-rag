@@ -1,7 +1,7 @@
 # Storefront API Design
 
 Date: 2026-10-15
-Status: approved in conversation; awaiting written-spec review
+Status: approved; revised after plan debate (2026-10-15)
 
 ## Goal
 
@@ -67,7 +67,9 @@ Response:
 }
 ```
 
-`facets.category` is a terms aggregation on `category.keyword`, size 300 (the catalog has 215 categories), ordered by count descending. The aggregation applies the `brand` filter but **not** the `category` filter, so the UI can show counts for other categories while one is selected. `label` uses the same humanization as the current UI (`HOME_BED_AND_BATH` → `Home Bed And Bath`).
+Blank filter values (`?category=`) are ignored. Elasticsearch failures and a missing `products` alias return `503`.
+
+`facets.category` is a terms aggregation on `category.keyword`, size 300 (the catalog has 215 categories), ordered by count descending. The category filter is applied as a `post_filter`, so the aggregation sees the `brand` filter but **not** the `category` filter, so the UI can show counts for other categories while one is selected. `label` uses the same humanization as the current UI (`HOME_BED_AND_BATH` → `Home Bed And Bath`).
 
 ### `GET /products/{product_id}` — product detail
 
@@ -88,7 +90,7 @@ Response:
 }
 ```
 
-- `description` may be an empty string (common in this catalog); the field is still present.
+- `description` may be an empty string (common in this catalog); the field is still present. `brand`, `category`, `category_label`, and `image_url` may be `null` (one catalog product has no brand).
 - `bullet_points` comes from `metadata.bullet_points`; `category_path` is the first `metadata.node_paths` entry split on `/` with empty segments removed, or `[]`.
 - Unknown ID → `404` with the existing error envelope (`{"error": {"code": "product_not_found", ...}, "request_id": ...}`).
 - `product_id` path value is limited to 128 characters, matching `RAGAskRequest.product_id`.
@@ -121,7 +123,7 @@ Request (shared):
 | Field | Rule |
 |---|---|
 | `message` | stripped, 1..2000 chars |
-| `history` | 0..12 items (6 turns); `role` is `user` or `assistant`; each `content` 1..4000 chars. Older items beyond the limit are rejected with `422`, not silently dropped; the client trims. |
+| `history` | 0..12 items (6 turns); `role` is `user` or `assistant`; each `content` 1..4000 chars. Over the limit → `422 validation_error`, not silently dropped; the client trims. |
 | `product_id` | optional, max 128 chars; the product the user is viewing |
 
 `POST /chat` response:
@@ -147,6 +149,12 @@ Request (shared):
 | `done` | same body as `POST /chat` | once, last on success |
 | `error` | `{"code": "...", "message": "..."}` | once, last on failure after the stream opened |
 
+`error` codes: `rag_generation_failed`, `llm_unavailable`, `internal_error`.
+
+Client contract: on `reset`, discard the shown text; on `done`, replace the shown text with `done.answer` (the streamed text of the final attempt is shown before its citations are validated); on `error`, discard the shown text. An abstain answer arrives as `done` with no `delta`.
+
+If the client disconnects, the server sets a cancel flag that stops consuming and closes the OpenAI stream, so no further tokens are generated for an abandoned request.
+
 Errors detected **before** the stream opens (validation, RAG not wired, missing API key, missing source index, retrieval/rerank/context failure) are returned as normal HTTP errors through the existing exception handlers, so the client sees a real status code. Only generation-time failures become `error` events.
 
 ## Components
@@ -154,23 +162,24 @@ Errors detected **before** the stream opens (validation, RAG not wired, missing 
 ### Configuration
 
 - `OPENAI_MODEL` env var overrides `rag.llm.model` in `_overlay_env` (same pattern as `OPENAI_API_KEY`). Default model stays `gpt-5.4-mini`: it supports strict structured output and streaming and is the model the A3 runs already used.
-- New `ApiConfig.cors_origins: list[str] = []`, overridable by `CORS_ORIGINS` (comma-separated). When non-empty, `create_app` adds `CORSMiddleware` for those origins with `GET`/`POST`. Empty means no CORS middleware (current behavior; the Vite proxy keeps working).
+- New `RAGLLMConfig.timeout_seconds: float = 60` passed to the OpenAI client, so a hung call cannot block a worker thread indefinitely.
+- `CORS_ORIGINS` env var (comma-separated). When non-empty, `create_app` adds `CORSMiddleware` for those origins with `GET`/`POST`, any request header, and `X-Request-ID` exposed. Empty means no CORS middleware (current behavior; the Vite proxy keeps working). There is no YAML key: the middleware is installed before the lifespan loads config.
 - New `ChatConfig` under `rag.chat`:
-  - `sources: list[Literal["product", "review", "policy"]] = ["product", "policy"]`
-  - `include_reviews_when_available: bool = true` — add `review` when the `reviews` alias exists (checked per request through the review `KnowledgeRepository.alias_exists`).
-  - `max_history_items: int = 12`
+  - `sources: list[Literal["product", "review", "policy"]] = ["product", "policy"]`, at least one.
+  - `include_reviews_when_available: bool = true` — add `review` when the `reviews` alias exists (checked per request through the review `KnowledgeRepository.alias_exists`; an error during the check counts as not available and is logged).
+- The history limit (12 items) is a fixed request-schema bound, not config.
 - `docker-compose.yml` passes `OPENAI_MODEL` and `CORS_ORIGINS` to `api`; `.env.example` documents both.
 
 ### Repository: `ElasticsearchProductRepository`
 
-- `list_products(filters, page, page_size) -> ProductPage` — `match_all` + resolved filter clauses, `from`/`size`, `sort: product_id`, `_source` excluding `text_vector`, `image_vector`, `search_text`; plus a `filter`-aggregation wrapping the `category.keyword` terms aggregation that applies only the non-category clauses. `track_total_hits: true`.
+- `list_products(filters, offset, size) -> ProductPage` — brand clauses in `query`, the category clause as `post_filter`, `from`/`size`, `sort: product_id`, `_source` excluding `text_vector`, `image_vector`, `search_text`, a `category.keyword` terms aggregation, `track_total_hits: true`.
 - `get_product(product_id) -> dict | None` — `GET` on the alias with `_source_excludes` for vectors and `search_text`; `None` on not-found.
 
 `ProductPage` is a small frozen dataclass (`items`, `total`, `category_facets`) in `shopmind/app/domain/`.
 
 ### Catalog service and routes
 
-- `shopmind/app/catalog/service.py::CatalogService` — validates paging, calls the repository, maps raw sources into `ProductSummary` / `ProductDetail` domain objects (category label, bullet points, category path). Raises `ProductNotFound` (new error, `404`).
+- `shopmind/app/catalog/service.py::CatalogService` — validates paging, calls the repository, normalizes blank filters, maps raw sources into the whitelisted response shapes (category label, bullet points, category path), and maps errors: not found → `ProductNotFound` (new, `404`); missing index or Elasticsearch failure → `SearchInfrastructureError` (`503`); invalid filter → `InvalidFilter` (`400`).
 - `shopmind/app/api/routes/products.py` — the two `GET` routes. `CatalogService` is built in the lifespan from the existing repository and stored on `app.state.catalog_service`; `create_app` accepts an injected `catalog_service`.
 - `shopmind/app/api/schemas/products.py` — response models.
 
@@ -189,21 +198,21 @@ Errors detected **before** the stream opens (validation, RAG not wired, missing 
 
 `OpenAIProvider` gains two methods; the `LLMProvider` protocol gains the same two:
 
-- `generate_stream(request: LLMRequest) -> Iterator[str | LLMResponse]` — calls `responses.create(..., stream=True)` with the same strict JSON schema (`answer` first in `properties` and `required`). On each `response.output_text.delta`, feeds the delta to an `AnswerFieldExtractor` and yields any newly decoded answer text. On `response.completed`, parses the full output exactly like `generate` and yields the final `LLMResponse`. Stream failure or `response.failed` → `LLMProviderError`; unparsable final output → `InvalidLLMOutput`.
+- `generate_stream(request: LLMRequest) -> Iterator[str | LLMResponse]` — calls `responses.create(..., stream=True)` with the same strict JSON schema (`answer` first in `properties` and `required`). On each `response.output_text.delta`, feeds the delta to an `AnswerFieldExtractor` and yields any newly decoded answer text. On `response.completed`, parses the full output exactly like `generate` and yields the final `LLMResponse`. Stream failure, `error`, or `response.failed` → `LLMProviderError`; `response.incomplete`, a refusal, or unparsable final output → `InvalidLLMOutput`. Exact event type names are taken from the installed SDK. The call runs inside `with ... as stream:` and checks a cancel flag before each event.
 - `rewrite_question(history, message) -> str` — non-streaming call with a strict schema `{"question": string}` and instructions to produce a self-contained question in the user's language, resolving pronouns from history, without answering it. Empty or invalid output → `InvalidLLMOutput`.
 
 `shopmind/app/llm/answer_stream.py::AnswerFieldExtractor` — incremental parser for the `"answer"` string value inside a partial JSON object. Handles JSON escapes (`\"`, `\\`, `\n`, `\uXXXX` including surrogate pairs) split across chunk boundaries, ignores everything outside the `answer` value, and stops emitting once the closing quote is seen. It never yields partial escape sequences.
 
 ### Chat service and routes
 
-`shopmind/app/chat/service.py::ChatService(rag_service, llm, chat_config, source_availability)`:
+`shopmind/app/chat/service.py::ChatService(rag_service, chat_config, review_available, product_title)` (the LLM is `rag_service.llm`):
 
-1. `resolve_question(message, history)`: empty history → `message`. Otherwise `llm.rewrite_question`; on `LLMProviderError` or `InvalidLLMOutput`, fall back to `message` and record `rewrite_fallback=true` in the log fields.
+1. `resolve_question(message, history, product_id)`: empty history → `message`. Otherwise `llm.rewrite_question(history, message, product=(product_id, title))`, where the viewed product's title comes from `product_title(product_id)`; the rewrite prompt says references like "it" mean the viewed product unless the user names another. Output longer than 500 chars, empty output, `LLMProviderError`, or `InvalidLLMOutput` → fall back to `message` and record `rewrite_fallback=true` in the log fields.
 2. `sources()`: configured sources, plus `review` when `include_reviews_when_available` and the `reviews` alias exists.
 3. `prepare(...)`: builds `RAGRequest(standalone_question, product_id, sources)` and calls `rag_service.prepare`.
 4. `answer(...)` → `ChatAnswer`; `stream(...)` → iterator of chat events (`meta`, `delta`, `reset`, `done`, `error`).
 
-The streaming route performs steps 1–3 **before** returning `StreamingResponse`, so pre-generation failures surface as HTTP errors. The generator then runs generation; any `RAGGenerationError` / `LLMProviderError` inside it becomes one `error` event and the stream ends. SSE framing (`event:` / `data:` / blank line, JSON data) lives in `shopmind/app/api/sse.py`. Response headers: `Cache-Control: no-cache`, `X-Accel-Buffering: no`.
+The streaming route performs steps 1–3 **before** returning `StreamingResponse`, so pre-generation failures surface as HTTP errors. The generator then runs generation; `RAGGenerationError` / `InvalidLLMOutput` become an `error` event `rag_generation_failed`, `LLMProviderError` becomes `llm_unavailable`, and any other exception is logged and becomes `internal_error`; the stream then ends. SSE framing (`event:` / `data:` / blank line, JSON data) lives in `shopmind/app/api/sse.py`. Response headers: `Cache-Control: no-cache`, `X-Accel-Buffering: no`.
 
 The rewritten question is used only for retrieval and generation; the user's original message is not altered in the response.
 
@@ -254,7 +263,7 @@ Unit (`tests/unit`):
 - `AnswerFieldExtractor`: whole and byte-by-byte chunking, every escape type, surrogate pairs split across chunks, `answer` not first is still handled, trailing fields ignored, no output after the closing quote.
 - `_overlay_env`: `OPENAI_MODEL` and `CORS_ORIGINS` override; empty values ignored.
 - `CatalogService`: label humanization, `category_path` parsing, empty description, paging bounds.
-- `ChatService`: no-history skips rewrite; rewrite failure falls back; review source added only when the alias exists; history limit.
+- `ChatService`: no-history skips rewrite; rewrite failure falls back; review source added only when the alias exists; viewed product passed to the rewrite.
 - `RAGService`: `answer` equals `generate(prepare(...))`; `generate_stream` yields deltas then final; invalid citations on attempt 1 yield `Reset` then attempt 2; two failures raise `RAGGenerationError`.
 - `OpenAIProvider.generate_stream` with a fake streaming client emitting `response.output_text.delta` / `response.completed` / `response.failed` events.
 
@@ -265,7 +274,9 @@ API (`tests/api`, fakes via `create_app(auto_wire=False)`):
 - `POST /search/text` and `/search/image` with `offset`: slice and absolute ranks; `offset + top_k > candidate_k` → `422`; default behavior unchanged.
 - `POST /chat`: response shape; `503` when RAG is not wired.
 - `POST /chat/stream`: event order on success; `reset` path; `error` event on generation failure; `503` HTTP status (not an event) when preparation fails; content type `text/event-stream`.
-- CORS headers present only when `cors_origins` is set.
+- CORS headers present only when `CORS_ORIGINS` is set; preflight for `POST /chat/stream` with a JSON content type succeeds.
+- A client disconnect mid-stream sets the cancel flag (raw ASGI test with `http.disconnect`).
+- Logs contain no message or answer text.
 
 Integration (`tests/integration`, `-m integration`): `list_products` total/paging/facets and `get_product` against the real `products` alias.
 
@@ -273,4 +284,4 @@ Existing suites (`tests/unit tests/api tests/evaluation tests/a3`) must still pa
 
 ## Review step
 
-After the implementation plan is written, Haiku and Sonnet subagents critique it from opposing positions (one arguing for simplification, one hunting for correctness gaps). Agreed findings are folded into the plan before implementation starts.
+After the implementation plan was written, Haiku (simplifier) and Sonnet (correctness) subagents debated it over two rounds. The adopted findings are reflected above and recorded in the plan's "Debate record" section.
