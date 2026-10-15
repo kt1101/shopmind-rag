@@ -12,9 +12,10 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from shopmind.app.api.errors import EmbeddingUnavailable, ImageTooLarge, InvalidFilter, InvalidImage, InvalidPagination, SearchInfrastructureError, UnsupportedSearchMode
+from shopmind.app.api.errors import EmbeddingUnavailable, ImageTooLarge, InvalidFilter, InvalidImage, InvalidPagination, ProductNotFound, SearchInfrastructureError, UnsupportedSearchMode
 from shopmind.app.api.routes.debug import router as debug_router
 from shopmind.app.api.routes.health import router as health_router
+from shopmind.app.api.routes.products import router as products_router
 from shopmind.app.api.routes.rag import RAGUnavailable, router as rag_router
 from shopmind.app.api.routes.search import router as search_router
 from shopmind.app.llm.base import InvalidLLMOutput, LLMProviderError
@@ -28,6 +29,7 @@ def _error_body(request: Request, code: str, message: str) -> dict[str, Any]:
 
 
 def _wire_runtime(app: FastAPI, config=None) -> None:
+    from shopmind.app.catalog.service import CatalogService
     from shopmind.app.core.config import load_app_config
     from shopmind.app.embedding.siglip2 import SigLIP2EmbeddingProvider
     from shopmind.app.infrastructure.elasticsearch.client import create_elasticsearch_client
@@ -52,6 +54,7 @@ def _wire_runtime(app: FastAPI, config=None) -> None:
     image = ImageDenseRetriever(repository, embedder)
     app.state.search_service = SearchService(bm25=bm25, dense=dense, hybrid=hybrid, cross_modal=cross_modal, image=image)
     app.state.repository = repository
+    app.state.catalog_service = CatalogService(repository)
     app.state.embedder = embedder
     app.state.index_alias = config.elasticsearch.index_alias
     app.state.embedding_model = embedder.model_name
@@ -70,7 +73,7 @@ def _wire_runtime(app: FastAPI, config=None) -> None:
             app.state.rag_runtime_error = exc
 
 
-def create_app(*, search_service: Any | None = None, repository: Any | None = None, embedder: Any | None = None, index_alias: str = "products", max_image_bytes: int = 5 * 1024 * 1024, product_image_dir: str | Path | None = None, rag_service: Any | None = None, fusion_rrf_k: int = 60, auto_wire: bool = True) -> FastAPI:
+def create_app(*, search_service: Any | None = None, repository: Any | None = None, embedder: Any | None = None, index_alias: str = "products", max_image_bytes: int = 5 * 1024 * 1024, product_image_dir: str | Path | None = None, rag_service: Any | None = None, catalog_service: Any | None = None, fusion_rrf_k: int = 60, auto_wire: bool = True) -> FastAPI:
     if max_image_bytes <= 0:
         raise ValueError("max_image_bytes must be positive")
     if fusion_rrf_k <= 0:
@@ -98,6 +101,7 @@ def create_app(*, search_service: Any | None = None, repository: Any | None = No
     app.state.runtime_error = None
     app.state.rag_service = rag_service
     app.state.rag_runtime_error = None
+    app.state.catalog_service = catalog_service
     app.mount("/media/products", StaticFiles(directory=product_image_dir or os.getenv("PRODUCT_IMAGE_DIR", "data/raw/images"), check_dir=False), name="product-images")
 
     @app.middleware("http")
@@ -127,6 +131,10 @@ def create_app(*, search_service: Any | None = None, repository: Any | None = No
     @app.exception_handler(InvalidPagination)
     async def invalid_pagination_handler(request: Request, exc: InvalidPagination):
         return JSONResponse(status_code=422, content=_error_body(request, "invalid_pagination", str(exc)))
+
+    @app.exception_handler(ProductNotFound)
+    async def product_not_found_handler(request: Request, exc: ProductNotFound):
+        return JSONResponse(status_code=404, content=_error_body(request, "product_not_found", str(exc)))
 
     @app.exception_handler(ImageTooLarge)
     async def image_too_large_handler(request: Request, exc: ImageTooLarge):
@@ -161,6 +169,7 @@ def create_app(*, search_service: Any | None = None, repository: Any | None = No
 
     app.include_router(health_router)
     app.include_router(search_router)
+    app.include_router(products_router)
     app.include_router(debug_router)
     app.include_router(rag_router)
     return app
