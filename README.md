@@ -378,6 +378,45 @@ Real SigLIP2 smoke testing is opt-in because it can download a large model:
 RUN_SLOW_MODEL_TESTS=1 pytest -m slow -q
 ```
 
+## Storefront API
+
+The storefront UI uses a catalog API and a history-aware chat API over the A3 RAG layer. All routes are under `/api/v1`.
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /products` | Paginated catalog (`page`, `page_size` 1-60, default 24, repeatable `category` / `brand` filters) with category facets. `503` when Elasticsearch or the `products` alias is unavailable. |
+| `GET /products/{product_id}` | Product detail; `404 product_not_found` for an unknown ID. |
+| `POST /chat` | One JSON answer: `answer`, `sources`, `insufficient_evidence`, `standalone_question`. |
+| `POST /chat/stream` | The same answer as a Server-Sent Events stream. |
+
+Chat request body: `message` (1-2000 chars), `history` (at most 12 turns of `{"role": "user" | "assistant", "content": 1-4000 chars}`), and optional `product_id` (the product being viewed; it scopes product and review retrieval). Whitespace is stripped; any violation returns `422 validation_error`. With history, the message is first rewritten into a standalone question using the viewed product as a hint; if the rewrite fails the original message is used and `rewrite_fallback` is `true`. Evidence comes from `rag.chat.sources` (default `product` and `policy`); `review` is added when `rag.chat.include_reviews_when_available` is true and the `reviews` alias exists. Failures before streaming starts (retrieval, reranker, context, missing `OPENAI_API_KEY`) are normal JSON errors (`503`) and no event stream is opened.
+
+```bash
+curl -N -X POST http://localhost:8000/api/v1/chat/stream \
+  -H 'Content-Type: application/json' \
+  -d '{"message":"Is it machine washable?","product_id":"B07PH3GSND","history":[]}'
+```
+
+SSE events, in order:
+
+| Event | Data | Meaning |
+| --- | --- | --- |
+| `meta` | `{"standalone_question": str, "rewrite_fallback": bool}` | Sent first. |
+| `delta` | `{"text": str}` | Next chunk of answer text. |
+| `reset` | `{"reason": "citation_retry"}` | The first attempt was rejected and the answer is regenerated. |
+| `done` | `{"answer", "sources", "insufficient_evidence", "standalone_question"}` | Final, validated answer; same shape as `POST /chat`. |
+| `error` | `{"code", "message"}` | Generation failed after the stream opened. Codes: `rag_generation_failed`, `llm_unavailable`, `internal_error`. |
+
+Client contract: append `delta` text as it arrives; on `reset` discard the text shown so far; on `done` replace the shown text with `done.answer` (it is the only validated text and carries the `sources`); on `error` discard the shown text and show an error. An abstaining answer (`insufficient_evidence: true`) arrives as `done` without any `delta`. Closing the connection cancels generation; the server stops reading the model stream shortly after (the next stream event).
+
+Environment variables:
+
+- `OPENAI_API_KEY` enables answer generation; without it the chat endpoints return `503 llm_unavailable` while catalog and search keep working.
+- `OPENAI_MODEL` overrides `rag.llm.model` (default `gpt-5.4-mini`). The OpenAI client timeout is `rag.llm.timeout_seconds` (default 60).
+- `CORS_ORIGINS` is a comma-separated list of allowed browser origins (for example `http://localhost:3000`). CORS is disabled when it is empty or unset; `X-Request-ID` is exposed to allowed origins.
+
+Chat uses the `policies` index as a default source, so index policies before using it (and reviews, if you want review evidence). The commands are in [A3 product questions](#a3-product-questions): generate policy embeddings with `scripts.generate_knowledge_embeddings --source policy`, then run `scripts.index_policies --switch-alias`. A missing `policies` alias makes chat return `503 rag_dependency_unavailable`.
+
 ## A3 product questions
 
 The A3 API searches three evidence sources: the existing A1 product index, matched Amazon review records, and the versioned **experimental** ShopMind policies in `data/policies/shopmind_policies.jsonl`. No Amazon review data is bundled. Policies are examples for this prototype, not real store terms.
