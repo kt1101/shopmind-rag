@@ -55,3 +55,25 @@ class RAGContext:
     rendered_context: str
     citation_ids: tuple[str, ...]
     metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class PreparedContext:
+    context: RAGContext
+    trace: dict[str, Any]
+    started: float
+
+
+@dataclass(frozen=True)
+class GenerationDelta:
+    text: str
+
+
+@dataclass(frozen=True)
+class GenerationReset:
+    reason: str = "citation_retry"
+
+
+@dataclass(frozen=True)
+class GenerationFinal:
+    answer: RAGAnswer
