@@ -20,7 +20,8 @@ _UNICODE = "unicode"
 _DONE = "done"
 
 _SIMPLE_ESCAPES = {'"': '"', "\\": "\\", "/": "/", "b": "\b", "f": "\f", "n": "\n", "r": "\r", "t": "\t"}
-_REPLACEMENT = "�"
+_REPLACEMENT = "\ufffd"
+_HEX_DIGITS = frozenset("0123456789abcdefABCDEF")
 
 
 class AnswerFieldExtractor:
@@ -79,11 +80,13 @@ class AnswerFieldExtractor:
                 self._state = _SEEK_QUOTE
             elif not char.isspace():
                 self._state = _SCAN
+                self._scan(char)
         elif state == _SEEK_QUOTE:
             if char == '"':
                 self._state = _IN_VALUE
             elif not char.isspace():
                 self._state = _SCAN  # answer is not a string; nothing to capture
+                self._scan(char)  # keep depth tracking correct for `{`/`[` values
 
     def _scan(self, char: str) -> None:
         if char == '"':
@@ -119,12 +122,11 @@ class AnswerFieldExtractor:
             self._key.append(char)  # escapes stay raw, so they never match the field name
 
     def _emit_code_unit(self, hex_digits: str, out: list[str]) -> None:
-        try:
-            code = int(hex_digits, 16)
-        except ValueError:
+        if len(hex_digits) != 4 or not all(c in _HEX_DIGITS for c in hex_digits):
             self._flush_surrogate(out)
             out.append(_REPLACEMENT)
             return
+        code = int(hex_digits, 16)
         if self._high_surrogate is not None:
             high, self._high_surrogate = self._high_surrogate, None
             if 0xDC00 <= code <= 0xDFFF:

@@ -83,3 +83,37 @@ def test_no_answer_key_yields_nothing():
     text, extractor = _feed_all('{"citation_ids": [], "insufficient_evidence": true}')
     assert text == ""
     assert not extractor.done
+
+
+@pytest.mark.parametrize("escape", ["\\u-123", "\\u0x12", "\\u1_23", "\\u 123", "\\u+123", "\\u12g4"])
+def test_malformed_unicode_escape_becomes_replacement_char(escape):
+    raw = '{"answer": "a' + escape + 'b"}'
+    expected = "a\ufffdb"
+    for split in range(1, len(raw)):
+        extractor = AnswerFieldExtractor()
+        assert extractor.feed(raw[:split]) + extractor.feed(raw[split:]) == expected
+    assert _feed_all(raw)[0] == expected
+
+
+def test_fullwidth_digit_escape_is_not_accepted():
+    # U+FF11 U+FF12 U+FF13 U+FF14 are valid int() digits but not JSON hex digits
+    raw = '{"answer": "a\\u\uff11\uff12\uff13\uff14b"}'
+    assert _feed_all(raw)[0] == "a\ufffdb"
+    assert _feed_all(raw, 3)[0] == "a\ufffdb"
+
+
+def test_non_string_answer_value_does_not_break_depth_tracking():
+    raw = '{"answer": {"a":1}, "x":"y", "answer":"z"}'
+    assert _feed_all(raw)[0] == "z"
+    assert _feed_all(raw, 10_000)[0] == "z"
+
+
+def test_whitespace_around_colon():
+    assert _feed_all('{"answer" :   "x"}')[0] == "x"
+    assert _feed_all('{"answer"\n:\n"x"}', 2)[0] == "x"
+
+
+def test_skipped_value_ending_in_escaped_backslash():
+    raw = '{"x": "a\\\\", "answer": "real"}'
+    assert _feed_all(raw)[0] == "real"
+    assert _feed_all(raw, 10_000)[0] == "real"
