@@ -24,7 +24,8 @@ services:
       elasticsearch:
         condition: service_healthy
     environment:
-      ELASTICSEARCH_URL: ${ELASTICSEARCH_URL:-http://elasticsearch:9200}
+      # Fixed to the in-network service; .env's ELASTICSEARCH_URL targets the host and would resolve to the container itself.
+      ELASTICSEARCH_URL: http://elasticsearch:9200
       ELASTICSEARCH_USERNAME: ${ELASTICSEARCH_USERNAME:-}
       ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:-}
       HF_TOKEN: ${HF_TOKEN:-}
