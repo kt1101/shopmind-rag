@@ -83,3 +83,61 @@ test('receive with missing sources stores sources: []', () => {
 test('unknown action types return state unchanged', () => {
   assert.equal(chatReducer(initialChatState, { type: 'unknown' }), initialChatState)
 })
+
+test('rapid double send produces exactly one user message and remains pending', () => {
+  let s = chatReducer(initialChatState, { type: 'send', content: 'first' })
+  assert.equal(s.pending, true)
+  assert.equal(s.messages.length, 1)
+
+  // Second send while pending is ignored
+  const s2 = chatReducer(s, { type: 'send', content: 'second' })
+  assert.equal(s2, s)
+  assert.equal(s2.messages.length, 1)
+  assert.equal(s2.messages[0].content, 'first')
+})
+
+test('user content with HTML / script tags is preserved literally without mutation', () => {
+  const xss = '<img src=x onerror=alert(1)> waterproof'
+  const s = chatReducer(initialChatState, { type: 'send', content: xss })
+  assert.equal(s.messages[0].content, xss)
+  const apiMsgs = toApiMessages(s.messages)
+  assert.equal(apiMsgs[0].content, xss)
+})
+
+test('mock chat integration: send, mock response, and source handling', async () => {
+  const mockApi = await import('../mocks/mockApi.js')
+  let s = chatReducer(initialChatState, { type: 'send', content: 'Waterproof hiking boots' })
+  const apiMsgs = toApiMessages(s.messages)
+  const res = await mockApi.sendChatMessage({ messages: apiMsgs, delayMs: 0 })
+  assert.ok(res.data.answer.includes('Waterproof hiking boots'))
+  assert.ok(Array.isArray(res.data.sources))
+  assert.ok(res.data.sources.length > 0)
+
+  s = chatReducer(s, { type: 'receive', answer: res.data.answer, sources: res.data.sources })
+  assert.equal(s.pending, false)
+  assert.equal(s.messages.length, 2)
+  assert.equal(s.messages[1].role, 'assistant')
+  assert.equal(s.messages[1].content, res.data.answer)
+  assert.equal(s.messages[1].sources.length, res.data.sources.length)
+})
+
+test('mock chat integration: error message and retry flow', async () => {
+  const mockApi = await import('../mocks/mockApi.js')
+  let s = chatReducer(initialChatState, { type: 'send', content: 'trigger an error please' })
+  const apiMsgs = toApiMessages(s.messages)
+  await assert.rejects(
+    () => mockApi.sendChatMessage({ messages: apiMsgs, delayMs: 0 }),
+    /Mock assistant error/
+  )
+
+  s = chatReducer(s, { type: 'fail', message: 'Mock assistant error' })
+  assert.equal(s.pending, false)
+  assert.equal(s.messages[1].role, 'error')
+  assert.equal(s.messages[1].content, 'Mock assistant error')
+
+  s = chatReducer(s, { type: 'retry' })
+  assert.equal(s.pending, true)
+  assert.equal(s.messages.length, 1)
+  assert.equal(s.messages[0].role, 'user')
+})
+
