@@ -9,15 +9,18 @@ from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from shopmind.app.api.errors import EmbeddingUnavailable, ImageTooLarge, InvalidFilter, InvalidImage, InvalidPagination, ProductNotFound, SearchInfrastructureError, UnsupportedSearchMode
+from shopmind.app.api.routes.chat import router as chat_router
 from shopmind.app.api.routes.debug import router as debug_router
 from shopmind.app.api.routes.health import router as health_router
 from shopmind.app.api.routes.products import router as products_router
 from shopmind.app.api.routes.rag import RAGUnavailable, router as rag_router
 from shopmind.app.api.routes.search import router as search_router
+from shopmind.app.core.config import parse_origins
 from shopmind.app.llm.base import InvalidLLMOutput, LLMProviderError
 from shopmind.app.rag.service import ContextConstructionError, KnowledgeRetrievalUnavailable, RAGGenerationError, RerankerUnavailable
 
@@ -68,12 +71,22 @@ def _wire_runtime(app: FastAPI, config=None) -> None:
 
             app.state.rag_service = create_rag_service(app.state.search_service, client, embedder, config.rag)
             app.state.rag_runtime_error = None
+            from shopmind.app.chat.service import ChatService
+            from shopmind.app.infrastructure.elasticsearch.knowledge_repository import ElasticsearchKnowledgeRepository
+
+            reviews = ElasticsearchKnowledgeRepository(client, "reviews", source="review")
+            app.state.chat_service = ChatService(
+                app.state.rag_service,
+                config.rag.chat,
+                reviews.alias_exists,
+                lambda product_id: (repository.get_product(product_id) or {}).get("title"),
+            )
         except Exception as exc:
             logger.exception("RAG runtime initialization failed")
             app.state.rag_runtime_error = exc
 
 
-def create_app(*, search_service: Any | None = None, repository: Any | None = None, embedder: Any | None = None, index_alias: str = "products", max_image_bytes: int = 5 * 1024 * 1024, product_image_dir: str | Path | None = None, rag_service: Any | None = None, catalog_service: Any | None = None, fusion_rrf_k: int = 60, auto_wire: bool = True) -> FastAPI:
+def create_app(*, search_service: Any | None = None, repository: Any | None = None, embedder: Any | None = None, index_alias: str = "products", max_image_bytes: int = 5 * 1024 * 1024, product_image_dir: str | Path | None = None, rag_service: Any | None = None, catalog_service: Any | None = None, chat_service: Any | None = None, cors_origins: list[str] | None = None, fusion_rrf_k: int = 60, auto_wire: bool = True) -> FastAPI:
     if max_image_bytes <= 0:
         raise ValueError("max_image_bytes must be positive")
     if fusion_rrf_k <= 0:
@@ -102,6 +115,7 @@ def create_app(*, search_service: Any | None = None, repository: Any | None = No
     app.state.rag_service = rag_service
     app.state.rag_runtime_error = None
     app.state.catalog_service = catalog_service
+    app.state.chat_service = chat_service
     app.mount("/media/products", StaticFiles(directory=product_image_dir or os.getenv("PRODUCT_IMAGE_DIR", "data/raw/images"), check_dir=False), name="product-images")
 
     @app.middleware("http")
@@ -110,6 +124,10 @@ def create_app(*, search_service: Any | None = None, repository: Any | None = No
         response = await call_next(request)
         response.headers["X-Request-ID"] = request.state.request_id
         return response
+
+    origins = cors_origins if cors_origins is not None else parse_origins(os.getenv("CORS_ORIGINS", ""))
+    if origins:
+        app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["GET", "POST"], allow_headers=["*"], expose_headers=["X-Request-ID"])
 
     @app.exception_handler(RequestValidationError)
     async def validation_error_handler(request: Request, exc: RequestValidationError):
@@ -172,6 +190,7 @@ def create_app(*, search_service: Any | None = None, repository: Any | None = No
     app.include_router(products_router)
     app.include_router(debug_router)
     app.include_router(rag_router)
+    app.include_router(chat_router)
     return app
 
 
