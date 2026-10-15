@@ -88,6 +88,13 @@ class RAGLLMConfig(BaseModel):
     model: str = "gpt-5.4-mini"
     api_key: str | None = None
     max_generation_attempts: int = Field(default=2, ge=1, le=2)
+    timeout_seconds: float = Field(default=60, gt=0)
+
+
+class ChatConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    sources: list[Literal["product", "review", "policy"]] = Field(default_factory=lambda: ["product", "policy"], min_length=1)
+    include_reviews_when_available: bool = True
 
 
 class RAGConfig(BaseModel):
@@ -98,6 +105,7 @@ class RAGConfig(BaseModel):
     reranker: RAGRerankerConfig = Field(default_factory=RAGRerankerConfig)
     context: RAGContextConfig = Field(default_factory=RAGContextConfig)
     llm: RAGLLMConfig = Field(default_factory=RAGLLMConfig)
+    chat: ChatConfig = Field(default_factory=ChatConfig)
 
 
 class AppConfig(BaseModel):
@@ -122,12 +130,16 @@ def _overlay_env(data: dict[str, Any]) -> dict[str, Any]:
     data = dict(data)
     data["elasticsearch"] = elasticsearch
     data["embedding"] = embedding
-    api_key = os.getenv("OPENAI_API_KEY")
-    if api_key:
+    llm_overrides = {key: value for key, env_name in (("api_key", "OPENAI_API_KEY"), ("model", "OPENAI_MODEL")) if (value := os.getenv(env_name))}
+    if llm_overrides:
         rag = dict(data.get("rag") or {})
-        rag["llm"] = {**(rag.get("llm") or {}), "api_key": api_key}
+        rag["llm"] = {**(rag.get("llm") or {}), **llm_overrides}
         data["rag"] = rag
     return data
+
+
+def parse_origins(value: str) -> list[str]:
+    return [origin.strip() for origin in value.split(",") if origin.strip()]
 
 
 def load_app_config(path: str | Path) -> AppConfig:

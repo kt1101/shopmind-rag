@@ -20,3 +20,6 @@ api:
   max_image_bytes: 5242880
 rag:
   enabled: true
+  chat:
+    sources: [product, policy]
+    include_reviews_when_available: true
