@@ -64,3 +64,45 @@ def test_embedding_contract_pins_alias_and_rejects_wrong_identity_and_vectors():
         assert client.count(index=a)["count"]==0
     finally:
         client.indices.delete(index=f"{a},{b}",ignore_unavailable=True)
+
+
+def _catalog_documents():
+    def doc(pid, title, brand, category, extra=None):
+        return {"product_id": pid, "title": title, "description": title, "brand": brand, "category": category, "attributes": {}, "attributes_text": "", "search_text": title, "image_url": None, "text_vector": [1.0, 0.0, 0.0, 0.0], "image_vector": [1.0, 0.0, 0.0, 0.0], "embedding_model": "fake", "embedding_version": "test", "metadata": extra or {}}
+    return [doc("P1", "Black Running Shoe", "Acme", "SHOES", {"bullet_points": ["light"]}), doc("P2", "Oak Chair", "WoodCo", "CHAIR"), doc("P3", "Trail Boot", "Acme", "SHOES"), doc("P4", "Sofa", "WoodCo", "SOFA")]
+
+
+def test_list_products_and_get_product_against_real_index():
+    from shopmind.app.infrastructure.elasticsearch.index import create_versioned_index
+    from shopmind.app.infrastructure.elasticsearch.repository import ElasticsearchProductRepository
+    client = _client_or_skip(); index_name = f"test_products_{uuid.uuid4().hex}"
+    documents = _catalog_documents()
+    try:
+        create_versioned_index(client, index_name, 4); repo = ElasticsearchProductRepository(client, index_name)
+        success, errors = repo.bulk_index(index_name, documents); assert success == len(documents) and errors == []; client.indices.refresh(index=index_name)
+        everything = repo.list_products({}, 0, 2)
+        assert everything.total == len(documents) and [item["product_id"] for item in everything.items] == ["P1", "P2"]
+        assert all(not ({"text_vector", "image_vector", "search_text"} & set(item)) for item in everything.items)
+        assert everything.category_facets == (("SHOES", 2), ("CHAIR", 1), ("SOFA", 1))
+        assert [item["product_id"] for item in repo.list_products({}, 2, 2).items] == ["P3", "P4"]
+        filtered = repo.list_products({"category": ["shoes"]}, 0, 24)
+        assert filtered.total == 2 and {item["product_id"] for item in filtered.items} == {"P1", "P3"}
+        assert sum(count for _, count in filtered.category_facets) == len(documents)
+        branded = repo.list_products({"brand": ["acme"], "category": ["SHOES"]}, 0, 24)
+        assert branded.total == 2 and sum(count for _, count in branded.category_facets) == 2
+        assert repo.list_products({"category": ["hoe"]}, 0, 24).total == 2
+        product = repo.get_product("P1")
+        assert product is not None and product["title"] == "Black Running Shoe" and product["metadata"]["bullet_points"] == ["light"]
+        assert not ({"text_vector", "image_vector", "search_text"} & set(product))
+        assert repo.get_product("NOPE") is None
+    finally:
+        try: client.indices.delete(index=index_name, ignore_unavailable=True)
+        except Exception: pass
+
+
+def test_get_product_raises_product_index_missing_for_unknown_index():
+    from shopmind.app.infrastructure.elasticsearch.repository import ElasticsearchProductRepository, ProductIndexMissing
+    client = _client_or_skip()
+    repo = ElasticsearchProductRepository(client, f"test_missing_{uuid.uuid4().hex}")
+    with pytest.raises(ProductIndexMissing):
+        repo.get_product("P1")

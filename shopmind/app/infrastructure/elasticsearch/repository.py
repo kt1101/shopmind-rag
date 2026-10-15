@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from shopmind.app.domain.catalog import ProductPage
 from shopmind.app.domain.search_result import RawSearchHit
 from shopmind.app.retrieval.language import normalize_lexical_query
 from shopmind.app.embedding.validation import embedding_identity, validate_index_identity, validate_vectors
@@ -9,6 +10,12 @@ from shopmind.app.embedding.validation import embedding_identity, validate_index
 _FILTER_FIELDS = {"brand": "brand.keyword", "category": "category.keyword", "product_id": "product_id"}
 _VECTOR_FIELDS = {"text_vector", "image_vector"}
 _FACET_FIELDS = set(_FILTER_FIELDS)
+_CATALOG_SOURCE_EXCLUDES = ["text_vector", "image_vector", "search_text"]
+_CATEGORY_FACET_SIZE = 300
+
+
+class ProductIndexMissing(Exception):
+    """The products index or alias does not exist."""
 
 
 def _values(value: str | list[str], key: str) -> list[str]:
@@ -103,6 +110,42 @@ class ElasticsearchProductRepository:
                 alternatives.append(exact if exists else build_partial_filter_clauses({key: item})[0])
             clauses.append(alternatives[0] if len(alternatives) == 1 else {"bool": {"should": alternatives, "minimum_should_match": 1}})
         return clauses
+
+    def list_products(self, filters: dict[str, list[str]], offset: int, size: int) -> ProductPage:
+        # Category is a post_filter so the category facet counts ignore it and stay a stable menu.
+        brand_clauses = self._resolved_filter_clauses({key: value for key, value in filters.items() if key == "brand"})
+        category_clauses = self._resolved_filter_clauses({key: value for key, value in filters.items() if key == "category"})
+        kwargs: dict[str, Any] = {
+            "index": self.index_alias,
+            "query": {"bool": {"filter": brand_clauses}},
+            "aggs": {"categories": {"terms": {"field": _FILTER_FIELDS["category"], "size": _CATEGORY_FACET_SIZE, "order": [{"_count": "desc"}, {"_key": "asc"}]}}},
+            "sort": [{"product_id": "asc"}],
+            "from_": offset,
+            "size": size,
+            "track_total_hits": True,
+            "source_excludes": list(_CATALOG_SOURCE_EXCLUDES),
+        }
+        if category_clauses:
+            kwargs["post_filter"] = category_clauses[0]
+        response = self.client.search(**kwargs)
+        hits = response.get("hits", {})
+        total = hits.get("total", 0)
+        total = int(total.get("value", 0)) if isinstance(total, dict) else int(total)
+        buckets = response.get("aggregations", {}).get("categories", {}).get("buckets", [])
+        return ProductPage(
+            items=tuple(dict(hit.get("_source") or {}) for hit in hits.get("hits", [])),
+            total=total,
+            category_facets=tuple((str(bucket["key"]), int(bucket.get("doc_count", 0))) for bucket in buckets),
+        )
+
+    def get_product(self, product_id: str) -> dict[str, Any] | None:
+        response = self.client.options(ignore_status=404).get(index=self.index_alias, id=product_id, source_excludes=list(_CATALOG_SOURCE_EXCLUDES))
+        error = response.get("error")
+        if error and (error.get("type") if isinstance(error, dict) else None) == "index_not_found_exception":
+            raise ProductIndexMissing(self.index_alias)
+        if not response.get("found"):
+            return None
+        return dict(response.get("_source") or {})
 
     def _lexical_once(self, query: str | None, size: int, clauses: list[dict[str, Any]]) -> list[RawSearchHit]:
         lexical_query = normalize_lexical_query(query) if query else query
