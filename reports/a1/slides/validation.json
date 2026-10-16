@@ -1,0 +1,44 @@
+{
+  "slides": 18,
+  "overflow": [
+    {
+      "width": 1920,
+      "height": 1080,
+      "issues": []
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "issues": []
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "issues": []
+    },
+    {
+      "width": 375,
+      "height": 667,
+      "issues": []
+    },
+    {
+      "width": 667,
+      "height": 375,
+      "issues": []
+    }
+  ],
+  "keyboard": {
+    "next": 1,
+    "end": 17,
+    "home": 0,
+    "smoothEnd": 17,
+    "smoothHome": 0
+  },
+  "notesDialog": true,
+  "pageErrors": [],
+  "pdfPages": 18,
+  "pptxSlides": 18,
+  "pptxNotesComplete": true,
+  "source": "Nhom4_BaoCao-A1.pdf",
+  "benchmarkRerun": false
+}
