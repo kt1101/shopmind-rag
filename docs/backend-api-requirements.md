@@ -2,7 +2,7 @@
 
 This document details the backend APIs required to fully support the shopper-facing storefront (`/`, `/search`, `/products/:productId`, and the floating RAG assistant).
 
-When running with `VITE_MOCK_API=1`, the three new endpoints, plus the existing A3 `POST /api/v1/rag/ask` (so product questions work with mock product IDs), are served by an in-memory mock (`src/mocks/mockApi.js`), while search and filter-option calls continue to hit the live backend.
+When running with `VITE_MOCK_API=1`, the two new endpoints, plus the existing A3 `POST /api/v1/rag/ask` (so product questions work with mock product IDs), are served by an in-memory mock (`src/mocks/mockApi.js`), while search and filter-option calls continue to hit the live backend.
 
 ---
 
@@ -90,59 +90,14 @@ Retrieves complete product information, specifications, and descriptions.
 
 ---
 
-### 1.3 Chat Assistant (RAG)
-Conversational assistant grounded in the catalog, answering shopper questions and citing source products.
-
-- **Method**: `POST`
-- **Path**: `/api/v1/chat`
-- **Used by**: `ChatWidget` (floating assistant across all storefront pages)
-- **Headers**:
-  - `Content-Type: application/json`
-- **Request Body**:
-```json
-{
-  "messages": [
-    { "role": "user", "content": "Hi, what do you recommend for wet trails?" },
-    { "role": "assistant", "content": "I recommend waterproof hiking boots with Vibram outsoles." },
-    { "role": "user", "content": "Any boots under $100?" }
-  ]
-}
-```
-*Note: Sends up to the last 10 conversation turns, ending with the user's latest question. Only `user` and `assistant` roles are sent.*
-
-- **Success Response (`200 OK`)**:
-```json
-{
-  "answer": "Here are two waterproof options under $100 from our catalog:\n\n• Ridge GTX Boot ($89.00)\n• Mudguard Low ($79.00)",
-  "sources": [
-    {
-      "product_id": "P9",
-      "title": "Ridge GTX Boot",
-      "brand": "Acme",
-      "category": "hiking_boots",
-      "image_url": "/media/products/P9.jpg"
-    },
-    {
-      "product_id": "P14",
-      "title": "Mudguard Low",
-      "brand": "Strider",
-      "category": "hiking_boots",
-      "image_url": "/media/products/P14.jpg"
-    }
-  ]
-}
-```
-*Note: `answer` is plain text (preserves line breaks; UI renders with `white-space: pre-wrap`). `sources` may be an empty array if no specific products are cited.*
-
----
-
 ## 2. Existing Endpoints Reused by the Storefront
 
 The storefront connects to existing endpoints already implemented in the multimodal backend:
 
 | Endpoint | Method | Consumed By | Description |
 |---|---|---|---|
-| `/api/v1/search/text` | `POST` | `SearchPage`, `ProductPage` | Text search supporting modes `hybrid`, `bm25`, `dense`, `cross_modal` with category/brand filtering. Also used to populate the "Similar products" row on product pages. |
+| `/api/v1/search/text` | `POST` | `SearchPage`, `ProductPage`, chat | Text search supporting modes `hybrid`, `bm25`, `dense`, `cross_modal` with category/brand filtering. Also used to populate the "Similar products" row on product pages, and by the chat to answer catalog questions (hybrid, top 3). |
+| `/api/v1/rag/ask` | `POST` | `ProductAskPanel`, chat | A3 grounded answers about one product (`question`, `product_id`, `sources`, `debug`). The chat uses it while scoped to a product. |
 | `/api/v1/search/image` | `POST` (multipart) | `SearchPage` | Visual similarity search by uploaded image with category/brand filtering. |
 | `/api/v1/search/filter-options` | `GET` | `FilterSidebar` | Fetches available categories with counts and brand typeahead suggestions (`?field=category&limit=50`). |
 | `/media/products/*` | `GET` | All pages | Serves static product images. |

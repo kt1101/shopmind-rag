@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react'
-import { chatReducer, initialChatState, toApiMessages } from './chatState.js'
-import { sendChatMessage } from '../api.js'
+import { chatReducer, initialChatState } from './chatState.js'
+import { fetchReply } from './chatReply.js'
 
 export const ChatContext = createContext(null)
 
@@ -12,19 +12,15 @@ export function ChatProvider({ children, initial = initialChatState }) {
   useEffect(() => {
     if (!state.pending) return
 
+    const question = messagesRef.current.findLast((m) => m.role === 'user')
+    if (!question) return
+
     const controller = new AbortController()
 
-    sendChatMessage({
-      messages: toApiMessages(messagesRef.current),
-      signal: controller.signal,
-    })
-      .then((res) => {
+    fetchReply({ question: question.content, scope: question.scope, signal: controller.signal })
+      .then((reply) => {
         if (!controller.signal.aborted) {
-          dispatch({
-            type: 'receive',
-            answer: res?.data?.answer,
-            sources: res?.data?.sources ?? [],
-          })
+          dispatch({ type: 'receive', ...reply })
         }
       })
       .catch((err) => {
@@ -45,18 +41,21 @@ export function ChatProvider({ children, initial = initialChatState }) {
   const closeChat = useCallback(() => dispatch({ type: 'close' }), [])
   const send = useCallback((content) => dispatch({ type: 'send', content }), [])
   const retry = useCallback(() => dispatch({ type: 'retry' }), [])
+  const setScope = useCallback((product) => dispatch({ type: 'setScope', product }), [])
 
   const value = useMemo(
     () => ({
       open: state.open,
       pending: state.pending,
       messages: state.messages,
+      scope: state.scope,
       openChat,
       closeChat,
       send,
       retry,
+      setScope,
     }),
-    [state.open, state.pending, state.messages, openChat, closeChat, send, retry],
+    [state.open, state.pending, state.messages, state.scope, openChat, closeChat, send, retry, setScope],
   )
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>

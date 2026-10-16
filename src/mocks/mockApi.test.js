@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { askProduct, getProduct, getProducts, sendChatMessage } from './mockApi.js'
+import { askProduct, getProduct, getProducts } from './mockApi.js'
 
 test('mock getProducts filters and pages', async () => {
   const all = await getProducts({ limit: 10, offset: 20 })
@@ -15,16 +15,6 @@ test('mock getProducts filters and pages', async () => {
 test('mock getProduct returns fixture or 404', async () => {
   assert.equal((await getProduct({ productId: 'M-001' })).data.product_id, 'M-001')
   await assert.rejects(() => getProduct({ productId: 'nope' }), { status: 404 })
-})
-
-test('mock chat returns sources matching the question', async () => {
-  const r = await sendChatMessage({ messages: [{ role: 'user', content: 'any waterproof boots?' }], delayMs: 0 })
-  assert.ok(r.data.answer.includes('any waterproof boots?'))
-  assert.ok(r.data.sources.length >= 1 && r.data.sources.length <= 3)
-})
-
-test('mock chat fails on demand', async () => {
-  await assert.rejects(() => sendChatMessage({ messages: [{ role: 'user', content: 'trigger error' }], delayMs: 0 }))
 })
 
 test('mock getProducts items omit description and attributes', async () => {
@@ -46,10 +36,11 @@ test('mock getProducts brand filter works', async () => {
   assert.ok(res.data.items.every((p) => p.brand === 'Café+Co'))
 })
 
-test('mock chat rejects with AbortError when signal is aborted', async () => {
+test('mock askProduct rejects with AbortError when signal is aborted', async () => {
   const controller = new AbortController()
-  const promise = sendChatMessage({
-    messages: [{ role: 'user', content: 'any boots?' }],
+  const promise = askProduct({
+    question: 'What color?',
+    productId: 'M-001',
     signal: controller.signal,
     delayMs: 200,
   })

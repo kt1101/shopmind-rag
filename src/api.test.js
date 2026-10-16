@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { askProduct, checkReadiness, getFilterOptions, getProduct, getProducts, resolveImageUrl, searchImage, searchText, sendChatMessage } from './api.js'
+import { askProduct, checkReadiness, getFilterOptions, getProduct, getProducts, resolveImageUrl, searchImage, searchText } from './api.js'
 
 function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -194,26 +194,5 @@ test('getProduct encodes the product id', async () => {
 test('getProduct exposes 404 status', async () => {
   const fetchImpl = async () => jsonResponse({ error: { message: 'product not found' } }, 404)
   await assert.rejects(() => getProduct({ productId: 'nope', fetchImpl }), { message: 'product not found', status: 404 })
-})
-
-test('sendChatMessage posts the message history', async () => {
-  let url, options
-  const fetchImpl = async (capturedUrl, capturedOptions) => {
-    url = capturedUrl
-    options = capturedOptions
-    return jsonResponse({ answer: 'Here are boots', sources: [] })
-  }
-  await sendChatMessage({ messages: [{ role: 'user', content: 'boots?' }], fetchImpl })
-  assert.equal(url, '/api/v1/chat')
-  assert.equal(options.method, 'POST')
-  assert.deepEqual(JSON.parse(options.body), { messages: [{ role: 'user', content: 'boots?' }] })
-})
-
-test('sendChatMessage surfaces the backend error message', async () => {
-  const fetchImpl = async () => jsonResponse({ error: { message: 'assistant overloaded' } }, 503)
-  await assert.rejects(
-    () => sendChatMessage({ messages: [{ role: 'user', content: 'help' }], fetchImpl }),
-    { message: 'assistant overloaded', status: 503 },
-  )
 })
 

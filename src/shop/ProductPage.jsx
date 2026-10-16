@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { getProduct, resolveImageUrl, searchText } from '../api.js'
 import { formatPrice, humanizeCategory } from '../lib/format.js'
 import { buildCatalogUrl } from '../lib/urlState.js'
+import { useChat } from '../chat/ChatProvider.jsx'
 import ProductAskPanel from './ProductAskPanel.jsx'
 import ProductCard from './ProductCard.jsx'
 import StatusBlock from './StatusBlock.jsx'
@@ -10,6 +11,7 @@ import StatusBlock from './StatusBlock.jsx'
 export default function ProductPage() {
   const { productId } = useParams()
   const navigate = useNavigate()
+  const { setScope } = useChat()
 
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -63,6 +65,14 @@ export default function ProductPage() {
       controller.abort()
     }
   }, [productId, reloadIndex])
+
+  // Scope the chat to this product; switching products swaps the scope,
+  // leaving the page returns the chat to catalog search.
+  useEffect(() => {
+    if (product) setScope(product)
+  }, [product, setScope])
+
+  useEffect(() => () => setScope(null), [setScope])
 
   useEffect(() => {
     if (!product?.title) {
