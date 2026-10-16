@@ -2,9 +2,23 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+import sys
+from typing import Any, TextIO
 
 _BANNED_KEYS = {"vector", "vectors", "image_bytes", "raw_image", "embedding_vector"}
+_HANDLER_NAME = "shopmind-stdout"
+
+
+def configure_logging(level: int = logging.INFO, stream: TextIO | None = None) -> None:
+    # uvicorn configures only its own loggers, so shopmind.* INFO events would otherwise be dropped.
+    logger = logging.getLogger("shopmind")
+    logger.setLevel(level)
+    if any(handler.get_name() == _HANDLER_NAME for handler in logger.handlers):
+        return
+    handler = logging.StreamHandler(stream or sys.stdout)
+    handler.set_name(_HANDLER_NAME)
+    handler.setFormatter(logging.Formatter("%(levelname)s:     %(name)s %(message)s"))
+    logger.addHandler(handler)
 
 
 def log_search_event(logger: logging.Logger, **fields: Any) -> None:
