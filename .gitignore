@@ -1,22 +1,4 @@
-.worktrees/
 .env
-.venv/
-venv/
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.coverage
-htmlcov/
 .DS_Store
-
-# Local datasets / generated artifacts
-data/raw/
-data/processed/
-data/embeddings/
-data/a1_abo_1500/
-runs/
-evaluation/benchmarks/a1/images/
-.cache/
-models/
+.worktrees/
 .superpowers/
-data/evaluation/

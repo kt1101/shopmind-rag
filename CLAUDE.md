@@ -4,9 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-ShopMind: multimodal product retrieval (A1) over a 1,500-product Amazon Berkeley Objects subset, plus a multi-source RAG answer layer (A3) over products, Amazon reviews, and experimental store policies. Stack: FastAPI, Elasticsearch 8.15 (BM25 + dense kNN), SigLIP2 (`google/siglip2-base-patch16-224`) for text and image embeddings, RRF fusion, OpenAI Responses API for answers. The React UI lives in the sibling repo `../test-ui` (built by `docker compose` as the `frontend` service).
+ShopMind: multimodal product retrieval (A1) over a 1,500-product Amazon Berkeley Objects subset, plus a multi-source RAG answer layer (A3) over products, Amazon reviews, and experimental store policies. Stack: FastAPI, Elasticsearch 8.15 (BM25 + dense kNN), SigLIP2 (`google/siglip2-base-patch16-224`) for text and image embeddings, RRF fusion, OpenAI Responses API for answers. This is a monorepo: the Python API is in `api/`, the React + Vite UI is in `ui/` (built by `docker compose` as the `frontend` service). `docker-compose.yml` and `.env` stay at the repo root.
 
 ## Commands
+
+Python commands run from `api/`; UI commands (`npm test`, `npm run build`) run from `ui/`. `docker compose` works from either, because it finds the root `docker-compose.yml`.
 
 ```bash
 python -m pip install -e '.[dev]'            # add '.[rag-rerank]' for the cross-encoder reranker
@@ -22,7 +24,7 @@ RUN_SLOW_MODEL_TESTS=1 pytest -m slow -q     # downloads/loads real SigLIP2
 ruff check shopmind evaluation scripts tests # lint (pyflakes rules only; see pyproject)
 ```
 
-All scripts and evaluation entry points run as modules from the repo root: `python -m scripts.<name>`, `python -m evaluation.runner`, `python -m evaluation.ablation`, `python -m scripts.run_rag_experiment`.
+All scripts and evaluation entry points run as modules from `api/`: `python -m scripts.<name>`, `python -m evaluation.runner`, `python -m evaluation.ablation`, `python -m scripts.run_rag_experiment`.
 
 **Run anything that loads SigLIP2 (embedding generation, evaluation) inside the Docker runtime on CPU**, not on the host: the host Python 3.13 + MPS crashes while loading the model. Pattern:
 
@@ -31,7 +33,7 @@ docker compose run --rm -T --no-deps -v "$PWD:/app" -e ELASTICSEARCH_URL=http://
   api python -u -m <module> ... --device cpu
 ```
 
-Full A1 rebuild/eval and A3 indexing command sequences are in README.md; reuse them rather than reconstructing flags.
+Full A1 rebuild/eval and A3 indexing command sequences are in `api/README.md`; reuse them rather than reconstructing flags.
 
 ## Architecture
 
