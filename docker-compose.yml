@@ -1,3 +1,38 @@
+# ShopMind local stack.
+#
+#   docker compose up -d --build        # elasticsearch + postgres + api + frontend
+#   docker compose --profile llm-local up -d ollama   # optional local LLM
+#   docker compose --profile cache up -d redis        # optional cache
+#   docker compose run --rm -T tools python -u -m <module> ... --device cpu   # offline jobs
+#
+# Every variable below has a safe development default; copy .env.example to .env to override.
+
+x-api-build: &api-build
+  context: ./api
+  dockerfile: Dockerfile
+  args:
+    # Optional dependency groups from api/pyproject.toml baked into the image.
+    API_EXTRAS: ${API_EXTRAS:-text-embed,rag-rerank,viz}
+
+x-api-env: &api-env
+  # Fixed to the in-network service; .env's ELASTICSEARCH_URL targets the host and would resolve to the container itself.
+  ELASTICSEARCH_URL: http://elasticsearch:9200
+  ELASTICSEARCH_USERNAME: ${ELASTICSEARCH_USERNAME:-}
+  ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:-}
+  # Same reason: .env's DATABASE_URL targets localhost for host-side tools.
+  DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-shopmind}:${POSTGRES_PASSWORD:-shopmind}@postgres:5432/${POSTGRES_DB:-shopmind}
+  SHOPMIND_PROFILE: ${SHOPMIND_PROFILE:-demo}
+  JWT_SECRET: ${JWT_SECRET:-dev-only-change-me-please-32-chars-min}
+  ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+  ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+  HF_TOKEN: ${HF_TOKEN:-}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OPENAI_MODEL: ${OPENAI_MODEL:-}
+  OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+  REDIS_URL: ${REDIS_URL:-}
+  CORS_ORIGINS: ${CORS_ORIGINS:-}
+  PRODUCT_IMAGE_DIR: /app/data/a1_abo_1500/images
+
 services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
@@ -16,27 +51,51 @@ services:
       retries: 12
       start_period: 30s
 
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-shopmind}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shopmind}
+      POSTGRES_DB: ${POSTGRES_DB:-shopmind}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
   api:
-    build:
-      context: ./api
-      dockerfile: Dockerfile
+    build: *api-build
+    image: shopmind-api:local
     depends_on:
       elasticsearch:
         condition: service_healthy
-    environment:
-      # Fixed to the in-network service; .env's ELASTICSEARCH_URL targets the host and would resolve to the container itself.
-      ELASTICSEARCH_URL: http://elasticsearch:9200
-      ELASTICSEARCH_USERNAME: ${ELASTICSEARCH_USERNAME:-}
-      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:-}
-      HF_TOKEN: ${HF_TOKEN:-}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      OPENAI_MODEL: ${OPENAI_MODEL:-}
-      CORS_ORIGINS: ${CORS_ORIGINS:-}
-      PRODUCT_IMAGE_DIR: /app/data/a1_abo_1500/images
+      postgres:
+        condition: service_healthy
+    # Optional: SHOPMIND__* nested config overrides and other settings from .env.
+    # Values under `environment:` take precedence over this file.
+    env_file:
+      - path: .env
+        required: false
+    environment: *api-env
     ports:
       - "8000:8000"
     volumes:
+      # Generated datasets, vocabularies, policies and embedding-map artifacts (read-only at runtime).
+      - ./api/data:/app/data:ro
       - ./api/data/a1_abo_1500/images:/app/data/a1_abo_1500/images:ro
+    healthcheck:
+      # /health is process liveness only; python:3.12-slim ships no curl.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      # The lifespan hook loads SigLIP2 / text embedder before serving.
+      start_period: 180s
 
   frontend:
     build:
@@ -49,5 +108,54 @@ services:
     ports:
       - "5173:5173"
 
+  # Offline jobs (embedding generation, evaluation, A3 indexing) with ./api mounted read-write.
+  # Same image as `api`; not started by `docker compose up`.
+  tools:
+    profiles: ["tools"]
+    build: *api-build
+    image: shopmind-api:local
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    env_file:
+      - path: .env
+        required: false
+    environment: *api-env
+    volumes:
+      - ./api:/app
+    command: ["python", "-c", "print('usage: docker compose run --rm tools python -m <module> ...')"]
+
+  # Optional local LLM provider (rag.llm provider `ollama`).
+  ollama:
+    profiles: ["llm-local"]
+    image: ollama/ollama:0.3.14
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # Optional cache (answer / embedding cache). The default is an in-process cache.
+  redis:
+    profiles: ["cache"]
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
 volumes:
   esdata:
+  pgdata:
+  ollama:
+  redisdata:
