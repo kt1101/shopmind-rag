@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { initialChatState, chatReducer, toApiMessages } from './chatState.js'
+import { initialChatState, chatReducer } from './chatState.js'
 
 test('send appends a trimmed user message and sets pending', () => {
   const s = chatReducer(initialChatState, { type: 'send', content: '  hi  ' })
@@ -40,15 +40,6 @@ test('message ids are unique and increasing', () => {
   s = chatReducer(s, { type: 'receive', answer: 'reply', sources: [] })
   s = chatReducer(s, { type: 'send', content: 'second' })
   assert.deepEqual(s.messages.map((m) => m.id), [1, 2, 3])
-})
-
-test('toApiMessages drops errors and keeps the last 10 turns', () => {
-  const messages = Array.from({ length: 12 }, (_, i) => ({ id: i, role: i % 2 ? 'assistant' : 'user', content: String(i) }))
-  messages.splice(5, 0, { id: 99, role: 'error', content: 'x' })
-  const out = toApiMessages(messages)
-  assert.equal(out.length, 10)
-  assert.deepEqual(out[0], { role: 'user', content: '2' })
-  assert.ok(out.every((m) => Object.keys(m).join() === 'role,content'))
 })
 
 test('open and close toggle open state', () => {
@@ -100,44 +91,64 @@ test('user content with HTML / script tags is preserved literally without mutati
   const xss = '<img src=x onerror=alert(1)> waterproof'
   const s = chatReducer(initialChatState, { type: 'send', content: xss })
   assert.equal(s.messages[0].content, xss)
-  const apiMsgs = toApiMessages(s.messages)
-  assert.equal(apiMsgs[0].content, xss)
 })
 
-test('mock chat integration: send, mock response, and source handling', async () => {
-  const mockApi = await import('../mocks/mockApi.js')
-  let s = chatReducer(initialChatState, { type: 'send', content: 'Waterproof hiking boots' })
-  const apiMsgs = toApiMessages(s.messages)
-  const res = await mockApi.sendChatMessage({ messages: apiMsgs, delayMs: 0 })
-  assert.ok(res.data.answer.includes('Waterproof hiking boots'))
-  assert.ok(Array.isArray(res.data.sources))
-  assert.ok(res.data.sources.length > 0)
+const SHOE = { product_id: 'M-001', title: 'Acme Velocity Road Runner' }
+const PACK = { product_id: 'M-013', title: 'Strider Black Roll-Top 30L' }
 
-  s = chatReducer(s, { type: 'receive', answer: res.data.answer, sources: res.data.sources })
-  assert.equal(s.pending, false)
-  assert.equal(s.messages.length, 2)
-  assert.equal(s.messages[1].role, 'assistant')
-  assert.equal(s.messages[1].content, res.data.answer)
-  assert.equal(s.messages[1].sources.length, res.data.sources.length)
+test('chat starts unscoped', () => {
+  assert.equal(initialChatState.scope, null)
 })
 
-test('mock chat integration: error message and retry flow', async () => {
-  const mockApi = await import('../mocks/mockApi.js')
-  let s = chatReducer(initialChatState, { type: 'send', content: 'trigger an error please' })
-  const apiMsgs = toApiMessages(s.messages)
-  await assert.rejects(
-    () => mockApi.sendChatMessage({ messages: apiMsgs, delayMs: 0 }),
-    /Mock assistant error/
-  )
+test('send records the scope the question was asked in', () => {
+  let s = chatReducer(initialChatState, { type: 'send', content: 'boots' })
+  assert.equal(s.messages[0].scope, null)
+  s = chatReducer(s, { type: 'receive', answer: 'a', sources: [] })
+  s = chatReducer(s, { type: 'setScope', product: SHOE })
+  s = chatReducer(s, { type: 'send', content: 'Is it waterproof?' })
+  assert.deepEqual(s.messages.at(-1).scope, SHOE)
+})
 
-  s = chatReducer(s, { type: 'fail', message: 'Mock assistant error' })
-  assert.equal(s.pending, false)
-  assert.equal(s.messages[1].role, 'error')
-  assert.equal(s.messages[1].content, 'Mock assistant error')
+test('setScope keeps only product_id and title', () => {
+  const s = chatReducer(initialChatState, { type: 'setScope', product: { ...SHOE, price: { amount: 1 } } })
+  assert.deepEqual(s.scope, SHOE)
+})
 
+test('setScope on an empty conversation adds no divider', () => {
+  const s = chatReducer(initialChatState, { type: 'setScope', product: SHOE })
+  assert.deepEqual(s.messages, [])
+})
+
+test('setScope adds a divider when the scope changes mid-conversation', () => {
+  let s = chatReducer(initialChatState, { type: 'send', content: 'q' })
+  s = chatReducer(s, { type: 'receive', answer: 'a', sources: [] })
+  s = chatReducer(s, { type: 'setScope', product: SHOE })
+  s = chatReducer(s, { type: 'setScope', product: PACK })
+  s = chatReducer(s, { type: 'setScope', product: null })
+  assert.deepEqual(s.messages.slice(2).map((m) => [m.role, m.product]), [['scope', SHOE], ['scope', PACK], ['scope', null]])
+})
+
+test('setScope to the current scope returns the same state', () => {
+  const scoped = chatReducer(initialChatState, { type: 'setScope', product: SHOE })
+  assert.equal(chatReducer(scoped, { type: 'setScope', product: { ...SHOE } }), scoped)
+  assert.equal(chatReducer(initialChatState, { type: 'setScope', product: null }), initialChatState)
+})
+
+test('receive stores the reply kind and evidence', () => {
+  let s = chatReducer(initialChatState, { type: 'send', content: 'q' })
+  const evidence = { insufficient_evidence: true, metadata: { missing_sources: ['review'] } }
+  s = chatReducer(s, { type: 'receive', answer: 'a', sources: [], kind: 'rag', evidence })
+  assert.equal(s.messages[1].kind, 'rag')
+  assert.deepEqual(s.messages[1].evidence, evidence)
+})
+
+test('retry keeps the scope of the failed question', () => {
+  let s = chatReducer(initialChatState, { type: 'setScope', product: SHOE })
+  s = chatReducer(s, { type: 'send', content: 'Is it waterproof?' })
+  s = chatReducer(s, { type: 'fail', message: 'down' })
+  s = chatReducer(s, { type: 'setScope', product: null })
   s = chatReducer(s, { type: 'retry' })
   assert.equal(s.pending, true)
-  assert.equal(s.messages.length, 1)
-  assert.equal(s.messages[0].role, 'user')
+  assert.deepEqual(s.messages.map((m) => m.role), ['user', 'scope'])
+  assert.deepEqual(s.messages.findLast((m) => m.role === 'user').scope, SHOE)
 })
-

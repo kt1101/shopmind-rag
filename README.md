@@ -11,6 +11,8 @@ The storefront provides shopper-facing catalog browsing, multimodal search, prod
 - `/products/:productId` — Product detail with description, specifications, similar products, and an "Ask about this product" panel backed by the A3 `POST /api/v1/rag/ask` endpoint
 - `/lab` — Multimodal Retrieval Lab (the original comparison lab, unchanged)
 
+The floating assistant is scoped to the product you are viewing and answers through `POST /api/v1/rag/ask` with cited evidence. Outside a product page (or after removing the scope) it runs a hybrid catalog search, and **Ask about this** on any result scopes the chat to that product.
+
 ## In-memory mock mode (`VITE_MOCK_API=1`)
 
 To run the frontend with the in-memory mock:
@@ -23,12 +25,11 @@ VITE_MOCK_API=1 npm run dev
 
 - `GET /api/v1/products` — catalog listing with filtering and pagination
 - `GET /api/v1/products/{product_id}` — product detail with descriptions and attributes (or 404)
-- `POST /api/v1/chat` — conversational assistant with grounded product source citations
 - `POST /api/v1/rag/ask` — product-scoped answers built from the mock product's attributes and description (reviews and policies are reported as missing evidence)
 
 ### Why use mock mode
 
-The storefront can be explored and tested independently without requiring the chat and catalog-listing backend endpoints to be deployed yet, while search and filter-options continue to hit the live backend.
+The storefront can be explored and tested independently without requiring the catalog-listing and product-detail backend endpoints to be deployed yet, while search and filter-options continue to hit the live backend.
 
 ### Backend API contracts
 

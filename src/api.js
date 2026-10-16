@@ -106,17 +106,3 @@ export async function getProduct(args = {}) {
   const { productId, signal, fetchImpl = fetch } = args
   return request(`/api/v1/products/${encodeURIComponent(productId)}`, { signal }, fetchImpl)
 }
-
-export async function sendChatMessage(args = {}) {
-  if (import.meta.env?.VITE_MOCK_API === '1') {
-    return (await import('./mocks/mockApi.js')).sendChatMessage(args)
-  }
-  const { messages, signal, fetchImpl = fetch } = args
-  return request('/api/v1/chat', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ messages }),
-    signal,
-  }, fetchImpl)
-}
-

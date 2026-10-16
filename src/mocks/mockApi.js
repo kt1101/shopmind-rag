@@ -1,5 +1,4 @@
 import { cleanFilters } from '../api.js'
-import { humanizeCategory } from '../lib/format.js'
 import { PRODUCTS } from './fixtures.js'
 
 function toListItem(product) {
@@ -69,57 +68,6 @@ export async function getProduct({ productId, signal } = {}) {
 
   return {
     data: product,
-    durationMs: Math.round(performance.now() - started),
-  }
-}
-
-export async function sendChatMessage({ messages = [], signal, delayMs = 600 } = {}) {
-  const started = performance.now()
-  signal?.throwIfAborted()
-
-  await wait(delayMs, signal)
-
-  const userMessages = messages.filter((m) => m?.role === 'user')
-  const lastUser = userMessages[userMessages.length - 1]
-  const question = lastUser?.content || (messages[messages.length - 1]?.content || '')
-
-  if (question.toLowerCase().includes('error')) {
-    throw new Error('Mock assistant error')
-  }
-
-  const words = [...new Set((question.toLowerCase().match(/[\p{L}\p{N}]+/gu) || []).filter((w) => w.length >= 3))]
-
-  const scored = PRODUCTS.map((product) => {
-    const title = (product.title || '').toLowerCase()
-    const cat = humanizeCategory(product.category || '').toLowerCase()
-    let score = 0
-    for (const word of words) {
-      if (title.includes(word)) score++
-      if (cat.includes(word)) score++
-    }
-    return { product, score }
-  }).filter((item) => item.score > 0)
-
-  scored.sort((a, b) => b.score - a.score)
-  const topProducts = scored.slice(0, 3).map((item) => item.product)
-
-  const sources = topProducts.map((p) => ({
-    product_id: p.product_id,
-    title: p.title,
-    brand: p.brand,
-    category: p.category,
-    image_url: p.image_url,
-  }))
-
-  let answer
-  if (sources.length > 0) {
-    answer = `Here's what I found for "${question}":\n` + sources.map((s) => `• ${s.title} (${s.brand})`).join('\n')
-  } else {
-    answer = `I couldn't find any products matching "${question}".`
-  }
-
-  return {
-    data: { answer, sources },
     durationMs: Math.round(performance.now() - started),
   }
 }

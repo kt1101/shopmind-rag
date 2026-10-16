@@ -389,3 +389,139 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* Product scope */
+.chat-scope {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 18px;
+  border-bottom: 1px solid var(--line, #d8dfeb);
+  background: #eef2ff;
+  color: var(--ink, #172033);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.chat-scope span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-scope button {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  color: var(--accent, #4667e8);
+  background: transparent;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.chat-scope button:hover {
+  background: #dfe6ff;
+}
+
+.chat-scope-divider {
+  align-self: center;
+  margin: 2px 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: var(--muted, #68738a);
+  background: #eef2f8;
+  font-size: 11px;
+  text-align: center;
+}
+
+.chat-source {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chat-source-ask {
+  align-self: flex-end;
+  border: 0;
+  padding: 0 2px;
+  color: var(--accent, #4667e8);
+  background: transparent;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chat-source-ask:hover {
+  text-decoration: underline;
+}
+
+/* RAG evidence */
+.chat-evidence-warning {
+  margin: 8px 0 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  color: #8f5609;
+  background: #fff6e8;
+  font-size: 11px;
+}
+
+.chat-citations {
+  margin-top: 10px;
+}
+
+.chat-citations-title {
+  margin: 0 0 6px;
+  color: var(--muted, #68738a);
+  font: 700 10px/1 monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.chat-citations ol {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chat-citations li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid var(--line, #d8dfeb);
+  border-radius: 6px;
+  background: var(--surface, #fff);
+  font-size: 11px;
+}
+
+.chat-citation-type {
+  flex-shrink: 0;
+  padding: 2px 5px;
+  border-radius: 4px;
+  color: #3450a4;
+  background: #e9eefb;
+  font: 700 9px/1.2 monospace;
+  text-transform: uppercase;
+}
+
+.chat-citation-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-citation-score {
+  flex-shrink: 0;
+  color: var(--accent, #4667e8);
+  font: 700 10px monospace;
+}
