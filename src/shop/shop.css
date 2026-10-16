@@ -1169,13 +1169,13 @@
   user-select: none;
 }
 
-.shop .product-info {
+.shop .product-summary {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.shop .product-info .eyebrow {
+.shop .product-summary .eyebrow {
   margin: 0;
   color: var(--accent);
   font: 700 12px/1.3 monospace;
@@ -1183,7 +1183,7 @@
   text-transform: uppercase;
 }
 
-.shop .product-info .product-title {
+.shop .product-summary .product-title {
   margin: 0;
   font-size: 28px;
   font-weight: 800;
@@ -1192,27 +1192,27 @@
   letter-spacing: -0.025em;
 }
 
-.shop .product-info .product-brand {
+.shop .product-summary .product-brand {
   margin: 0;
   font-size: 16px;
   font-weight: 500;
   color: var(--muted);
 }
 
-.shop .product-info .product-price {
+.shop .product-summary .product-price {
   margin: 4px 0 0;
   font-size: 24px;
   font-weight: 800;
   color: var(--ink);
 }
 
-.shop .product-info .product-id {
+.shop .product-summary .product-id {
   margin: 4px 0 0;
   font-size: 13px;
   color: var(--muted);
 }
 
-.shop .product-info .product-id code {
+.shop .product-summary .product-id code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   background: #eef2f8;

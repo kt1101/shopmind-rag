@@ -183,7 +183,7 @@ export default function ProductPage() {
           )}
         </div>
 
-        <div className="product-info">
+        <div className="product-summary">
           {categoryLabel && <p className="product-eyebrow eyebrow">{categoryLabel}</p>}
           <h1 className="product-title">{product.title}</h1>
           {product.brand && <p className="product-brand">{product.brand}</p>}
