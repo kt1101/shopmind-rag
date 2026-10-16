@@ -389,7 +389,13 @@ The storefront UI uses a catalog API and a history-aware chat API over the A3 RA
 | `POST /chat` | One JSON answer: `answer`, `sources`, `insufficient_evidence`, `standalone_question`. |
 | `POST /chat/stream` | The same answer as a Server-Sent Events stream. |
 
-Chat request body: `message` (1-2000 chars), `history` (at most 12 turns of `{"role": "user" | "assistant", "content": 1-4000 chars}`), and optional `product_id` (the product being viewed; it scopes product and review retrieval). Whitespace is stripped; any violation returns `422 validation_error`. With history, the message is first rewritten into a standalone question using the viewed product as a hint; if the rewrite fails the original message is used and `rewrite_fallback` is `true`. Evidence comes from `rag.chat.sources` (default `product` and `policy`); `review` is added when `rag.chat.include_reviews_when_available` is true and the `reviews` alias exists. Failures before streaming starts (retrieval, reranker, context, missing `OPENAI_API_KEY`) are normal JSON errors (`503`) and no event stream is opened.
+Search pagination ("load more"): `POST /search/text`, `POST /search/image` (query parameter), and `POST /debug/search` accept `offset` (default 0). Each page is a slice of one ranked candidate window, and `rank` stays absolute (with `offset=10` the first result has rank 11). `offset + top_k` must be `<= candidate_k`; the default window is `max(100, top_k)` for text and debug search and `candidate_k=100` for image search. A page outside the window returns `422` (`validation_error` for text/debug, `invalid_pagination` for image), so a "load more" client should stop once `offset + top_k` reaches `candidate_k` (or a page returns fewer than `top_k` results).
+
+Chat request body: `message` (1-2000 chars), `history` (at most 12 items, that is 6 user/assistant exchanges, each `{"role": "user" | "assistant", "content": 1-4000 chars}`), and optional `product_id` (the product being viewed). Whitespace is stripped; any violation returns `422 validation_error`. Clients should keep only the most recent 12 items and truncate long assistant answers to 4000 characters before resending them as history. Omit `product_id` when no product is viewed: an empty string (`""`) is a validation error, not "no product".
+
+Product-page scoping: when `product_id` is set, product and review evidence is restricted to that product (policy evidence still applies). A question about a different product asked from a product page therefore returns `insufficient_evidence: true`; omit `product_id` for catalog-wide questions.
+
+With history, the message is first rewritten into a standalone question using the viewed product as a hint; if the rewrite fails the original message is used and `rewrite_fallback` is `true`. Evidence comes from `rag.chat.sources` (default `product` and `policy`); `review` is added when `rag.chat.include_reviews_when_available` is true and the `reviews` alias exists. Failures before streaming starts (retrieval, reranker, context, missing `OPENAI_API_KEY`) are normal JSON errors (`503`) and no event stream is opened.
 
 ```bash
 curl -N -X POST http://localhost:8000/api/v1/chat/stream \
@@ -407,7 +413,7 @@ SSE events, in order:
 | `done` | `{"answer", "sources", "insufficient_evidence", "standalone_question"}` | Final, validated answer; same shape as `POST /chat`. |
 | `error` | `{"code", "message"}` | Generation failed after the stream opened. Codes: `rag_generation_failed`, `llm_unavailable`, `internal_error`. |
 
-Client contract: append `delta` text as it arrives; on `reset` discard the text shown so far; on `done` replace the shown text with `done.answer` (it is the only validated text and carries the `sources`); on `error` discard the shown text and show an error. An abstaining answer (`insufficient_evidence: true`) arrives as `done` without any `delta`. Closing the connection cancels generation; the server stops reading the model stream shortly after (the next stream event).
+Client contract: append `delta` text as it arrives; on `reset` discard the text shown so far; on `done` replace the shown text with `done.answer` (it is the only validated text and carries the `sources`); on `error` discard the shown text and show an error. An abstaining answer (`insufficient_evidence: true`) arrives as `done` without any `delta`. Closing the connection cancels generation: once the in-flight read from the model stream returns (after the next answer chunk), the server closes the model stream and makes no retry. That read is bounded by the 60 s OpenAI client timeout (`rag.llm.timeout_seconds`).
 
 Environment variables:
 
