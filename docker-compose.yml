@@ -18,7 +18,7 @@ services:
 
   api:
     build:
-      context: .
+      context: ./api
       dockerfile: Dockerfile
     depends_on:
       elasticsearch:
@@ -36,11 +36,11 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./data/a1_abo_1500/images:/app/data/a1_abo_1500/images:ro
+      - ./api/data/a1_abo_1500/images:/app/data/a1_abo_1500/images:ro
 
   frontend:
     build:
-      context: ../test-ui
+      context: ./ui
       dockerfile: Dockerfile
     depends_on:
       - api

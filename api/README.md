@@ -37,7 +37,7 @@ The default A1 development dataset is **1,500 ABO products**, each with **one lo
 
 ## A1 web interface
 
-The React interface lives in the sibling `test-ui` repository. Start the complete local stack and open `http://localhost:5173`:
+The React interface lives in `ui/` in this repository. Start the complete local stack and open `http://localhost:5173`:
 
 ```bash
 docker compose up -d --build api frontend
@@ -47,7 +47,7 @@ The UI compares two text retrieval modes side by side, supports Brand/Category/P
 
 ## Apply the current A1 workflow
 
-Run from the repository root. The dataset, embedding artifacts, and `runs/` directory are local generated outputs and are intentionally not committed.
+Run from the `api/` directory (`docker compose` finds `docker-compose.yml` in the repository root). The dataset, embedding artifacts, and `runs/` directory are local generated outputs and are intentionally not committed.
 
 ### 1. Install dependencies and build the runtime
 
@@ -144,7 +144,7 @@ The latest report is [reports/a1/RESULTS.md](reports/a1/RESULTS.md), and the liv
 pytest -q
 pytest -m integration -q
 
-cd ../test-ui
+cd ../ui
 npm ci
 npm test
 npm run build
@@ -469,7 +469,7 @@ curl -X POST http://localhost:8000/api/v1/rag/ask \
 
 The response has `answer`, `sources` (`document_id`, source, title, final score, product ID or policy version where applicable), and `insufficient_evidence`. The source metadata identifies whether `score` is a source score, RRF score, or reranker score; scores from different modes are not directly comparable. Source IDs must come from the exact context sent to the LLM; the server resolves titles, URLs, and scores, and allows one retry for an invalid citation. `product_id` restricts product and review evidence to an exact catalog ID. If an index exists but returns no evidence, the API abstains; if a requested source index is missing, it returns `503`. Requests can set `sources: ["product"]` before reviews are indexed. Without an API key, generation returns `503` while A1 search and `/ready` remain usable. The documented [OpenAI Responses API structured output format](https://developers.openai.com/api/docs/guides/structured-outputs) is used for the answer contract.
 
-The `test-ui` frontend now connects both text and image search results to this endpoint: choose a product, select available evidence sources, ask a question, and inspect citations. Follow-up questions stay scoped to the selected product but are independent requests; choose another search result to change product. Search can still run without the LLM key.
+The `ui/` frontend now connects both text and image search results to this endpoint: choose a product, select available evidence sources, ask a question, and inspect citations. Follow-up questions stay scoped to the selected product but are independent requests; choose another search result to change product. Search can still run without the LLM key.
 
 For an explanation of a product's search rank, call `POST /api/v1/debug/search` with the same JSON body as `/api/v1/search/text`. It returns BM25/dense ranks, their `1 / (k + rank)` RRF contributions, final score, and reranker score when present. Native BM25/dense scores are available only for their direct modes; they are not retained by A1's hybrid fusion.
 

@@ -39,7 +39,7 @@ For full request and response schemas of the required endpoints, see:
 
 ## Run with the backend
 
-From `/Users/yuji/research/rag/test`:
+From the repository root:
 
 ```bash
 docker compose up --build
