@@ -21,6 +21,7 @@ from shopmind.app.api.routes.products import router as products_router
 from shopmind.app.api.routes.rag import RAGUnavailable, router as rag_router
 from shopmind.app.api.routes.search import router as search_router
 from shopmind.app.core.config import parse_origins
+from shopmind.app.core.logging import configure_logging
 from shopmind.app.llm.base import InvalidLLMOutput, LLMProviderError
 from shopmind.app.rag.service import ContextConstructionError, KnowledgeRetrievalUnavailable, RAGGenerationError, RerankerUnavailable
 
@@ -95,6 +96,8 @@ def create_app(*, search_service: Any | None = None, repository: Any | None = No
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        if auto_wire:
+            configure_logging()
         if auto_wire and app.state.search_service is None:
             try:
                 _wire_runtime(app)
