@@ -1,0 +1,3 @@
+# Offline evaluation runs (no auth, no tracing persistence).
+tracing:
+  enabled: false
