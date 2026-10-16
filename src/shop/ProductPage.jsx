@@ -70,7 +70,8 @@ export default function ProductPage() {
   // leaving the page returns the chat to catalog search.
   useEffect(() => {
     if (product) setScope(product)
-  }, [product, setScope])
+    else if (error) setScope(null)
+  }, [product, error, setScope])
 
   useEffect(() => () => setScope(null), [setScope])
 
