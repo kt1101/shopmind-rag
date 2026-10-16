@@ -8,7 +8,7 @@ The storefront provides shopper-facing catalog browsing, multimodal search, prod
 
 - `/` — Catalog browse with category & brand filters and pagination
 - `/search` — Multimodal search (Hybrid, BM25, Dense text, Cross-modal, or Image search) with filters
-- `/products/:productId` — Product detail with description, specifications, and similar products
+- `/products/:productId` — Product detail with description, specifications, similar products, and an "Ask about this product" panel backed by the A3 `POST /api/v1/rag/ask` endpoint
 - `/lab` — Multimodal Retrieval Lab (the original comparison lab, unchanged)
 
 ## In-memory mock mode (`VITE_MOCK_API=1`)
@@ -24,6 +24,7 @@ VITE_MOCK_API=1 npm run dev
 - `GET /api/v1/products` — catalog listing with filtering and pagination
 - `GET /api/v1/products/{product_id}` — product detail with descriptions and attributes (or 404)
 - `POST /api/v1/chat` — conversational assistant with grounded product source citations
+- `POST /api/v1/rag/ask` — product-scoped answers built from the mock product's attributes and description (reviews and policies are reported as missing evidence)
 
 ### Why use mock mode
 

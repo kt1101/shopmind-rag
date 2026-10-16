@@ -2,7 +2,7 @@
 
 This document details the backend APIs required to fully support the shopper-facing storefront (`/`, `/search`, `/products/:productId`, and the floating RAG assistant).
 
-When running with `VITE_MOCK_API=1`, the three new endpoints are served by an in-memory mock (`src/mocks/mockApi.js`), while search and filter-option calls continue to hit the live backend.
+When running with `VITE_MOCK_API=1`, the three new endpoints, plus the existing A3 `POST /api/v1/rag/ask` (so product questions work with mock product IDs), are served by an in-memory mock (`src/mocks/mockApi.js`), while search and filter-option calls continue to hit the live backend.
 
 ---
 
