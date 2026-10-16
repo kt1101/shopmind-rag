@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from shopmind.app.domain.search_result import RetrievalScores, SearchResult
-from shopmind.app.main import create_app
+from shopmind.domain.search_result import RetrievalScores, SearchResult
+from shopmind.main import create_app
 from tests.api.conftest import FakeEmbedder, FakeRepository, FakeSearchService
 
 

@@ -1,9 +1,9 @@
 from PIL import Image
 import pytest
-from shopmind.app.api.errors import SearchInfrastructureError, UnsupportedSearchMode
-from shopmind.app.domain.search_query import SearchMode, SearchRequest
-from shopmind.app.domain.search_result import SearchResult
-from shopmind.app.search.service import SearchService
+from shopmind.interfaces.http.errors import SearchInfrastructureError, UnsupportedSearchMode
+from shopmind.domain.search_query import SearchMode, SearchRequest
+from shopmind.domain.search_result import SearchResult
+from shopmind.application.search.service import SearchService
 
 
 class FakeRetriever:

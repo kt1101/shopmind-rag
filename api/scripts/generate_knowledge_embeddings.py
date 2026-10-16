@@ -3,11 +3,11 @@ import argparse,json
 from datetime import datetime,timezone
 from pathlib import Path
 import numpy as np
-from shopmind.app.core.config import load_app_config
-from shopmind.app.embedding.siglip2 import SigLIP2EmbeddingProvider
-from shopmind.pipeline.knowledge_document import KnowledgeDocument
-from shopmind.pipeline.policy_loader import load_policy_sections
-from shopmind.pipeline.knowledge_embedding_artifacts import KnowledgeEmbeddingManifest,write_knowledge_embedding_artifacts
+from shopmind.core.config import load_app_config
+from shopmind.infrastructure.embedding.siglip2 import SigLIP2EmbeddingProvider
+from shopmind.ingestion.knowledge_document import KnowledgeDocument
+from shopmind.ingestion.policy_loader import load_policy_sections
+from shopmind.ingestion.knowledge_embedding_artifacts import KnowledgeEmbeddingManifest,write_knowledge_embedding_artifacts
 def load_knowledge_documents(path,source):
     path=Path(path)
     if source=='policy':return [KnowledgeDocument(s.citation_id,'policy',s.title,s.content,s.search_text,{'policy_id':s.policy_id,'policy_type':s.policy_type,'version':s.version,'effective_date':s.effective_date,'source_url':s.source_url,**s.metadata}) for s in load_policy_sections(path)]

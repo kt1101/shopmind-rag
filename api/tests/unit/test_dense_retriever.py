@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 from PIL import Image
-from shopmind.app.domain.search_query import SearchMode, SearchRequest
-from shopmind.app.domain.search_result import RawSearchHit
-from shopmind.app.retrieval.dense import CrossModalRetriever, ImageDenseRetriever, TextDenseRetriever
+from shopmind.domain.search_query import SearchMode, SearchRequest
+from shopmind.domain.search_result import RawSearchHit
+from shopmind.application.retrieval.dense import CrossModalRetriever, ImageDenseRetriever, TextDenseRetriever
 
 
 class FakeEmbedder:
@@ -55,8 +55,8 @@ def test_dense_retrievers_return_only_top_k_even_if_repo_returns_more():
 @pytest.mark.parametrize("wrong_modality", ["text", "image", None])
 def test_cross_modal_checks_both_identities_before_encoding_and_pins_alias(wrong_modality):
     from types import SimpleNamespace
-    from shopmind.app.embedding.validation import index_embedding_metadata
-    from shopmind.app.infrastructure.elasticsearch.repository import ElasticsearchProductRepository
+    from shopmind.infrastructure.embedding.validation import index_embedding_metadata
+    from shopmind.infrastructure.elasticsearch.repository import ElasticsearchProductRepository
     provider=FakeEmbedder()
     provider.text_preprocessing={"padding":"max_length"}
     provider.image_preprocessing={"size":224}

@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from shopmind.app.llm.answer_stream import AnswerFieldExtractor
+from shopmind.infrastructure.llm.answer_stream import AnswerFieldExtractor
 
 CASE = {
     "answer": 'Line "one"\n\\ Xin chào 😀 é\t/ \b\f\r',

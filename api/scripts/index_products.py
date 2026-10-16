@@ -7,13 +7,13 @@ from typing import Any
 
 import numpy as np
 
-from shopmind.app.core.config import load_app_config
-from shopmind.app.retrieval.language import catalog_color_terms
-from shopmind.app.embedding.validation import index_embedding_metadata, validate_index_identity, validate_vectors
-from shopmind.app.infrastructure.elasticsearch.client import create_elasticsearch_client
-from shopmind.app.infrastructure.elasticsearch.index import switch_alias, validate_product_index
-from shopmind.app.infrastructure.elasticsearch.repository import ElasticsearchProductRepository
-from shopmind.pipeline.embedding_artifacts import load_embedding_artifacts
+from shopmind.core.config import load_app_config
+from shopmind.application.retrieval.language import catalog_color_terms
+from shopmind.infrastructure.embedding.validation import index_embedding_metadata, validate_index_identity, validate_vectors
+from shopmind.infrastructure.elasticsearch.client import create_elasticsearch_client
+from shopmind.infrastructure.elasticsearch.index import switch_alias, validate_product_index
+from shopmind.infrastructure.elasticsearch.repository import ElasticsearchProductRepository
+from shopmind.ingestion.embedding_artifacts import load_embedding_artifacts
 
 
 def public_image_url(main_image_path: str | None) -> str | None:

@@ -13,8 +13,8 @@ from evaluation.datasets import EvaluationQuery, load_qrels, load_queries
 from evaluation.error_analysis import export_error_cases
 from evaluation.reports import write_ablation_comparison
 from evaluation.runner import RunSummary, run_experiment
-from shopmind.app.domain.search_query import SearchMode, SearchRequest
-from shopmind.app.domain.search_result import SearchResult
+from shopmind.domain.search_query import SearchMode, SearchRequest
+from shopmind.domain.search_result import SearchResult
 
 
 class HybridNoRRFControlService:
@@ -180,7 +180,7 @@ def main() -> None:
         queries = [query for query in queries if query.query_type == args.query_type]
     qrels = {query.query_id: all_qrels[query.query_id] for query in queries}
     from fastapi import FastAPI
-    from shopmind.app.main import _wire_runtime
+    from shopmind.main import _wire_runtime
     runtime = FastAPI()
     runtime.state.search_service = None
     _wire_runtime(runtime)

@@ -1,7 +1,7 @@
 import pytest
-from shopmind.app.domain.search_query import SearchMode, SearchRequest
-from shopmind.app.domain.product import Product
-from shopmind.app.domain.search_result import RawSearchHit, RetrievalScores, RetrievedDocument, SearchResult
+from shopmind.domain.search_query import SearchMode, SearchRequest
+from shopmind.domain.product import Product
+from shopmind.domain.search_result import RawSearchHit, RetrievalScores, RetrievedDocument, SearchResult
 
 
 def test_search_request_rejects_blank_query():

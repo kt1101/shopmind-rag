@@ -1,4 +1,4 @@
-from shopmind.app.infrastructure.elasticsearch.index import build_products_mapping
+from shopmind.infrastructure.elasticsearch.index import build_products_mapping
 
 
 def test_mapping_uses_manifest_dimension_for_both_vectors():

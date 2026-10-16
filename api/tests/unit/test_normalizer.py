@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from shopmind.pipeline.normalizer import normalize_abo_record
+from shopmind.ingestion.normalizer import normalize_abo_record
 
 
 def test_normalizer_builds_canonical_product_and_main_image():

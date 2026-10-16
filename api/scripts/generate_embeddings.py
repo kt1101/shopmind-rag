@@ -9,12 +9,12 @@ from typing import Any, Iterable, Sequence
 import numpy as np
 from PIL import Image
 
-from shopmind.app.core.config import load_app_config
-from shopmind.app.domain.product import Product
-from shopmind.app.embedding.base import EmbeddingProvider
-from shopmind.app.embedding.siglip2 import SigLIP2EmbeddingProvider
-from shopmind.pipeline.document_builder import build_search_text
-from shopmind.pipeline.embedding_artifacts import EmbeddingManifest, write_embedding_artifacts
+from shopmind.core.config import load_app_config
+from shopmind.domain.product import Product
+from shopmind.infrastructure.embedding.base import EmbeddingProvider
+from shopmind.infrastructure.embedding.siglip2 import SigLIP2EmbeddingProvider
+from shopmind.ingestion.document_builder import build_search_text
+from shopmind.ingestion.embedding_artifacts import EmbeddingManifest, write_embedding_artifacts
 
 
 def _read_processed(path: Path, limit: int | None) -> list[dict[str, Any]]:

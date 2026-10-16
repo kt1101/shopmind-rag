@@ -7,11 +7,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from shopmind.app.domain.search_result import RetrievedDocument, SearchResult
+from shopmind.domain.search_result import RetrievedDocument, SearchResult
 
 
 def test_review_matches_only_exact_catalog_asin_or_parent_asin():
-    from shopmind.pipeline.review_normalizer import match_review_product, normalize_review
+    from shopmind.ingestion.review_normalizer import match_review_product, normalize_review
 
     product_id = json.loads(Path("data/a1_abo_1500/products.jsonl").open().readline())["product_id"]
     catalog = {product_id}
@@ -24,7 +24,7 @@ def test_review_matches_only_exact_catalog_asin_or_parent_asin():
 
 
 def test_policy_corpus_uses_stable_namespaced_ids_and_experimental_provenance(tmp_path):
-    from shopmind.pipeline.policy_loader import load_policy_corpus
+    from shopmind.ingestion.policy_loader import load_policy_corpus
 
     path = tmp_path / "policies.jsonl"
     path.write_text(json.dumps({
@@ -72,7 +72,7 @@ def test_policy_index_keeps_section_id_and_version():
 
 
 def test_review_repository_filters_both_search_modes_by_exact_product_id():
-    from shopmind.app.infrastructure.elasticsearch.knowledge_repository import ElasticsearchKnowledgeRepository
+    from shopmind.infrastructure.elasticsearch.knowledge_repository import ElasticsearchKnowledgeRepository
 
     class Client:
         def __init__(self):
@@ -96,7 +96,7 @@ def test_review_repository_filters_both_search_modes_by_exact_product_id():
 
 
 def test_selected_product_is_returned_even_when_query_terms_differ():
-    from shopmind.app.knowledge.product_retriever import ProductDocumentRetriever
+    from shopmind.application.knowledge.product_retriever import ProductDocumentRetriever
 
     class Search:
         def search_text(self, request):
@@ -113,8 +113,8 @@ def test_selected_product_is_returned_even_when_query_terms_differ():
 
 
 def test_unknown_product_and_other_product_reviews_do_not_leak():
-    from shopmind.app.knowledge.product_retriever import ProductDocumentRetriever
-    from shopmind.app.knowledge.review_retriever import ReviewDocumentRetriever
+    from shopmind.application.knowledge.product_retriever import ProductDocumentRetriever
+    from shopmind.application.knowledge.review_retriever import ReviewDocumentRetriever
 
     class Search:
         def search_text(self, request):
@@ -125,7 +125,7 @@ def test_unknown_product_and_other_product_reviews_do_not_leak():
 
     class Repo:
         def lexical_search(self, query, size, product_id=None):
-            from shopmind.app.knowledge.base import KnowledgeHit
+            from shopmind.application.knowledge.base import KnowledgeHit
             return [KnowledgeHit("r1", "Good", 1.0, {"product_id": "P1", "content": "Fits"}),
                     KnowledgeHit("r2", "Other", 2.0, {"product_id": "P2", "content": "Leaks"})]
 
@@ -172,7 +172,7 @@ def test_prepare_reviews_rejects_output_overwriting_an_input(tmp_path, output_na
 
 
 def test_recreate_knowledge_index_rejects_an_active_alias():
-    from shopmind.app.infrastructure.elasticsearch.knowledge_index import create_knowledge_index
+    from shopmind.infrastructure.elasticsearch.knowledge_index import create_knowledge_index
 
     class Indices:
         def __init__(self):

@@ -27,7 +27,7 @@ class RAGRunSummary:
 
 
 def load_experiment_config(path: str | Path, base_config: Any = None) -> tuple[dict[str, Any], Any]:
-    from shopmind.app.core.config import RAGConfig
+    from shopmind.core.config import RAGConfig
 
     raw = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     if not isinstance(raw, dict) or set(raw) - {"experiment", "sources", "rag"}:
@@ -91,7 +91,7 @@ def run_rag_experiment(
     }
     (run_dir / "config.yaml").write_text(yaml.safe_dump(resolved, sort_keys=False), encoding="utf-8")
 
-    from shopmind.app.rag.models import RAGRequest
+    from shopmind.application.rag.models import RAGRequest
 
     results: list[dict[str, Any]] = []
     errors: list[dict[str, Any]] = []

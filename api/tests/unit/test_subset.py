@@ -1,5 +1,5 @@
-from shopmind.app.domain.product import Product
-from shopmind.pipeline.subset import select_balanced_subset
+from shopmind.domain.product import Product
+from shopmind.ingestion.subset import select_balanced_subset
 
 
 def _product(product_id: str, category: str | None) -> Product:

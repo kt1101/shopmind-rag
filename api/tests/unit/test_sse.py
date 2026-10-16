@@ -5,8 +5,8 @@ import threading
 
 import pytest
 
-from shopmind.app.api.sse import format_sse, release_stream, sse_stream
-from shopmind.app.chat.models import ChatEvent
+from shopmind.interfaces.http.sse import format_sse, release_stream, sse_stream
+from shopmind.application.chat.models import ChatEvent
 
 
 def test_format_sse_frames_json():
@@ -88,7 +88,7 @@ async def test_unserializable_event_becomes_final_internal_error_and_stops(caplo
 
 @pytest.mark.asyncio
 async def test_unserializable_chat_service_event_is_recorded_as_internal_error(caplog):
-    from shopmind.app.rag.models import Citation, GenerationDelta, GenerationFinal, RAGAnswer
+    from shopmind.application.rag.models import Citation, GenerationDelta, GenerationFinal, RAGAnswer
     from tests.unit.test_chat_service import FakeLLM, FakeRAG, make, streamed_logs
 
     answer = RAGAnswer("Final text", (Citation("D1", "policy", "Returns", 0.5, metadata={"bad": object()}),), False, {"generation_attempts": 1, "total_ms": 3.0})

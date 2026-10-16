@@ -1,0 +1,33 @@
+from __future__ import annotations
+
+from shopmind.application.retrieval.dense import _single_vector
+
+from shopmind.domain.search_result import RetrievedDocument
+from shopmind.application.knowledge.base import KnowledgeMode, resolve_knowledge_mode, rrf_knowledge_hits
+
+
+class ReviewDocumentRetriever:
+    def __init__(self, repository, embedder, *, mode: str = "hybrid", candidate_k: int = 40, rrf_k: int = 60) -> None:
+        self.repository = repository
+        self.embedder = embedder
+        self.mode = KnowledgeMode(mode)
+        self.candidate_k = candidate_k
+        self.rrf_k = rrf_k
+
+    def retrieve(self, query: str, top_k: int, product_id: str | None = None) -> list[RetrievedDocument]:
+        mode = resolve_knowledge_mode(self.mode, query)
+        if mode in (KnowledgeMode.DENSE, KnowledgeMode.HYBRID) and hasattr(self.repository, "bind_embedding"):
+            self.repository.bind_embedding(self.embedder)
+        lexical = self.repository.lexical_search(query, self.candidate_k, product_id=product_id) if mode in (KnowledgeMode.BM25, KnowledgeMode.HYBRID) else []
+        dense = []
+        if mode in (KnowledgeMode.DENSE, KnowledgeMode.HYBRID):
+            vector = _single_vector(self.embedder.embed_texts([query]), self.embedder.dimension, kind="review")
+            dense = self.repository.vector_search(vector, self.candidate_k, self.candidate_k, product_id=product_id)
+        if product_id is not None:
+            lexical = [hit for hit in lexical if hit.metadata.get("product_id") == product_id]
+            dense = [hit for hit in dense if hit.metadata.get("product_id") == product_id]
+        if mode == KnowledgeMode.HYBRID:
+            ranked = rrf_knowledge_hits([lexical, dense], k=self.rrf_k, top_k=self.candidate_k)
+        else:
+            ranked = [(hit, hit.score) for hit in (lexical if mode == KnowledgeMode.BM25 else dense)]
+        return [RetrievedDocument(f"review:{hit.document_id}", str(hit.metadata.get("content") or hit.title), float(score), "review", {**hit.metadata, "title": hit.title}) for hit, score in ranked[:top_k]]

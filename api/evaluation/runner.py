@@ -16,7 +16,7 @@ from PIL import Image
 from evaluation.datasets import EvaluationQuery, load_qrels, load_queries
 from evaluation.metrics import mrr_at_k, ndcg_at_k, recall_at_k
 from evaluation.reports import write_run_summary
-from shopmind.app.domain.search_query import SearchMode, SearchRequest
+from shopmind.domain.search_query import SearchMode, SearchRequest
 
 
 @dataclass(frozen=True)
@@ -214,7 +214,7 @@ def main() -> None:
     queries = load_queries(args.queries)
     qrels = load_qrels(args.qrels, queries)
     from fastapi import FastAPI
-    from shopmind.app.main import _wire_runtime
+    from shopmind.main import _wire_runtime
     runtime = FastAPI()
     runtime.state.search_service = None
     _wire_runtime(runtime)

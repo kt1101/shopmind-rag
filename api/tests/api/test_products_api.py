@@ -4,10 +4,10 @@ import elasticsearch
 import pytest
 from fastapi.testclient import TestClient
 
-from shopmind.app.api.errors import InvalidPagination, ProductNotFound, SearchInfrastructureError
-from shopmind.app.catalog.service import CatalogService
-from shopmind.app.infrastructure.elasticsearch.repository import ProductIndexMissing
-from shopmind.app.main import create_app
+from shopmind.interfaces.http.errors import InvalidPagination, ProductNotFound, SearchInfrastructureError
+from shopmind.application.catalog.service import CatalogService
+from shopmind.infrastructure.elasticsearch.repository import ProductIndexMissing
+from shopmind.main import create_app
 
 
 class FakeCatalogService:

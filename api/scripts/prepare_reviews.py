@@ -1,8 +1,8 @@
 from __future__ import annotations
 import argparse,gzip,json
 from pathlib import Path
-from shopmind.pipeline.review_normalizer import normalize_review
-from shopmind.pipeline.knowledge_document import KnowledgeDocument
+from shopmind.ingestion.review_normalizer import normalize_review
+from shopmind.ingestion.knowledge_document import KnowledgeDocument
 def _iter(path):
     opener=gzip.open if path.suffix=='.gz' else open
     with opener(path,'rt',encoding='utf-8') as f:

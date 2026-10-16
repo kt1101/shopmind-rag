@@ -3,11 +3,11 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from shopmind.app.core.config import RAGRetrievalConfig
-from shopmind.app.domain.search_query import SearchMode
-from shopmind.app.knowledge.policy_retriever import PolicyDocumentRetriever
-from shopmind.app.knowledge.product_retriever import ProductDocumentRetriever
-from shopmind.app.knowledge.review_retriever import ReviewDocumentRetriever
+from shopmind.core.config import RAGRetrievalConfig
+from shopmind.domain.search_query import SearchMode
+from shopmind.application.knowledge.policy_retriever import PolicyDocumentRetriever
+from shopmind.application.knowledge.product_retriever import ProductDocumentRetriever
+from shopmind.application.knowledge.review_retriever import ReviewDocumentRetriever
 
 
 class Search:

@@ -3,10 +3,10 @@ from __future__ import annotations
 import elasticsearch
 import pytest
 
-from shopmind.app.api.errors import InvalidFilter, InvalidPagination, ProductNotFound, SearchInfrastructureError
-from shopmind.app.catalog.service import CatalogService, humanize_category
-from shopmind.app.domain.catalog import ProductPage
-from shopmind.app.infrastructure.elasticsearch.repository import ProductIndexMissing
+from shopmind.interfaces.http.errors import InvalidFilter, InvalidPagination, ProductNotFound, SearchInfrastructureError
+from shopmind.application.catalog.service import CatalogService, humanize_category
+from shopmind.domain.catalog import ProductPage
+from shopmind.infrastructure.elasticsearch.repository import ProductIndexMissing
 
 
 class FakeRepo:

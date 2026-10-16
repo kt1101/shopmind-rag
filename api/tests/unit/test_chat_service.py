@@ -6,12 +6,12 @@ import threading
 
 import pytest
 
-from shopmind.app.chat.models import ChatTurn
-from shopmind.app.chat.service import ChatService, answer_payload
-from shopmind.app.core.config import ChatConfig
-from shopmind.app.llm.base import InvalidLLMOutput, LLMProviderError
-from shopmind.app.rag.models import Citation, GenerationDelta, GenerationFinal, GenerationReset, PreparedContext, RAGAnswer
-from shopmind.app.rag.service import RAGGenerationError
+from shopmind.application.chat.models import ChatTurn
+from shopmind.application.chat.service import ChatService, answer_payload
+from shopmind.core.config import ChatConfig
+from shopmind.infrastructure.llm.base import InvalidLLMOutput, LLMProviderError
+from shopmind.application.rag.models import Citation, GenerationDelta, GenerationFinal, GenerationReset, PreparedContext, RAGAnswer
+from shopmind.application.rag.service import RAGGenerationError
 
 ANSWER = RAGAnswer("Final text", (Citation("D1", "policy", "Returns", 0.5, policy_version="v1"),), False, {"x": 1})
 

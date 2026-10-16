@@ -4,11 +4,11 @@ import argparse
 import json
 from pathlib import Path
 
-from shopmind.app.core.config import load_app_config
-from shopmind.app.embedding.validation import index_embedding_metadata
-from shopmind.app.infrastructure.elasticsearch.client import create_elasticsearch_client
-from shopmind.app.infrastructure.elasticsearch.index import create_versioned_index
-from shopmind.pipeline.embedding_artifacts import EmbeddingManifest
+from shopmind.core.config import load_app_config
+from shopmind.infrastructure.embedding.validation import index_embedding_metadata
+from shopmind.infrastructure.elasticsearch.client import create_elasticsearch_client
+from shopmind.infrastructure.elasticsearch.index import create_versioned_index
+from shopmind.ingestion.embedding_artifacts import EmbeddingManifest
 
 
 def _read_manifest(path: Path) -> EmbeddingManifest:

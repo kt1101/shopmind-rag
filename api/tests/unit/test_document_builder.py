@@ -1,5 +1,5 @@
-from shopmind.app.domain.product import Product
-from shopmind.pipeline.document_builder import build_search_text, product_to_processed_record
+from shopmind.domain.product import Product
+from shopmind.ingestion.document_builder import build_search_text, product_to_processed_record
 
 
 def test_search_text_contains_structured_product_information():

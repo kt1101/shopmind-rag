@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from shopmind.app.llm.base import LLMProviderError
-from shopmind.app.main import create_app
-from shopmind.app.rag.models import Citation, RAGAnswer
+from shopmind.infrastructure.llm.base import LLMProviderError
+from shopmind.main import create_app
+from shopmind.application.rag.models import Citation, RAGAnswer
 from tests.api.conftest import FakeEmbedder, FakeRepository, FakeSearchService
 
 

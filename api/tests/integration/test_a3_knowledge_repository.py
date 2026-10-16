@@ -5,8 +5,8 @@ import uuid
 
 import pytest
 
-from shopmind.app.infrastructure.elasticsearch.knowledge_index import create_knowledge_index, validate_knowledge_index
-from shopmind.app.infrastructure.elasticsearch.knowledge_repository import ElasticsearchKnowledgeRepository
+from shopmind.infrastructure.elasticsearch.knowledge_index import create_knowledge_index, validate_knowledge_index
+from shopmind.infrastructure.elasticsearch.knowledge_repository import ElasticsearchKnowledgeRepository
 
 pytestmark = pytest.mark.integration
 

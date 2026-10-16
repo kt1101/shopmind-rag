@@ -9,10 +9,10 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 
-from shopmind.app.chat.models import ChatEvent, PreparedChat
-from shopmind.app.main import create_app
-from shopmind.app.rag.models import Citation, PreparedContext, RAGAnswer, RAGContext, RAGRequest
-from shopmind.app.rag.service import KnowledgeRetrievalUnavailable
+from shopmind.application.chat.models import ChatEvent, PreparedChat
+from shopmind.main import create_app
+from shopmind.application.rag.models import Citation, PreparedContext, RAGAnswer, RAGContext, RAGRequest
+from shopmind.application.rag.service import KnowledgeRetrievalUnavailable
 from tests.api.conftest import FakeEmbedder, FakeRepository, FakeSearchService
 
 MESSAGE_MARKER = "zz-message-marker-91"

@@ -4,10 +4,10 @@ import threading
 
 import pytest
 
-from shopmind.app.domain.search_result import RetrievedDocument
-from shopmind.app.llm.base import InvalidLLMOutput, LLMResponse
-from shopmind.app.rag.models import GenerationDelta, GenerationFinal, GenerationReset, PreparedContext, RAGRequest
-from shopmind.app.rag.service import RAGGenerationError
+from shopmind.domain.search_result import RetrievedDocument
+from shopmind.infrastructure.llm.base import InvalidLLMOutput, LLMResponse
+from shopmind.application.rag.models import GenerationDelta, GenerationFinal, GenerationReset, PreparedContext, RAGRequest
+from shopmind.application.rag.service import RAGGenerationError
 from tests.a3.test_a3_service import Retriever, _service
 
 

@@ -6,9 +6,9 @@ import os
 import tempfile
 from pathlib import Path
 
-from shopmind.pipeline.document_builder import product_to_processed_record
-from shopmind.pipeline.normalizer import normalize_abo_record
-from shopmind.pipeline.subset import select_balanced_subset
+from shopmind.ingestion.document_builder import product_to_processed_record
+from shopmind.ingestion.normalizer import normalize_abo_record
+from shopmind.ingestion.subset import select_balanced_subset
 
 
 def _load_jsonl(path: Path) -> list[dict]:

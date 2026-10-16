@@ -1,7 +1,7 @@
-from shopmind.app.domain.search_query import SearchRequest
-from shopmind.app.domain.search_result import RetrievalScores, SearchResult
-from shopmind.app.retrieval.hybrid import HybridRetriever
-from shopmind.app.retrieval.reranker import NoOpReranker
+from shopmind.domain.search_query import SearchRequest
+from shopmind.domain.search_result import RetrievalScores, SearchResult
+from shopmind.application.retrieval.hybrid import HybridRetriever
+from shopmind.application.retrieval.reranker import NoOpReranker
 
 
 def result(pid,rank,source): return SearchResult(product_id=pid,title=pid,rank=rank,score=1.0,source=source,retrieval_scores=RetrievalScores(bm25_rank=rank if source=="bm25" else None,dense_rank=rank if source=="dense" else None))
@@ -34,7 +34,7 @@ def test_lexical_preserving_hybrid_does_not_promote_dense_disagreements():
 
 
 def test_exact_id_debug_does_not_claim_semantic_or_rrf_contributions():
-    from shopmind.app.api.schemas.search import DebugSearchResult
+    from shopmind.interfaces.http.schemas.search import DebugSearchResult
     bm=FakeRetriever([result("B07EXACT12",1,"bm25")]);dense=FakeRetriever([])
     hit=HybridRetriever(bm,dense,NoOpReranker()).search(SearchRequest("b07exact12",top_k=1,candidate_k=5))[0]
     debug=DebugSearchResult.from_domain(hit,rrf_k=60)
@@ -58,7 +58,7 @@ class UnavailableDense:
 
 
 def test_sufficient_lexical_noop_skips_failing_dense_and_reports_lexical_scores():
-    from shopmind.app.api.schemas.search import DebugSearchResult
+    from shopmind.interfaces.http.schemas.search import DebugSearchResult
     bm=FakeRetriever([result("A",1,"bm25"),result("B",2,"bm25"),result("C",3,"bm25")]);dense=UnavailableDense()
     output=HybridRetriever(bm,dense,NoOpReranker(),lexical_preserving=True).search(SearchRequest("q",top_k=2,candidate_k=5,filters={"brand":"Acme"}))
     assert [r.product_id for r in output]==["A","B"] and dense.calls==0
