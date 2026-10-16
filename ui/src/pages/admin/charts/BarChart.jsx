@@ -10,12 +10,14 @@ export default function BarChart({ title, description, categories, series, heigh
   const [ref, width] = useElementWidth()
   const [hover, setHover] = useState(null)
   const innerW = width - MARGIN.left - MARGIN.right
-  const innerH = height - MARGIN.top - MARGIN.bottom
+  const rotate = innerW / Math.max(1, categories.length) < 72
+  const longest = Math.max(0, ...categories.map((c) => String(c).length))
+  const bottom = rotate ? Math.min(96, 20 + longest * 3.6) : MARGIN.bottom
+  const innerH = height - MARGIN.top - bottom
   const ticks = zeroBasedTicks(series.flatMap((s) => s.values), 5)
   const y = linearScale([ticks.min, ticks.max], [innerH, 0])
   const x = bandScale(categories, [0, innerW], 0.28)
   const barW = Math.max(2, (x.bandwidth - GAP * (series.length - 1)) / Math.max(1, series.length))
-  const rotate = x.step < 72
 
   const table = {
     columns: ['Category', ...series.map((s) => s.name)],

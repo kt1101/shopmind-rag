@@ -94,7 +94,7 @@
 .num { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* Shell */
-.adm-shell { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100vh; }
+.adm-shell { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100vh; background: linear-gradient(to right, var(--adm-surface) 232px, transparent 232px); }
 .adm-sidebar { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 16px; padding: 18px 12px; background: var(--adm-surface); border-right: 1px solid var(--adm-line); overflow-y: auto; }
 .adm-brand { font-weight: 700; font-size: 1.05rem; text-decoration: none; color: var(--adm-ink) !important; padding: 0 10px; }
 .adm-brand span { color: var(--adm-accent); }
@@ -118,7 +118,7 @@
 .adm-content { padding: 24px; display: grid; gap: 16px; align-content: start; max-width: 1400px; width: 100%; }
 
 @media (max-width: 900px) {
-  .adm-shell { grid-template-columns: minmax(0, 1fr); }
+  .adm-shell { grid-template-columns: minmax(0, 1fr); background: none; }
   .adm-sidebar { position: fixed; z-index: 20; left: 0; top: 0; width: 260px; transform: translateX(-100%); transition: transform .2s ease; box-shadow: var(--adm-shadow); }
   .adm-shell.nav-open .adm-sidebar { transform: none; }
   .adm-shell.nav-open .adm-scrim { display: block; position: fixed; inset: 0; z-index: 15; border: 0; background: rgba(0, 0, 0, .35); }
@@ -202,7 +202,7 @@
 .adm-table-compact th, .adm-table-compact td { padding: 5px 8px; }
 .adm-table-hover tbody tr { cursor: pointer; }
 .adm-table-hover tbody tr:hover, .adm-table tbody tr.selected { background: color-mix(in srgb, var(--adm-accent) 7%, transparent); }
-.adm-ellipsis { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-ellipsis { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .adm-inline-list { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 0; padding: 0; }
 .adm-pager { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .adm-pager-info { margin-top: 10px; }
@@ -262,6 +262,7 @@
 .adm-config-row.invalid { background: color-mix(in srgb, var(--adm-bad) 7%, transparent); }
 .adm-config-row .adm-field-error { grid-column: 1 / -1; }
 .adm-config-row label { word-break: break-all; }
+.adm-config-row label .adm-muted { white-space: nowrap; word-break: normal; }
 .adm-switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
 .adm-switch input { width: 18px; height: 18px; accent-color: var(--adm-accent); }
 .adm-diff { margin-top: 8px; padding-top: 4px; border-top: 1px solid var(--adm-line); }

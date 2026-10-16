@@ -53,6 +53,8 @@ test('diffConfig lists only changed draft keys, sorted', () => {
 test('inferInputType infers from values and hints', () => {
   assert.deepEqual(inferInputType('retrieval.top_k', 10), { type: 'integer', min: undefined, max: undefined, step: 1 })
   assert.equal(inferInputType('fusion.weights.lexical', 0.5).type, 'number')
+  assert.equal(inferInputType('fusion.weights.lexical', 1).type, 'number', 'JSON 1.0 weights stay floats')
+  assert.equal(inferInputType('rag.llm.temperature', 0).type, 'number')
   assert.equal(inferInputType('reranker.enabled', false).type, 'boolean')
   assert.deepEqual(inferInputType('retrieval.default_mode', 'hybrid').options, ['bm25', 'dense', 'hybrid', 'cross_modal', 'adaptive'])
   assert.equal(inferInputType('search.mode', 'dense').type, 'enum')

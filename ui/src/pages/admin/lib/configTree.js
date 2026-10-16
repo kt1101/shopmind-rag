@@ -77,6 +77,8 @@ const ENUM_SUFFIX_HINTS = [
   [/(^|\.)fusion(\.method)?$/, ['rrf', 'concat']],
 ]
 
+const FLOAT_KEY_HINT = /(weight|temperature|alpha|ratio|threshold|rate|lambda|top_p|penalty)/i
+
 export function normalizeHotReloadable(entries = []) {
   return entries
     .map((entry) => (typeof entry === 'string' ? { key: entry } : entry))
@@ -90,7 +92,9 @@ export function inferInputType(key, value, spec = {}) {
   }
   if (spec.type === 'boolean' || typeof value === 'boolean') return { type: 'boolean' }
   if (spec.type === 'integer' || spec.type === 'number' || typeof value === 'number') {
-    const integer = spec.type === 'integer' || (spec.type !== 'number' && Number.isInteger(value))
+    // 1.0 arrives as 1 in JSON, so weight-like keys are treated as floats even when integral.
+    const floatLike = FLOAT_KEY_HINT.test(key)
+    const integer = spec.type === 'integer' || (spec.type !== 'number' && !floatLike && Number.isInteger(value))
     return {
       type: integer ? 'integer' : 'number',
       min: spec.min,
