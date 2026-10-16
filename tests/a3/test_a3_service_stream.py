@@ -152,6 +152,36 @@ def test_cancelled_stream_ends_without_final_or_retry():
     assert len(llm.requests) == 1
 
 
+class CancelBeforeFinalLLM(StreamingLLM):
+    """Sets the cancel flag (client disconnect) just before returning an attempt's final response."""
+
+    def __init__(self, scripts, flag):
+        super().__init__(scripts)
+        self.flag = flag
+
+    def generate_stream(self, request, cancelled=None):
+        for item in super().generate_stream(request, cancelled):
+            if isinstance(item, LLMResponse):
+                self.flag.set()
+            yield item
+
+
+@pytest.mark.parametrize("first_attempt,expected", [
+    (["Blue.", LLMResponse("Blue.", ("product:made-up",), False)], ["GenerationDelta"]),
+    ([LLMResponse("Blue.", ("product:made-up",), False)], []),
+])
+def test_cancel_during_failed_attempt_skips_retry_reset_and_error(first_attempt, expected):
+    flag = threading.Event()
+    llm = CancelBeforeFinalLLM([first_attempt, ["Blue.", LLMResponse("Blue.", ("product:P1",), False)]], flag)
+    service = _service({"product": Retriever("product", [_product()])}, llm)
+    request = _request()
+
+    events = list(service.generate_stream(request, service.prepare(request), flag))
+
+    assert [type(event).__name__ for event in events] == expected
+    assert len(llm.requests) == 1
+
+
 def test_answer_equals_generate_of_prepare():
     request = _request()
     response = LLMResponse("Available in blue.", ("product:P1",), False)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import threading
 
@@ -201,3 +202,81 @@ def test_stream_ending_without_final_and_not_cancelled_is_an_error():
     out = list(svc.stream(svc.prepare("q", [], None), threading.Event()))
     assert [e.event for e in out] == ["meta", "delta", "error"]
     assert out[-1].data["code"] == "rag_generation_failed"
+
+
+def streamed_logs(caplog):
+    return [payload for record in caplog.records if record.name == "shopmind.chat" and record.levelno == logging.INFO
+            and (payload := json.loads(record.getMessage())).get("event") == "chat_streamed"]
+
+
+def test_stream_done_logs_one_chat_streamed_event_without_text(caplog):
+    answer = RAGAnswer("zz-answer-text", ANSWER.sources, False, {"generation_attempts": 2, "total_ms": 12.5})
+    svc, _, _ = make(rag=FakeRAG(FakeLLM(), [GenerationDelta("zz-answer-text"), GenerationFinal(answer)]))
+    caplog.set_level(logging.DEBUG, logger="shopmind.chat")
+    out = list(svc.stream(svc.prepare("zz-question-text", [], None), threading.Event()))
+    assert out[-1].event == "done"
+    assert streamed_logs(caplog) == [{"event": "chat_streamed", "outcome": "done", "generation_attempts": 2, "total_ms": 12.5, "error_type": None}]
+    assert "zz-answer-text" not in caplog.text and "zz-question-text" not in caplog.text
+
+
+@pytest.mark.parametrize("exc,code", [
+    (RAGGenerationError("zz-secret"), "rag_generation_failed"),
+    (InvalidLLMOutput("zz-secret"), "rag_generation_failed"),
+    (LLMProviderError("zz-secret"), "llm_unavailable"),
+])
+def test_stream_generation_failure_logs_warning_and_outcome_by_type_only(exc, code, caplog):
+    svc, _, _ = make(rag=FakeRAG(FakeLLM(), [GenerationDelta("a")], error=exc))
+    caplog.set_level(logging.DEBUG, logger="shopmind.chat")
+    out = list(svc.stream(svc.prepare("q", [], None), threading.Event()))
+    assert out[-1].data["code"] == code
+    warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+    assert len(warnings) == 1 and type(exc).__name__ in warnings[0].getMessage() and not warnings[0].exc_info
+    assert streamed_logs(caplog) == [{"event": "chat_streamed", "outcome": code, "generation_attempts": None, "total_ms": None, "error_type": type(exc).__name__}]
+    assert "zz-secret" not in caplog.text
+
+
+def test_stream_internal_error_logs_outcome_with_exception_type(caplog):
+    svc, _, _ = make(rag=FakeRAG(FakeLLM(), [], error=RuntimeError("x")))
+    caplog.set_level(logging.DEBUG, logger="shopmind.chat")
+    out = list(svc.stream(svc.prepare("q", [], None), threading.Event()))
+    assert [e.event for e in out] == ["meta", "error"] and out[-1].data["code"] == "internal_error"
+    assert streamed_logs(caplog) == [{"event": "chat_streamed", "outcome": "internal_error", "generation_attempts": None, "total_ms": None, "error_type": "RuntimeError"}]
+
+
+def test_stream_cancelled_by_flag_logs_cancelled_outcome(caplog):
+    cancelled = threading.Event()
+
+    class CancellingRAG(FakeRAG):
+        def generate_stream(self, request, prepared, cancelled=None):
+            yield GenerationDelta("a")
+            cancelled.set()
+
+    svc, _, _ = make(rag=CancellingRAG(FakeLLM()))
+    caplog.set_level(logging.DEBUG, logger="shopmind.chat")
+    list(svc.stream(svc.prepare("q", [], None), cancelled))
+    assert streamed_logs(caplog) == [{"event": "chat_streamed", "outcome": "cancelled", "generation_attempts": None, "total_ms": None, "error_type": None}]
+    assert [r for r in caplog.records if r.levelno >= logging.WARNING] == []
+
+
+def test_stream_closed_by_consumer_logs_cancelled_outcome_once(caplog):
+    svc, _, _ = make(rag=FakeRAG(FakeLLM(), [GenerationDelta("a"), GenerationDelta("b"), GenerationFinal(ANSWER)]))
+    caplog.set_level(logging.DEBUG, logger="shopmind.chat")
+    gen = svc.stream(svc.prepare("q", [], None), threading.Event())
+    assert [next(gen).event, next(gen).event] == ["meta", "delta"]
+    gen.close()
+    gen.close()
+    assert [log["outcome"] for log in streamed_logs(caplog)] == ["cancelled"]
+    assert [r for r in caplog.records if r.levelno >= logging.WARNING] == []
+
+
+@pytest.mark.parametrize("throw_after", [1, 2, 3])  # at meta, at delta, at done
+def test_exception_thrown_in_at_a_yield_becomes_internal_error(throw_after, caplog):
+    svc, _, _ = make(rag=FakeRAG(FakeLLM(), [GenerationDelta("a"), GenerationFinal(ANSWER)]))
+    caplog.set_level(logging.DEBUG, logger="shopmind.chat")
+    gen = svc.stream(svc.prepare("q", [], None), threading.Event())
+    for _ in range(throw_after):
+        next(gen)
+    item = gen.throw(TypeError("not serializable"))
+    assert (item.event, item.data["code"]) == ("error", "internal_error")
+    gen.close()
+    assert [(log["outcome"], log["error_type"]) for log in streamed_logs(caplog)] == [("internal_error", "TypeError")]

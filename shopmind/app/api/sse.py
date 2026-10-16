@@ -15,6 +15,8 @@ from shopmind.app.chat.models import ChatEvent
 
 logger = logging.getLogger("shopmind.chat")
 
+INTERNAL_ERROR = {"code": "internal_error", "message": "chat generation failed"}
+
 
 def format_sse(event: str, data: dict[str, Any]) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False, separators=(',', ':'))}\n\n"
@@ -33,9 +35,33 @@ async def sse_stream(events: Iterator[ChatEvent], cancelled: threading.Event) ->
             item = await run_in_threadpool(next, events, None)
             if item is None:
                 break
-            yield format_sse(item.event, item.data)
+            try:
+                frame = format_sse(item.event, item.data)
+            except (TypeError, ValueError) as exc:
+                logger.warning("chat event serialization failed: %s", type(exc).__name__)
+                yield await _serialization_error_frame(events, exc)
+                break
+            yield frame
     finally:
         cancelled.set()
+
+
+async def _serialization_error_frame(events: Iterator[ChatEvent], exc: Exception) -> str:
+    """Return the final ``error`` frame after an event could not be serialized.
+
+    The failure is first thrown into a generator source (``ChatService.stream``)
+    so it records the outcome; its ``error`` event is used when it yields one.
+    Anything else falls back to the fixed ``internal_error`` frame.
+    """
+    throw = getattr(events, "throw", None)
+    if throw is not None:
+        try:
+            item = await run_in_threadpool(throw, exc)
+            if item.event == "error":
+                return format_sse(item.event, item.data)
+        except Exception:
+            pass  # the source did not handle it (re-raised, stopped, or yielded unserializable data)
+    return format_sse("error", INTERNAL_ERROR)
 
 
 async def release_stream(events: Iterator[ChatEvent], cancelled: threading.Event) -> None:

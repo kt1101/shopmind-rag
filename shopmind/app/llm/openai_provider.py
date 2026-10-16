@@ -43,12 +43,12 @@ def _answer_input(request: LLMRequest) -> list[dict[str, str]]:
     ]
 
 
-def _parse_answer(output_text: str, model: str, response_id: str | None) -> LLMResponse:
+def _parse_answer(response, default_model: str) -> LLMResponse:
     try:
-        raw = json.loads(output_text)
+        raw = json.loads(response.output_text)
         if not isinstance(raw, dict) or not isinstance(raw.get("answer"), str) or not raw["answer"].strip() or not isinstance(raw.get("citation_ids"), list) or not all(isinstance(item, str) for item in raw["citation_ids"]) or not isinstance(raw.get("insufficient_evidence"), bool):
             raise ValueError("invalid response shape")
-        return LLMResponse(raw["answer"], tuple(raw["citation_ids"]), raw["insufficient_evidence"], {"provider": "openai", "model": model, "response_id": response_id})
+        return LLMResponse(raw["answer"], tuple(raw["citation_ids"]), raw["insufficient_evidence"], {"provider": "openai", "model": getattr(response, "model", default_model), "response_id": getattr(response, "id", None)})
     except (ValueError, TypeError, AttributeError) as exc:
         raise InvalidLLMOutput("answer generation returned invalid structured output") from exc
 
@@ -78,7 +78,7 @@ class OpenAIProvider:
             )
         except Exception as exc:
             raise LLMProviderError("answer generation is unavailable") from exc
-        return _parse_answer(response.output_text, getattr(response, "model", self.model), getattr(response, "id", None))
+        return _parse_answer(response, self.model)
 
     def generate_stream(self, request: LLMRequest, cancelled: threading.Event | None = None) -> Iterator[str | LLMResponse]:
         try:
@@ -104,7 +104,7 @@ class OpenAIProvider:
                             yield text
                     elif kind == EVENT_COMPLETED:
                         final = event.response
-                        yield _parse_answer(final.output_text, getattr(final, "model", self.model), getattr(final, "id", None))
+                        yield _parse_answer(final, self.model)
                         return
                     elif kind in (EVENT_FAILED, EVENT_ERROR):
                         raise LLMProviderError("answer generation failed")

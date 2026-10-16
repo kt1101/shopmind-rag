@@ -157,6 +157,22 @@ def test_invalid_completed_output_raises_invalid_output():
         list(provider.generate_stream(REQUEST))
 
 
+def test_generate_response_without_output_text_raises_invalid_output():
+    provider, _ = make_provider(SimpleNamespace(model="test-model", id="r1"))
+
+    with pytest.raises(InvalidLLMOutput):
+        provider.generate(REQUEST)
+
+
+def test_generate_parses_output_text():
+    provider, _ = make_provider(SimpleNamespace(output_text=ANSWER_JSON, model="m2", id="r9"))
+
+    response = provider.generate(REQUEST)
+
+    assert (response.answer, response.citation_ids, response.insufficient_evidence) == ("Blue.", ("product:P1",), False)
+    assert response.metadata == {"provider": "openai", "model": "m2", "response_id": "r9"}
+
+
 def test_rewrite_question_includes_viewed_product_and_history():
     provider, responses = make_provider(SimpleNamespace(output_text=json.dumps({"question": " Is the Klepe Navy Runner waterproof? "})))
 
