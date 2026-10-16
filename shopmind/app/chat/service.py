@@ -8,6 +8,7 @@ from typing import Any
 
 from shopmind.app.chat.models import ChatEvent, ChatTurn, PreparedChat
 from shopmind.app.core.config import ChatConfig
+from shopmind.app.core.logging import log_search_event
 from shopmind.app.llm.base import InvalidLLMOutput, LLMProviderError
 from shopmind.app.rag.models import GenerationDelta, GenerationFinal, GenerationReset, RAGAnswer, RAGRequest
 from shopmind.app.rag.service import RAGGenerationError
@@ -64,28 +65,56 @@ class ChatService:
         return self.rag_service.generate(prepared.request, prepared.prepared)
 
     def stream(self, prepared: PreparedChat, cancelled: threading.Event) -> Iterator[ChatEvent]:
-        yield ChatEvent("meta", {"standalone_question": prepared.standalone_question, "rewrite_fallback": prepared.rewrite_fallback})
+        """Yield meta, then delta/reset events, then done or one final error event.
+
+        Returns silently when ``cancelled`` is set. Emits exactly one ``chat_streamed``
+        log event when the stream ends, including when the consumer closes it early
+        (outcome ``cancelled``). An exception thrown in at a ``yield`` (for example an
+        SSE serialization failure) is reported as ``internal_error``.
+        """
+        outcome = "cancelled"  # kept when generation is cancelled or the consumer closes the stream
+        attempts: Any = None
+        total_ms: Any = None
+        error_type: str | None = None
         try:
-            final: RAGAnswer | None = None
-            for item in self.rag_service.generate_stream(prepared.request, prepared.prepared, cancelled):
-                if isinstance(item, GenerationDelta):
-                    yield ChatEvent("delta", {"text": item.text})
-                elif isinstance(item, GenerationReset):
-                    yield ChatEvent("reset", {"reason": item.reason})
-                elif isinstance(item, GenerationFinal):
-                    final = item.answer
-            if final is None:
-                if cancelled.is_set():
-                    return
-                raise RAGGenerationError("answer stream ended without a final answer")
-            yield ChatEvent("done", answer_payload(final, prepared.standalone_question))
-        except (RAGGenerationError, InvalidLLMOutput):
-            yield ChatEvent("error", {"code": "rag_generation_failed", "message": "answer generation failed"})
-        except LLMProviderError:
-            yield ChatEvent("error", {"code": "llm_unavailable", "message": "language model unavailable"})
-        except Exception:
-            logger.exception("chat generation failed")
-            yield ChatEvent("error", {"code": "internal_error", "message": "chat generation failed"})
+            try:
+                yield ChatEvent("meta", {"standalone_question": prepared.standalone_question, "rewrite_fallback": prepared.rewrite_fallback})
+                final: RAGAnswer | None = None
+                for item in self.rag_service.generate_stream(prepared.request, prepared.prepared, cancelled):
+                    if isinstance(item, GenerationDelta):
+                        yield ChatEvent("delta", {"text": item.text})
+                    elif isinstance(item, GenerationReset):
+                        yield ChatEvent("reset", {"reason": item.reason})
+                    elif isinstance(item, GenerationFinal):
+                        final = item.answer
+                if final is None:
+                    if cancelled.is_set():
+                        return
+                    raise RAGGenerationError("answer stream ended without a final answer")
+                outcome = "done"
+                attempts, total_ms = final.metadata.get("generation_attempts"), final.metadata.get("total_ms")
+                yield ChatEvent("done", answer_payload(final, prepared.standalone_question))
+            except (RAGGenerationError, InvalidLLMOutput) as exc:
+                outcome, error_type = "rag_generation_failed", type(exc).__name__
+                logger.warning("chat generation failed (%s): %s", outcome, error_type)
+                yield ChatEvent("error", {"code": outcome, "message": "answer generation failed"})
+            except LLMProviderError as exc:
+                outcome, error_type = "llm_unavailable", type(exc).__name__
+                logger.warning("chat generation failed (%s): %s", outcome, error_type)
+                yield ChatEvent("error", {"code": outcome, "message": "language model unavailable"})
+            except Exception as exc:
+                outcome, error_type = "internal_error", type(exc).__name__
+                logger.exception("chat generation failed")
+                yield ChatEvent("error", {"code": outcome, "message": "chat generation failed"})
+        finally:
+            log_search_event(
+                logger,
+                event="chat_streamed",
+                outcome=outcome,
+                generation_attempts=attempts,
+                total_ms=total_ms,
+                error_type=error_type,
+            )
 
     def _reviews_available(self) -> bool:
         try:

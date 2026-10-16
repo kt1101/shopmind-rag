@@ -73,8 +73,9 @@ def _wire_runtime(app: FastAPI, config=None) -> None:
             app.state.rag_runtime_error = None
             from shopmind.app.chat.service import ChatService
             from shopmind.app.infrastructure.elasticsearch.knowledge_repository import ElasticsearchKnowledgeRepository
+            from shopmind.app.rag.service import REVIEW_INDEX_ALIAS
 
-            reviews = ElasticsearchKnowledgeRepository(client, "reviews", source="review")
+            reviews = ElasticsearchKnowledgeRepository(client, REVIEW_INDEX_ALIAS, source="review")
             app.state.chat_service = ChatService(
                 app.state.rag_service,
                 config.rag.chat,
