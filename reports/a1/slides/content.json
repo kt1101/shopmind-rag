@@ -1,0 +1,463 @@
+{
+  "source": "Nhom4_BaoCao-A1.pdf",
+  "slides": [
+    {
+      "kind": "cover",
+      "section": "BÁO CÁO BÀI TẬP 1",
+      "title": "ShopMind",
+      "subtitle": "Tìm kiếm sản phẩm đa phương thức",
+      "pages": "1",
+      "notes": "Kính chào cô và các bạn. Nhóm 4 trình bày ShopMind A1 trong môn Tìm kiếm thông minh, Trường Đại học Công nghệ Thông tin, ĐHQG TP.HCM. GVHD: TS. Phạm Đỗ Kim Chi. Thành viên: Trần Văn Quang – 250104022; Nguyễn Minh Thái – 250201090; Trần Khoa – 250104010; Đinh Ngọc Phúc – 26848170. Báo cáo tháng 9/2026. Bài trình bày tập trung vào tầng truy hồi sản phẩm, kết quả thực nghiệm và giới hạn của benchmark."
+    },
+    {
+      "kind": "problem",
+      "section": "01 / BÀI TOÁN",
+      "title": "Từ truy vấn đến top-k sản phẩm",
+      "pages": "3",
+      "lead": "Đánh giá riêng chất lượng truy hồi trước khi mở rộng hệ thống.",
+      "cards": [
+        [
+          "Đầu vào",
+          "Văn bản hoặc hình ảnh\nVí dụ: “giày đen dùng hằng ngày”"
+        ],
+        [
+          "Truy hồi",
+          "BM25 · SigLIP2 · kNN\nKết hợp thứ hạng bằng RRF"
+        ],
+        [
+          "Đầu ra",
+          "Danh sách top-k sản phẩm\nID, tiêu đề, ảnh và thứ hạng"
+        ]
+      ],
+      "takeaway": "Phạm vi A1: retrieval; chưa dùng LLM để sinh câu trả lời.",
+      "notes": "Người dùng có thể tìm bằng mô tả văn bản hoặc ảnh. Hệ thống trả về một danh sách sản phẩm đã xếp hạng. A1 tập trung hoàn toàn vào retrieval, để đo được đóng góp của từng thành phần trước khi thêm RAG. Câu truy vấn trên slide lấy từ phần giới hạn của báo cáo, chỉ dùng để minh họa loại truy vấn; slide không gắn cho nó một kết quả thực nghiệm mới."
+    },
+    {
+      "kind": "architecture",
+      "section": "01 / KIẾN TRÚC",
+      "title": "Hai nhánh truy hồi, một catalog",
+      "pages": "3–4",
+      "lead": "Elasticsearch lưu metadata và vector; SigLIP2 tạo biểu diễn văn bản/ảnh.",
+      "notes": "Phần offline bắt đầu từ ABO, chuẩn hóa metadata và ảnh, sau đó tạo embedding SigLIP2 cho văn bản và ảnh. Các bản ghi và vector được đưa vào Elasticsearch. Ở phần online, truy vấn văn bản có thể đi qua BM25, kNN trên text vector hoặc kNN trên image vector; truy vấn ảnh đi qua image encoder và image vector. Hybrid trong A1 kết hợp BM25 với dense text bằng RRF. Các chế độ độc lập cũng trả kết quả qua API. Sơ đồ này tổng hợp kiến trúc mô tả trong báo cáo, không đưa phần A2/A3 vào A1."
+    },
+    {
+      "kind": "dataset",
+      "section": "02 / DỮ LIỆU",
+      "title": "Tập con ABO có thể tái tạo",
+      "pages": "3–4",
+      "lead": "Dataset: abo_a1_1500_v1 · seed 42 · tối đa 150 sản phẩm/category.",
+      "stats": [
+        [
+          "1.500",
+          "sản phẩm"
+        ],
+        [
+          "215",
+          "category"
+        ],
+        [
+          "1",
+          "ảnh chính / sản phẩm"
+        ],
+        [
+          "768",
+          "chiều · chuẩn hóa L2"
+        ]
+      ],
+      "steps": [
+        "Loại bản ghi thiếu ID/title/ảnh",
+        "Xáo trộn và lấy mẫu theo category",
+        "Chỉ giữ ảnh tải thành công",
+        "Chuẩn hóa metadata + search_text"
+      ],
+      "takeaway": "Mọi phương pháp dùng chung catalog; ảnh small-image có cạnh lớn tối đa 256 px.",
+      "notes": "ABO gốc có 147.702 product listings và 398.212 catalog images theo công trình được trích trong báo cáo. A1 sử dụng một tập con 1.500 sản phẩm, 215 category để kiểm soát pipeline và tái lập thí nghiệm. Script loại dữ liệu thiếu các trường bắt buộc, lấy mẫu với seed 42, giới hạn theo category và tải dư ứng viên để thay ảnh lỗi. search_text ghép title, description, brand, category và attributes. Quy mô nhỏ hỗ trợ so sánh nội bộ, nhưng chưa cho phép suy rộng latency sang catalog thương mại lớn."
+    },
+    {
+      "kind": "benchmark",
+      "section": "02 / BENCHMARK",
+      "title": "100 truy vấn, 200 cặp qrels",
+      "pages": "3–4",
+      "lead": "Sinh xác định từ 100 sản phẩm đa dạng theo category.",
+      "cards": [
+        [
+          "80 truy vấn text",
+          "45 tiếng Anh · 35 tiếng Việt\nExact · semantic/use-case · hard-negative"
+        ],
+        [
+          "20 truy vấn ảnh",
+          "Ảnh catalog → crop → resize\nGiảm contrast → nén lại JPEG"
+        ]
+      ],
+      "takeaway": "Mỗi query: 1 target mức 2 + 1 distractor mức 0. Grade 1 chưa dùng; qrels chưa review độc lập.",
+      "notes": "Benchmark có 80 truy vấn text và 20 truy vấn ảnh. Các ảnh truy vấn đã được biến đổi nên không trùng byte với ảnh trong index, nhưng vẫn cùng vật thể và gần như cùng góc nhìn. Qrels có đúng 200 cặp: một positive grade 2 và một distractor grade 0 cho mỗi query. Đây là seed labels, chưa hoàn tất review độc lập bởi hai thành viên và adjudication. Các metric phù hợp để so sánh cấu hình trong cùng benchmark, chưa phải ground truth đã được con người xác nhận."
+    },
+    {
+      "kind": "modes",
+      "section": "03 / PHƯƠNG PHÁP",
+      "title": "Bốn đường truy hồi cơ bản",
+      "pages": "4–5",
+      "lead": "Encoder: google/siglip2-base-patch16-224 · vector văn bản/ảnh chuẩn hóa L2.",
+      "cards": [
+        [
+          "BM25",
+          "Text → trường metadata\nKhớp từ khóa; boost title, brand/category và ID"
+        ],
+        [
+          "Dense text",
+          "Text → SigLIP2 → text_vector\nkNN trong không gian văn bản"
+        ],
+        [
+          "Cross-modal",
+          "Text → SigLIP2 → image_vector\nÁnh xạ mô tả sang hình ảnh"
+        ],
+        [
+          "Image dense",
+          "Ảnh → SigLIP2 → image_vector\nTìm sản phẩm qua ảnh truy vấn"
+        ]
+      ],
+      "takeaway": "Hybrid dùng hai thành phần BM25 và dense text.",
+      "notes": "BM25 truy hồi lexical trên title, brand, category, description, attributes và search_text. Title được boost cao nhất; phrase match và Product ID exact match cũng được ưu tiên. Dense text mã hóa query rồi tìm trên text_vector. Cross-modal dùng cùng query text nhưng tìm trên image_vector. Image dense mã hóa ảnh người dùng và tìm trên image_vector. SigLIP2 là vision-language encoder tổng quát; hiệu quả zero-shot phụ thuộc vào representation, domain và phân bố query."
+    },
+    {
+      "kind": "fusion",
+      "section": "03 / HYBRID",
+      "title": "RRF kết hợp thứ hạng",
+      "pages": "4–5",
+      "lead": "Tối đa 100 ứng viên từ BM25 và 100 ứng viên từ dense text.",
+      "formula": "score(d) = Σᵢ 1 / (60 + rankᵢ(d))",
+      "cards": [
+        [
+          "Hybrid no RRF · E3",
+          "Giữ thứ tự BM25 trước\nNối các ứng viên dense chưa xuất hiện"
+        ],
+        [
+          "Hybrid RRF · E4",
+          "Cộng điểm theo rank của từng nhánh\nXếp hạng lại danh sách ứng viên"
+        ]
+      ],
+      "takeaway": "Dùng rank thay cho việc chuẩn hóa trực tiếp BM25 score và cosine score.",
+      "notes": "RRF cộng nghịch đảo của hằng số k cộng với rank, với k bằng 60 trong A1. Tài liệu vắng ở một danh sách không nhận đóng góp từ danh sách đó. Nhánh hybrid no RRF là cấu hình đối chứng trong đánh giá: giữ BM25 trước, rồi nối các dense candidate chưa có. Cách đối chứng này giúp phân biệt việc mở rộng tập ứng viên với việc thay đổi thứ hạng. Fusion cần tín hiệu thành phần có chất lượng hoặc bổ sung được lỗi cho nhau; kết quả A1 sẽ kiểm tra điều kiện đó."
+    },
+    {
+      "kind": "experiments",
+      "section": "04 / THIẾT KẾ THÍ NGHIỆM",
+      "title": "Đối chứng từng thành phần",
+      "pages": "5",
+      "lead": "candidate_k = 100 · top_k = 10 · tắt reranker để cô lập retrieval/fusion.",
+      "rows": [
+        [
+          "E0",
+          "BM25",
+          "Baseline lexical"
+        ],
+        [
+          "E1",
+          "Dense text",
+          "Đóng góp của dense"
+        ],
+        [
+          "E2",
+          "Text → image",
+          "Cross-modal alignment"
+        ],
+        [
+          "E3",
+          "Hybrid no RRF",
+          "Thêm candidate; giữ rank BM25"
+        ],
+        [
+          "E4",
+          "Hybrid RRF",
+          "Tác động của rank fusion"
+        ],
+        [
+          "E5",
+          "Image dense",
+          "Truy hồi bằng ảnh · tập riêng"
+        ]
+      ],
+      "takeaway": "Recall@10: tìm thấy target · nDCG@10: chất lượng thứ hạng · MRR@10: vị trí relevant đầu tiên.",
+      "notes": "E0 đến E4 được chạy trên cùng 80 text query; E5 chạy riêng trên 20 image query. Giữ candidate_k và top_k, đồng thời tắt reranker để tập trung vào retrieval và fusion. Recall@10 đo tỷ lệ sản phẩm relevant được đưa vào top 10. Vì mỗi query hiện chỉ có một positive, Recall trung bình cũng là tỷ lệ query có target trong top 10. MRR là trung bình nghịch đảo rank của kết quả relevant đầu tiên, bằng 0 nếu không có trong top 10. nDCG dùng gain theo relevance và chiết khấu theo vị trí, chuẩn hóa theo xếp hạng lý tưởng. Latency dùng p50/p95."
+    },
+    {
+      "kind": "results",
+      "section": "05 / KẾT QUẢ TEXT",
+      "title": "BM25 đứng đầu trên benchmark hiện tại",
+      "pages": "5–6",
+      "lead": "So sánh chất lượng trên cùng 80 truy vấn văn bản.",
+      "takeaway": "BM25 và Hybrid no RRF cùng Recall@10 = 0,4625; RRF giảm còn 0,3250.",
+      "notes": "Bảng giữ nguyên số liệu từ Bảng 3 của báo cáo, làm tròn bốn chữ số thập phân. BM25 đạt Recall 0,4625, nDCG 0,3568 và MRR 0,3249. Dense text và text-to-image đều chỉ đạt Recall 0,0125. Hybrid no RRF giữ nguyên chất lượng BM25; hybrid RRF giảm ở cả ba metric. Các con số chỉ áp dụng cho benchmark hiện tại với qrels dạng seed. Không trộn dòng image dense vào bảng text vì nó dùng một tập truy vấn khác."
+    },
+    {
+      "kind": "latency",
+      "section": "05 / ĐỘ TRỄ",
+      "title": "Chất lượng tốt hơn, độ trễ thấp hơn",
+      "pages": "5–6",
+      "lead": "Text query · latency p50/p95 (ms) · cùng các cấu hình E0–E4.",
+      "takeaway": "Hybrid RRF: p50 65,44 ms — khoảng 2,53 lần BM25 (25,86 ms).",
+      "notes": "Mỗi hàng có hai thanh dùng chung trục bắt đầu từ 0: p50 màu teal và p95 màu xanh nhạt. BM25 có p50 25,86 ms và p95 44,82 ms, thấp nhất trong năm cấu hình. Hybrid no RRF mất 67,04/102,53 ms và không cải thiện chất lượng; hybrid RRF mất 65,44/93,54 ms và giảm chất lượng. Tỷ số 65,44 chia 25,86 xấp xỉ 2,53. Đây là latency ở quy mô tập con A1, không phải cam kết hiệu năng production."
+    },
+    {
+      "kind": "language",
+      "section": "05 / PHÂN TÍCH NGÔN NGỮ",
+      "title": "Khoảng cách Anh–Việt còn lớn",
+      "pages": "5–6",
+      "lead": "BM25 · Recall@10 theo ngôn ngữ truy vấn.",
+      "bars": [
+        [
+          "Tiếng Anh · 45 query",
+          0.6444
+        ],
+        [
+          "Tiếng Việt · 35 query",
+          0.2286
+        ]
+      ],
+      "cards": [
+        [
+          "Quan sát",
+          "Metadata chủ yếu bằng tiếng Anh;\nquery tiếng Việt từ bảng ánh xạ nhỏ."
+        ],
+        [
+          "Diễn giải",
+          "Lexical hiện tương thích tiếng Anh hơn.\nChưa cô lập được nguyên nhân duy nhất."
+        ]
+      ],
+      "notes": "BM25 đạt Recall@10 0,6444 trên 45 query tiếng Anh và 0,2286 trên 35 query tiếng Việt. Đây là phân tích cùng benchmark chứ không phải hai nghiên cứu độc lập. Báo cáo nhắc rằng canonical metadata chủ yếu là tiếng Anh và query tiếng Việt dùng bảng ánh xạ category/màu tương đối nhỏ. Vì thế không nên quy toàn bộ khoảng cách cho thuật toán BM25. Kết luận thận trọng là pipeline hiện có độ tương thích lexical tốt hơn với tiếng Anh."
+    },
+    {
+      "kind": "dense",
+      "section": "06 / CHẨN ĐOÁN DENSE",
+      "title": "Dense chỉ tìm thấy target ở 1/80 query",
+      "pages": "6",
+      "lead": "Dense text và text → image đều Recall@10 = 0,0125; BM25 tương ứng 37/80.",
+      "cards": [
+        [
+          "Encoder / domain",
+          "SigLIP2 chưa fine-tune riêng\ncho product retrieval trên ABO."
+        ],
+        [
+          "Representation",
+          "search_text dài so với query ngắn\ncó thể làm loãng tín hiệu."
+        ],
+        [
+          "Tính nhất quán",
+          "Chưa pin model_revision; kiểm tra\npadding và encode đơn lẻ/batch."
+        ],
+        [
+          "Qrels",
+          "Một positive/query; semantic neighbor\nhợp lý vẫn có thể không được chấm."
+        ]
+      ],
+      "takeaway": "Bốn giả thuyết cần kiểm tra; chưa xác nhận một nguyên nhân duy nhất.",
+      "notes": "Recall 0,0125 nhân với 80 bằng 1 query có target trong top 10; BM25 là 37 query. Hai phép quy đổi trên slide được tính từ số liệu và cấu trúc qrels trong báo cáo, không phải kết quả chạy mới. So với BM25, Recall dense giảm xấp xỉ 97,3%. Báo cáo nêu bốn khả năng: chưa thích nghi domain, representation văn bản dài, tính nhất quán model/preprocessing và benchmark chỉ có một positive. Không kết luận lỗi embedding chỉ dựa vào metric; cần ablation và kiểm tra representation trước."
+    },
+    {
+      "kind": "ablation",
+      "section": "06 / PHÂN TÍCH ABLATION",
+      "title": "Suy giảm xuất hiện khi thay đổi rank",
+      "pages": "6–7",
+      "lead": "Recall@10 trên cùng 80 text query.",
+      "stats": [
+        [
+          "0,4625",
+          "E0 · BM25"
+        ],
+        [
+          "0,4625",
+          "E3 · Hybrid no RRF"
+        ],
+        [
+          "0,3250",
+          "E4 · Hybrid RRF"
+        ]
+      ],
+      "cards": [
+        [
+          "E0 → E3",
+          "Nối candidate dense phía sau:\nkhông đổi ba metric chất lượng."
+        ],
+        [
+          "E3 → E4",
+          "Dense tham gia thay đổi thứ hạng:\nRecall giảm tương đối 29,7%."
+        ]
+      ],
+      "takeaway": "So với BM25, RRF giảm nDCG 48,3% và MRR 56,5% trên benchmark này.",
+      "notes": "E0 và E3 có cùng cả ba metric. Ở phần lớn query, BM25 đã lấp đầy top 10 nên thêm ứng viên phía sau ít có cơ hội ảnh hưởng. Khi RRF cho nhánh dense tác động lên rank, Recall giảm từ 0,4625 xuống 0,3250: giảm 0,1375 điểm tuyệt đối hoặc khoảng 29,7% tương đối. nDCG và MRR giảm khoảng 48,3% và 56,5%. Đây là bằng chứng trong cấu hình A1 rằng một nhánh dense yếu có thể làm nhiễu fusion; không phải kết luận tổng quát rằng RRF luôn kém."
+    },
+    {
+      "kind": "image",
+      "section": "05 / KẾT QUẢ IMAGE",
+      "title": "1,0 trên ảnh catalog biến đổi nhẹ",
+      "pages": "5–6",
+      "lead": "Tập riêng: 20 image query · p50 140,82 ms · p95 230,01 ms.",
+      "stats": [
+        [
+          "1,0000",
+          "Recall@10"
+        ],
+        [
+          "1,0000",
+          "nDCG@10"
+        ],
+        [
+          "1,0000",
+          "MRR@10"
+        ]
+      ],
+      "steps": [
+        "Ảnh catalog",
+        "Crop + resize",
+        "Contrast + JPEG",
+        "Image kNN"
+      ],
+      "takeaway": "Đo độ ổn định với biến đổi nhẹ; cần ảnh chụp độc lập để đánh giá tình huống thực tế.",
+      "notes": "Image dense đạt cả ba metric bằng 1 trên 20 ảnh truy vấn. MRR bằng 1 ở đây cũng cho thấy relevant đầu tiên ở rank 1 trong từng query theo qrels hiện có. Kết quả hỗ trợ nhận định pipeline embedding ảnh ổn định trước crop nhẹ, resize, thay contrast và nén JPEG. Query vẫn đến từ cùng ảnh catalog, gần như cùng góc nhìn và background. Vì vậy đây là thử nghiệm robustness trên transformed catalog images, chưa chứng minh kết quả tương đương trên ảnh điện thoại, nền phức tạp hay góc chụp khác. Không so sánh trực tiếp với bảng text như cùng một tập đo."
+    },
+    {
+      "kind": "limits",
+      "section": "07 / LỖI VÀ GIỚI HẠN",
+      "title": "Metric cần được đọc cùng giới hạn",
+      "pages": "7",
+      "lead": "Các kết quả hiện tại phục vụ chẩn đoán và so sánh nội bộ.",
+      "cards": [
+        [
+          "Qrels chưa review",
+          "Hai reviewer + adjudication còn thiếu.\nChỉ 1 positive/query; grade 1 chưa dùng."
+        ],
+        [
+          "20 failure cases",
+          "Nhãn lexical_mismatch / semantic_confusion\nlà gợi ý; reviewer_note còn trống."
+        ],
+        [
+          "Độ đại diện",
+          "1.500 sản phẩm; ảnh query phụ thuộc catalog.\nChưa đo ảnh thực tế và tải production."
+        ]
+      ],
+      "takeaway": "Review query, metadata, ảnh target và top retrieved trước khi kết luận nguyên nhân lỗi.",
+      "notes": "Qrels là giới hạn lớn nhất. Với một truy vấn chung, nhiều sản phẩm có thể hợp lý nhưng không được gắn relevance, đặc biệt bất lợi cho semantic retrieval. Cần review độc lập, adjudication và bổ sung grade 1 khi phù hợp. Ablation runner xuất 20 query có nDCG thấp nhất, nhưng nhãn tự gợi ý và trường reviewer_note trống chỉ tạo danh sách để kiểm tra thủ công. Catalog nhỏ và ảnh truy vấn không độc lập cũng hạn chế độ đại diện. Không mô tả những việc còn thiếu trong báo cáo như đã được hoàn tất."
+    },
+    {
+      "kind": "id",
+      "section": "08 / KIỂM TRA HỒI QUY",
+      "title": "Tra cứu Product ID đạt 100/100 top-1",
+      "pages": "7",
+      "lead": "Kiểm tra riêng ngày 19/09/2026 · 100 Product ID đầu tiên · query chữ thường.",
+      "stats": [
+        [
+          "0/100",
+          "Trước tối ưu"
+        ],
+        [
+          "100/100",
+          "Sau tối ưu"
+        ]
+      ],
+      "cards": [
+        [
+          "Thay đổi",
+          "Boost Product ID và khớp\nkhông phân biệt hoa/thường."
+        ],
+        [
+          "Ý nghĩa",
+          "Cải thiện exact lookup; metric BM25\ntrên 80 text query không đổi."
+        ]
+      ],
+      "takeaway": "Kết quả hồi quy định danh được báo cáo riêng với benchmark semantic.",
+      "notes": "Theo mục 8 của PDF, kiểm tra ngày 19/09/2026 lấy 100 Product ID đầu tiên với query chữ thường. Sau Product ID boost và matching không phân biệt hoa/thường, exact ID top-1 tăng từ 0/100 lên 100/100. Đây là số liệu được trích từ báo cáo đã cung cấp, không phải lần chạy lại trong quá trình làm slide. Phải tách nó khỏi benchmark 80 text query vì cải thiện tìm định danh không tương đương cải thiện semantic retrieval; báo cáo cho biết các metric BM25 của benchmark không thay đổi."
+    },
+    {
+      "kind": "conclusion",
+      "section": "09 / KẾT LUẬN VÀ HƯỚNG TIẾP THEO",
+      "title": "Giữ baseline, củng cố benchmark",
+      "pages": "7–8",
+      "lead": "A1 đã có pipeline đa phương thức và khung ablation có kiểm soát.",
+      "cards": [
+        [
+          "01 · Benchmark",
+          "Review qrels, thêm relevance phù hợp\nvà ảnh truy vấn chụp độc lập."
+        ],
+        [
+          "02 · Dense",
+          "Pin revision/preprocessing; so sánh\ntitle, metadata ngắn và search_text."
+        ],
+        [
+          "03 · Fusion",
+          "Sau khi dense ổn định: thử candidate_k,\nweighted RRF, reranker và phân tích cứu/tụt rank."
+        ]
+      ],
+      "takeaway": "Hiện tại: BM25 tốt nhất cho text; image tốt trên tập dễ; cải thiện dense trước khi tối ưu fusion.",
+      "notes": "Thông điệp kết luận có ba phần. Thứ nhất, A1 đã thiết lập pipeline retrieval end-to-end và khung đánh giá tách thành phần. Thứ hai, BM25 là text baseline tốt nhất ở benchmark hiện tại; dense yếu và RRF giảm chất lượng, trong khi image cần kiểm chứng bằng ảnh độc lập. Thứ ba, ưu tiên chất lượng benchmark và representation trước. Các ablation representation được báo cáo đề xuất gồm title-only, title + brand + category + attributes, và toàn bộ search_text. Sau khi pin model revision và kiểm tra encode đơn lẻ/batch, mới tiếp tục tối ưu candidate window, fusion và reranker. Những bước này là kế hoạch, chưa phải kết quả đã đo."
+    },
+    {
+      "kind": "references",
+      "section": "TÀI LIỆU THAM KHẢO / Q&A",
+      "title": "Nguồn và cơ sở phương pháp",
+      "pages": "9",
+      "lead": "Slide tổng hợp từ báo cáo Nhóm 4; đánh số tài liệu theo PDF gốc.",
+      "cards": [
+        [
+          "[1], [9] · Dữ liệu ABO",
+          "Collins et al. · CVPR 2022\nAmazon Web Services · Registry of Open Data"
+        ],
+        [
+          "[2], [3], [8] · Truy hồi",
+          "Robertson & Zaragoza · BM25, 2009\nKarpukhin et al. · DPR, 2020; Thakur et al. · BEIR, 2021"
+        ],
+        [
+          "[4], [5] · Vision–language",
+          "Zhai et al. · SigLIP, ICCV 2023\nTschannen et al. · SigLIP 2, arXiv 2025"
+        ],
+        [
+          "[6], [7] · Fusion / đánh giá",
+          "Cormack et al. · RRF, SIGIR 2009\nJärvelin & Kekäläinen · nDCG, TOIS 2002"
+        ]
+      ],
+      "takeaway": "Cảm ơn cô và các bạn. Trao đổi về benchmark, representation và kết quả ablation.",
+      "notes": "Nguồn chính: Nhom4_BaoCao-A1.pdf, Nhóm 4, tháng 9/2026. Các tài liệu sau được giữ theo danh mục của báo cáo, không phải một lượt nghiên cứu web mới: [1] Collins et al., ABO, CVPR 2022, DOI 10.1109/CVPR52688.2022.02045. [2] Robertson & Zaragoza, The Probabilistic Relevance Framework: BM25 and Beyond, 2009, DOI 10.1561/1500000019. [3] Karpukhin et al., Dense Passage Retrieval for Open-Domain Question Answering, EMNLP 2020, DOI 10.18653/v1/2020.emnlp-main.550. [4] Zhai et al., Sigmoid Loss for Language Image Pre-Training, ICCV 2023. [5] Tschannen et al., SigLIP 2, arXiv:2502.14786, 2025. [6] Cormack et al., Reciprocal Rank Fusion, SIGIR 2009, DOI 10.1145/1571941.1572114. [7] Järvelin & Kekäläinen, Cumulated Gain-Based Evaluation of IR Techniques, TOIS 2002, DOI 10.1145/582415.582418. [8] Thakur et al., BEIR, NeurIPS Datasets and Benchmarks 2021. [9] AWS Registry of Open Data, Amazon Berkeley Objects Dataset, ngày truy cập theo báo cáo: 29/09/2026. Xem phần ghi chú nguồn trong README; không dùng slide này để suy rộng trạng thái license."
+    }
+  ],
+  "text_results": [
+    [
+      "BM25",
+      0.4625,
+      0.3568,
+      0.3249,
+      25.86,
+      44.82
+    ],
+    [
+      "Dense text",
+      0.0125,
+      0.0042,
+      0.0018,
+      51.28,
+      96.68
+    ],
+    [
+      "Text → image",
+      0.0125,
+      0.0036,
+      0.0013,
+      40.56,
+      59.53
+    ],
+    [
+      "Hybrid no RRF",
+      0.4625,
+      0.3568,
+      0.3249,
+      67.04,
+      102.53
+    ],
+    [
+      "Hybrid RRF",
+      0.325,
+      0.1846,
+      0.1414,
+      65.44,
+      93.54
+    ]
+  ]
+}
