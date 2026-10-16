@@ -16,6 +16,21 @@ function toListItem(product) {
   return item
 }
 
+function wait(delayMs, signal) {
+  if (delayMs <= 0) return Promise.resolve()
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort)
+      resolve()
+    }, delayMs)
+    const onAbort = () => {
+      clearTimeout(timer)
+      reject(new DOMException('The operation was aborted.', 'AbortError'))
+    }
+    signal?.addEventListener('abort', onAbort, { once: true })
+  }).then(() => signal?.throwIfAborted())
+}
+
 export async function getProducts({ category = [], brand = [], limit = 24, offset = 0, signal } = {}) {
   const started = performance.now()
   signal?.throwIfAborted()
@@ -62,21 +77,7 @@ export async function sendChatMessage({ messages = [], signal, delayMs = 600 } =
   const started = performance.now()
   signal?.throwIfAborted()
 
-  if (delayMs > 0) {
-    await new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        signal?.removeEventListener('abort', onAbort)
-        resolve()
-      }, delayMs)
-      const onAbort = () => {
-        clearTimeout(timer)
-        reject(new DOMException('The operation was aborted.', 'AbortError'))
-      }
-      signal?.addEventListener('abort', onAbort, { once: true })
-    })
-  }
-
-  signal?.throwIfAborted()
+  await wait(delayMs, signal)
 
   const userMessages = messages.filter((m) => m?.role === 'user')
   const lastUser = userMessages[userMessages.length - 1]
@@ -119,6 +120,63 @@ export async function sendChatMessage({ messages = [], signal, delayMs = 600 } =
 
   return {
     data: { answer, sources },
+    durationMs: Math.round(performance.now() - started),
+  }
+}
+
+const QUESTION_STOPWORDS = new Set(['what', 'does', 'with', 'this', 'that', 'there', 'have', 'from', 'about', 'which', 'will', 'your', 'they', 'them', 'much', 'many', 'come', 'comes', 'good', 'like'])
+
+export async function askProduct({ question = '', productId, sources = ['product'], signal, delayMs = 600 } = {}) {
+  const started = performance.now()
+  signal?.throwIfAborted()
+  await wait(delayMs, signal)
+
+  const product = PRODUCTS.find((p) => p.product_id === productId)
+  if (!product) {
+    throw Object.assign(new Error('product not found'), { status: 404 })
+  }
+  if (question.toLowerCase().includes('error')) {
+    throw new Error('Mock assistant error')
+  }
+
+  const words = [...new Set((question.toLowerCase().match(/[\p{L}\p{N}]+/gu) || [])
+    .filter((w) => w.length >= 4 && !QUESTION_STOPWORDS.has(w)))]
+  const mentions = (text) => words.some((word) => text.toLowerCase().includes(word))
+
+  const facts = (product.attributes || [])
+    .filter((attr) => mentions(`${attr.name} ${attr.value}`))
+    .map((attr) => `${attr.name}: ${attr.value}.`)
+  const sentences = (product.description || '').split(/(?<=\.)\s+/).map((part) => part.trim()).filter(Boolean)
+  facts.push(...sentences.filter(mentions))
+
+  const missing = sources.filter((source) => source !== 'product')
+  const metadata = missing.length ? { missing_sources: missing } : {}
+
+  if (!facts.length) {
+    return {
+      data: {
+        answer: `The product information for ${product.title} doesn't cover that.`,
+        sources: [],
+        insufficient_evidence: true,
+        metadata,
+      },
+      durationMs: Math.round(performance.now() - started),
+    }
+  }
+
+  return {
+    data: {
+      answer: `Based on the product details for ${product.title}:\n${facts.join('\n')}`,
+      sources: [{
+        source: 'product',
+        document_id: `product:${product.product_id}`,
+        title: product.title,
+        score: 0.8421,
+        metadata: { score_type: 'mock' },
+      }],
+      insufficient_evidence: false,
+      metadata,
+    },
     durationMs: Math.round(performance.now() - started),
   }
 }

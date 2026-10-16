@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import './lab.css'
 import { askProduct, checkReadiness, cleanFilters, getFilterOptions, resolveImageUrl, searchImage, searchText } from '../api.js'
 import FilterField from '../components/FilterField.jsx'
+import { AnswerTurn } from '../components/ProductAnswer.jsx'
 
 const MODES = {
   bm25: ['BM25', 'Exact-term ranking across titles, brands, categories, and descriptions.'],
@@ -64,31 +65,11 @@ function ResultPanel({ mode, run, sharedIds, selectedProductId, onSelectProduct 
   )
 }
 
-function SourceCard({ source }) {
-  const experimentalPolicy = source.source === 'policy' && source.metadata?.provenance === 'shopmind_curated_experimental'
-  const sourceUrl = /^https?:\/\//i.test(source.source_url || '') ? source.source_url : null
-  return <li className="answer-source">
-    <div className="source-heading"><span className="source-type">{source.source}</span>{experimentalPolicy && <span className="experimental-label">Experimental policy</span>}<span className="source-score">Relevance {Number.isFinite(source.score) ? source.score.toFixed(4) : '—'}</span></div>
-    <strong>{source.title}</strong>
-    <small>{source.document_id}{source.policy_version ? ` · version ${source.policy_version}` : ''}{source.metadata?.score_type ? ` · ${source.metadata.score_type} score` : ''}</small>
-    {source.metadata?.content_truncated && <p>Evidence excerpt; the full source was not included in the answer context.</p>}
-    {experimentalPolicy && <p>Curated for this experiment; not actual store terms.</p>}
-    {sourceUrl && <a href={sourceUrl} target="_blank" rel="noopener noreferrer">Open source ↗</a>}
-  </li>
-}
-
 function AnswerPanel({ product, question, onQuestionChange, onSubmit, sources, onToggleSource, answers, status, error }) {
   return <section className="ask-panel" id="ask-product" aria-label="Ask about a product">
     <div className="ask-intro"><p className="eyebrow">A3 · Grounded answers</p><h2>Ask about a product.</h2><p>{product ? <>Selected: <strong>{product.title}</strong> <span>({product.product_id})</span></> : 'Search by text or image, then choose a result above.'}</p></div>
     {product && <div className="ask-content">
-      {answers.length > 0 && <ol className="answer-history" aria-label="Questions and answers">{answers.map((item, index) => <li className="answer-turn" key={index}>
-        <p className="asked-question"><span>Question {index + 1}</span>{item.question}</p>
-        <div className="answer-text">{item.answer}</div>
-        {item.metadata?.missing_sources?.length > 0 && <p className="evidence-warning">No usable evidence for: {item.metadata.missing_sources.join(', ')}.</p>}
-        {item.metadata?.truncated_ids?.length > 0 && <p className="evidence-warning">Some evidence was shortened to excerpts.</p>}
-        {item.insufficient_evidence && <p className="evidence-warning">The indexed sources did not provide enough evidence for a reliable answer.</p>}
-        {item.sources.length > 0 && <div className="answer-sources"><h3>Cited sources</h3><ol>{item.sources.map((source) => <SourceCard key={source.document_id} source={source} />)}</ol></div>}
-      </li>)}</ol>}
+      {answers.length > 0 && <ol className="answer-history" aria-label="Questions and answers">{answers.map((item, index) => <AnswerTurn key={index} item={item} index={index} />)}</ol>}
       <form className="ask-form" onSubmit={onSubmit}>
         <label htmlFor="product-question">{answers.length ? 'Ask another question about this product' : 'Your question'}</label>
         <textarea id="product-question" value={question} onChange={(event) => onQuestionChange(event.target.value)} placeholder="How does it fit? What do reviews say?" rows="3" maxLength="2000" required />

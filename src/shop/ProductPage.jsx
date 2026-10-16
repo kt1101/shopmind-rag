@@ -3,14 +3,13 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { getProduct, resolveImageUrl, searchText } from '../api.js'
 import { formatPrice, humanizeCategory } from '../lib/format.js'
 import { buildCatalogUrl } from '../lib/urlState.js'
-import { useChat } from '../chat/ChatProvider.jsx'
+import ProductAskPanel from './ProductAskPanel.jsx'
 import ProductCard from './ProductCard.jsx'
 import StatusBlock from './StatusBlock.jsx'
 
 export default function ProductPage() {
   const { productId } = useParams()
   const navigate = useNavigate()
-  const { openChat } = useChat()
 
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -192,9 +191,7 @@ export default function ProductPage() {
           <p className="product-id">
             ID: <code>{product.product_id}</code>
           </p>
-          <button type="button" className="product-ask-button" onClick={openChat}>
-            Ask ShopMind about products
-          </button>
+          <ProductAskPanel key={product.product_id} product={product} />
         </div>
       </div>
 

@@ -53,7 +53,11 @@ export function searchImage({ file, topK, filters, signal, fetchImpl = fetch }) 
   return request(`/api/v1/search/image?${params}`, { method: 'POST', body, signal }, fetchImpl)
 }
 
-export function askProduct({ question, productId, sources = ['product'], debug = false, signal, fetchImpl = fetch }) {
+export async function askProduct(args = {}) {
+  if (import.meta.env?.VITE_MOCK_API === '1') {
+    return (await import('./mocks/mockApi.js')).askProduct(args)
+  }
+  const { question, productId, sources = ['product'], debug = false, signal, fetchImpl = fetch } = args
   return request('/api/v1/rag/ask', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },

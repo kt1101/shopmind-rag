@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { getProduct, getProducts, sendChatMessage } from './mockApi.js'
+import { askProduct, getProduct, getProducts, sendChatMessage } from './mockApi.js'
 
 test('mock getProducts filters and pages', async () => {
   const all = await getProducts({ limit: 10, offset: 20 })
@@ -64,4 +64,35 @@ test('mock getProducts rejects when signal is already aborted', async () => {
     () => getProducts({ signal: controller.signal }),
     { name: 'AbortError' },
   )
+})
+
+test('mock askProduct answers from matching attributes and cites the product', async () => {
+  const r = await askProduct({ question: 'What color is it?', productId: 'M-001', delayMs: 0 })
+  assert.ok(r.data.answer.includes('Cobalt Blue'))
+  assert.equal(r.data.insufficient_evidence, false)
+  assert.equal(r.data.sources.length, 1)
+  assert.equal(r.data.sources[0].source, 'product')
+  assert.equal(r.data.sources[0].document_id, 'product:M-001')
+})
+
+test('mock askProduct uses description sentences as evidence', async () => {
+  const r = await askProduct({ question: 'Is the midsole cushioned?', productId: 'M-001', delayMs: 0 })
+  assert.ok(r.data.answer.includes('dual-density midsole'))
+  assert.equal(r.data.insufficient_evidence, false)
+})
+
+test('mock askProduct reports insufficient evidence when nothing matches', async () => {
+  const r = await askProduct({ question: 'Is there a warranty?', productId: 'M-001', delayMs: 0 })
+  assert.equal(r.data.insufficient_evidence, true)
+  assert.deepEqual(r.data.sources, [])
+})
+
+test('mock askProduct reports requested sources it has no evidence for', async () => {
+  const r = await askProduct({ question: 'What color?', productId: 'M-001', sources: ['product', 'review', 'policy'], delayMs: 0 })
+  assert.deepEqual(r.data.metadata.missing_sources, ['review', 'policy'])
+})
+
+test('mock askProduct rejects unknown products and on-demand errors', async () => {
+  await assert.rejects(() => askProduct({ question: 'Color?', productId: 'nope', delayMs: 0 }), { status: 404 })
+  await assert.rejects(() => askProduct({ question: 'trigger error', productId: 'M-001', delayMs: 0 }))
 })
