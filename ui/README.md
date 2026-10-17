@@ -54,7 +54,7 @@ Search by text or image, choose **Ask about this product** on a result, then ent
 Start the FastAPI backend on port 8000, then run:
 
 ```bash
-npm install
+npm ci   # single lockfile: package-lock.json (yarn is not used)
 npm run dev
 ```
 
