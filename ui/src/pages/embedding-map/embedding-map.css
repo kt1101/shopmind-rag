@@ -1,0 +1,54 @@
+.emap-page { padding-top: 26px; display: grid; gap: 16px; }
+.emap-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.emap-head h1 { margin: 0 0 6px; font-size: 26px; letter-spacing: -.02em; }
+.emap-head p { margin: 0; max-width: 760px; line-height: 1.5; }
+.emap-head a { text-decoration: none; flex-shrink: 0; }
+.emap-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between; }
+.emap-spaces { display: inline-flex; padding: 3px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); }
+.emap-space { padding: 6px 12px; border: 0; border-radius: 7px; background: transparent; color: var(--color-text-muted); font-size: 13px; font-weight: 600; }
+.emap-space.is-active { background: var(--color-accent); color: var(--color-on-accent); }
+.emap-query-form { display: flex; gap: 8px; flex: 1 1 300px; max-width: 480px; }
+.emap-query-form input { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); }
+.emap-layout { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 18px; align-items: start; }
+.emap-figure { position: relative; margin: 0; display: grid; gap: 6px; }
+.emap-figure.is-loading { opacity: .6; }
+.emap-svg { width: 100%; height: auto; display: block; border: 1px solid var(--color-border); border-radius: var(--radius-md); }
+.emap-bg { fill: var(--color-surface); }
+.emap-dot { opacity: .82; transition: opacity .15s; }
+.emap-dot.is-dim { opacity: .14; }
+.emap-dot.is-top { stroke: var(--color-text); stroke-width: 1.5; opacity: 1; }
+.emap-link { stroke: var(--color-text-muted); stroke-width: 1; stroke-dasharray: 3 3; opacity: .6; }
+.emap-query { fill: var(--color-danger); stroke: var(--color-surface); stroke-width: 1.5; }
+.emap-hover-ring { fill: none; stroke: var(--color-text); stroke-width: 1.5; pointer-events: none; }
+.emap-tooltip {
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, calc(-100% - 12px));
+  display: grid;
+  gap: 2px;
+  max-width: 260px;
+  padding: 6px 9px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-md);
+  font-size: 12px;
+  pointer-events: none;
+}
+.emap-tooltip span { color: var(--color-text-muted); }
+.emap-side { display: grid; gap: 18px; }
+.emap-h2 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--color-text-muted); }
+.emap-legend { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.emap-legend button { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; padding: 4px 6px; border: 0; border-radius: 6px; background: transparent; color: var(--color-text); text-align: left; font-size: 13px; }
+.emap-legend button:hover, .emap-legend button[aria-pressed="true"] { background: var(--color-surface-3); }
+.emap-swatch { width: 12px; height: 12px; border-radius: 50%; }
+.emap-legend-query { display: flex; align-items: center; gap: 8px; padding: 4px 6px; font-size: 13px; }
+.emap-results { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 13px; }
+.emap-results a { color: var(--color-text); }
+.emap-results a:hover { color: var(--color-accent); }
+.emap-results .is-off-map { opacity: .55; }
+@media (max-width: 900px) {
+  .emap-layout { grid-template-columns: 1fr; }
+  .emap-head { flex-direction: column; }
+}

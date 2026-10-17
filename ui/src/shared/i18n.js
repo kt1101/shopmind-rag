@@ -329,6 +329,7 @@ export const DICT = {
     'map.points': '{count} điểm · phép chiếu {projection}',
     'map.failed': 'Không tải được bản đồ',
     'map.loading': 'Đang tải bản đồ…',
+    'map.ratio': 'khoảng cách TB tới top-{k} / tới toàn bộ = {ratio} (càng nhỏ càng đúng cụm)',
     'map.ariaLabel': 'Biểu đồ phân tán embedding, {count} sản phẩm',
 
     'toast.close': 'Đóng thông báo',
@@ -658,6 +659,7 @@ export const DICT = {
     'map.points': '{count} points · {projection} projection',
     'map.failed': "Couldn't load the map",
     'map.loading': 'Loading map…',
+    'map.ratio': 'mean distance to top-{k} / to all = {ratio} (lower = tighter neighbourhood)',
     'map.ariaLabel': 'Embedding scatter plot, {count} products',
 
     'toast.close': 'Dismiss notification',
