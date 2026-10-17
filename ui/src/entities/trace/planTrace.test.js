@@ -21,6 +21,27 @@ test('planner traces are recognised by pipeline, kind or steps', () => {
   assert.equal(isPlanTrace(null), false)
 })
 
+test('flattened inner search steps are ignored; a choices map becomes decisions', () => {
+  const trace = {
+    pipeline: 'rag.plan', kind: 'plan',
+    steps: [
+      { id: 'decompose', step: 'decompose', impl: 'rules', details: { budget: 300, needs: [{ id: 'n1', label: 'Vali' }, { id: 'n2', label: 'Dép' }] } },
+      { id: 'n1', step: 'retrieve', impl: 'search', output: { items: [{ id: 'A', details: { price: 98.99 } }] } },
+      { id: 'lexical', step: 'retrieve', impl: 'bm25' },
+      { id: 'semantic', step: 'retrieve', impl: 'dense' },
+      { id: 'n2', step: 'retrieve', impl: 'search' },
+      { id: 'lexical', step: 'retrieve', impl: 'bm25' },
+      { id: 'optimize_budget', step: 'optimize_budget', impl: 'dp', details: { choices: { n1: 'A', n2: null }, total: 98.99 } },
+    ],
+  }
+  assert.deepEqual(retrievalsByNeed(trace).map((x) => x.key), ['n1', 'n2'])
+  const b = budgetView(trace)
+  assert.deepEqual([b.budget, b.total, b.withinBudget, b.impl], [300, 98.99, true, 'dp'])
+  assert.deepEqual(b.decisions.map((x) => [x.needId, x.status, x.productId]), [['n1', 'chosen', 'A'], ['n2', 'skipped_budget', null]])
+  const noDecompose = { steps: [{ id: 'lexical', step: 'retrieve' }, { id: 'lexical', step: 'retrieve' }] }
+  assert.deepEqual(retrievalsByNeed(noDecompose).map((x) => x.key), ['lexical', 'lexical#2'])
+})
+
 test('decompose, per-need retrieval and budget views', () => {
   const d = decomposeView(TRACE)
   assert.equal(d.occasion, 'Đi biển')
@@ -34,6 +55,7 @@ test('decompose, per-need retrieval and budget views', () => {
   assert.deepEqual([b.budget, b.total, b.withinBudget], [300, 115, true])
   assert.deepEqual(b.decisions[1], { needId: 'n2', status: 'no_match', productId: null, price: null, reason: null })
   assert.equal(planMethod(TRACE), 'rules')
+  assert.ok(r.every((x) => x.key === x.needId))
   assert.equal(planMethod({ steps: [{ step: 'generate' }] }), 'llm')
   assert.equal(decomposeView({ steps: [] }), null)
   assert.equal(budgetView(null), null)

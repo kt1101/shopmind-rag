@@ -32,12 +32,22 @@ export function decomposeView(trace) {
   }
 }
 
-// One entry per `retrieve` step: {needId, label, impl, durationMs, items:[{id,title,rank,score,price}]}
+// One entry per need's `retrieve` step: {needId, label, impl, durationMs, items:[{id,title,rank,score,price}]}.
+// The backend may also flatten each need's inner search steps (query_understanding, lexical,
+// semantic, fuse) into the trace; when the decomposition lists the needs, only the retrieve
+// steps whose id is a need id count. Keys stay unique either way.
 export function retrievalsByNeed(trace) {
-  const labels = new Map((decomposeView(trace)?.needs || []).map((n) => [n.id, n.label]))
-  return findSteps(trace, 'retrieve').map((step, index) => {
+  const needs = decomposeView(trace)?.needs || []
+  const labels = new Map(needs.map((n) => [n.id, n.label]))
+  const all = findSteps(trace, 'retrieve')
+  const steps = labels.size && all.some((s) => labels.has(String(s.id))) ? all.filter((s) => labels.has(String(s.id))) : all
+  const seen = new Map()
+  return steps.map((step, index) => {
     const needId = String(step.id ?? `retrieve-${index}`)
+    const n = (seen.get(needId) || 0) + 1
+    seen.set(needId, n)
     return {
+      key: n > 1 ? `${needId}#${n}` : needId,
       needId,
       label: labels.get(needId) ?? step.params?.query ?? needId,
       impl: step.impl ?? null,
@@ -54,22 +64,31 @@ export function retrievalsByNeed(trace) {
   })
 }
 
+// optimize_budget details: either `decisions: [{need_id, status, product_id, price, reason}]`
+// or a plain `choices: {need_id: product_id | null}` map (budget then comes from decompose).
 export function budgetView(trace) {
   const step = findStep(trace, 'optimize_budget')
   if (!step) return null
   const d = step.details || {}
-  return {
-    impl: step.impl ?? null,
-    budget: Number.isFinite(d.budget) ? d.budget : null,
-    total: Number.isFinite(d.total) ? d.total : null,
-    withinBudget: typeof d.within_budget === 'boolean' ? d.within_budget : null,
-    decisions: (Array.isArray(d.decisions) ? d.decisions : []).map((x) => ({
+  const budget = Number.isFinite(d.budget) ? d.budget : decomposeView(trace)?.budget ?? null
+  const total = Number.isFinite(d.total) ? d.total : null
+  const decisions = Array.isArray(d.decisions)
+    ? d.decisions.map((x) => ({
       needId: String(x.need_id ?? ''),
       status: x.status ?? null,
       productId: x.product_id ?? null,
       price: Number.isFinite(x.price) ? x.price : null,
       reason: x.reason ?? null,
-    })),
+    }))
+    : Object.entries(d.choices && typeof d.choices === 'object' ? d.choices : {}).map(([needId, productId]) => ({
+      needId, status: productId ? 'chosen' : 'skipped_budget', productId: productId || null, price: null, reason: null,
+    }))
+  return {
+    impl: step.impl ?? null,
+    budget,
+    total,
+    withinBudget: typeof d.within_budget === 'boolean' ? d.within_budget : budget != null && total != null ? total <= budget : null,
+    decisions,
   }
 }
 

@@ -60,7 +60,7 @@ export default function PlanInspector({ trace }) {
           <h4 className="insp-h">{t('plan.trace.retrieve')}</h4>
           <div className="insp-sources">
             {retrievals.map((r) => (
-              <div key={r.needId} className="insp-source">
+              <div key={r.key} className="insp-source">
                 <p className="insp-source-head"><code>{r.needId}</code> {r.label} <span className="sm-muted sm-small">{r.impl} · {formatMs(r.durationMs)}</span></p>
                 {r.items.length === 0 ? <p className="sm-muted sm-small">{r.summary || t('plan.status.no_match')}</p> : (
                   <ol>
@@ -84,7 +84,7 @@ export default function PlanInspector({ trace }) {
           <p className="sm-small">{t('plan.total')}: <strong>{budget.total ?? '—'}</strong> / {t('plan.budget')}: <strong>{budget.budget ?? '—'}</strong> {budget.withinBudget === false && <span className="sm-badge sm-badge--danger">{t('plan.overBudgetShort')}</span>}</p>
           <ul className="insp-plan-decisions">
             {budget.decisions.map((d) => (
-              <li key={d.needId}>
+              <li key={`${d.needId}-${d.productId}`}>
                 <code>{d.needId}</code>
                 <span className={`sm-badge ${d.status === 'chosen' ? 'sm-badge--success' : d.status === 'skipped_budget' ? 'sm-badge--warning' : ''}`}>{statusLabel(t, d.status)}</span>
                 {d.productId && <code className="sm-small">{d.productId}</code>}

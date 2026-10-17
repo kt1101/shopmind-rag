@@ -85,7 +85,7 @@ export function AsyncBlock({ loading, error, empty, onRetry, skeleton, emptyStat
 const PILL_TONES = {
   queued: 'neutral', running: 'info', succeeded: 'good', failed: 'bad',
   draft: 'warn', published: 'good', active: 'good',
-  search: 'info', image_search: 'info', compose_search: 'info', rag: 'accent', chat: 'accent', compare: 'accent',
+  search: 'info', image_search: 'info', compose_search: 'info', rag: 'accent', chat: 'accent', compare: 'accent', plan: 'accent',
   a1: 'info', a3: 'accent', answer: 'accent',
 }
 
