@@ -28,12 +28,18 @@ export default function RankMovementChart({ table, selectedId, onSelect, t, maxR
       ))}
       <text x={layout.columns[0].x - 16} y={layout.outsideY + 4} textAnchor="end" className="insp-mv-tick">{outsideLabel}</text>
       <line x1={layout.columns[0].x - 10} x2={layout.columns.at(-1).x + 10} y1={layout.outsideY} y2={layout.outsideY} className="insp-mv-grid insp-mv-outside" />
-      {layout.columns.map((column) => (
-        <g key={column.id}>
-          <line x1={column.x} x2={column.x} y1={18} y2={layout.outsideY} className="insp-mv-axis" />
-          <text x={column.x} y={12} textAnchor="middle" className="insp-mv-col">{columnLabel(column, t)}</text>
-        </g>
-      ))}
+      {layout.columns.map((column, i) => {
+        const first = i === 0
+        const last = i === layout.columns.length - 1
+        return (
+          <g key={column.id}>
+            <line x1={column.x} x2={column.x} y1={18} y2={layout.outsideY} className="insp-mv-axis" />
+            <text x={first ? column.x - 12 : last ? column.x + 12 : column.x} y={12} textAnchor={first ? 'start' : last ? 'end' : 'middle'} className="insp-mv-col">
+              {columnLabel(column, t)}
+            </text>
+          </g>
+        )
+      })}
       {layout.lines.map((line, index) => {
         const color = SERIES[index % SERIES.length]
         const selected = selectedId === line.id

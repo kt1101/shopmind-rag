@@ -6,17 +6,27 @@
 import { PRODUCTS } from './fixtures.js'
 import { compareEngine, runRag } from './ragEngine.js'
 import { hash, newTraceId, searchComposeEngine, searchImageEngine, searchTextEngine } from './searchEngine.js'
+import { readJSON, writeJSON } from '../shared/lib/storage.js'
 
 const round = (value, digits = 1) => Math.round(value * 10 ** digits) / 10 ** digits
 
 export const CHITCHAT_TEXT = 'Mình là trợ lý mua sắm ShopMind. Bạn có thể: tìm sản phẩm ("ba lô đen chống nước"), gửi ảnh để tìm sản phẩm giống, hỏi về một sản phẩm ("cái thứ hai có chống nước không?"), hỏi chính sách đổi trả/giao hàng, hoặc so sánh 2–3 sản phẩm.'
 
-const sessions = new Map()
+// Sessions survive a page reload in the browser (localStorage) so GET /chat/sessions/{id}
+// can be demoed in mock mode; in Node tests storage is absent and they live in memory only.
+const SESSIONS_KEY = 'shopmind.mock.chatSessions'
+const sessions = new Map(Object.entries(readJSON(SESSIONS_KEY, {}) || {}).map(([id, s]) => [id, { messages: s.messages || [], lastProducts: s.lastProducts || [] }]))
 const imageTokens = new Map()
+
+function persistSessions() {
+  const recent = [...sessions.entries()].slice(-10)
+  writeJSON(SESSIONS_KEY, Object.fromEntries(recent))
+}
 
 export function resetChatMock() {
   sessions.clear()
   imageTokens.clear()
+  persistSessions()
 }
 
 export function storeChatImage(file) {
@@ -167,5 +177,6 @@ export function chatReply({ message = '', history = [], product_id: productId, s
   const now = new Date().toISOString()
   session.messages.push({ role: 'user', content: message, created_at: now })
   session.messages.push({ role: 'assistant', content: answer, created_at: now, ...(sources.length ? { sources } : {}), ...(products ? { products } : {}) })
+  persistSessions()
   return { events, payload }
 }

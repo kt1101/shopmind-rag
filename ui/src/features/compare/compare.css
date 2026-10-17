@@ -48,3 +48,7 @@
 @media (max-width: 640px) {
   .compare-tray { left: 12px; bottom: 12px; width: calc(100vw - 96px); padding: 10px; }
 }
+@media (max-width: 640px) {
+  .compare-tray-slots { display: none; }
+  .compare-tray { gap: 6px; }
+}

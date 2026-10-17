@@ -37,12 +37,13 @@ export function EvidenceCard({ source, onClose, id }) {
 }
 
 // Renders an answer with inline citation chips; a chip opens the exact evidence snippet.
-export default function AnswerText({ answer, sources = [], className = '' }) {
+// Sources never referenced inline are listed as extra chips unless `showUnreferenced` is false.
+export default function AnswerText({ answer, sources = [], className = '', showUnreferenced = true }) {
   const { t } = useI18n()
   const [openId, setOpenId] = useState(null)
   const baseId = useId()
   const segments = splitAnswer(answer, sources)
-  const extra = unreferencedSources(answer, sources)
+  const extra = showUnreferenced ? unreferencedSources(answer, sources) : []
   const open = openId ? sources.find((s, i) => citationKey(s, i) === openId) : null
 
   function chip(id, source, keyPrefix) {

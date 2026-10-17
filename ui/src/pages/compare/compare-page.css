@@ -27,3 +27,4 @@
 .compare-question-row { display: flex; gap: 8px; }
 .compare-question-row input { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); }
 .compare-page .answer-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.compare-product .sm-muted { font-weight: 400; }

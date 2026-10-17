@@ -131,7 +131,7 @@ export default function ComparePage() {
                 {data.summary && <p>{data.summary}</p>}
                 <ul className="compare-points">
                   {(data.points || []).map((point, i) => (
-                    <li key={i}><AnswerText answer={pointAsAnswer(point)} sources={data.sources || []} /></li>
+                    <li key={i}><AnswerText answer={pointAsAnswer(point)} sources={data.sources || []} showUnreferenced={false} /></li>
                   ))}
                 </ul>
               </>
