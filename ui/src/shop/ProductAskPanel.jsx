@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { askProduct } from '../api.js'
 import { AnswerTurn } from '../components/ProductAnswer.jsx'
 import { readJSON, writeJSON } from '../shared/lib/storage.js'
+import { explainFor } from '../shared/lib/staffMode.js'
+import { useStaffMode } from '../shared/lib/useStaffMode.js'
 import { useI18n } from '../shared/ui/I18nProvider.jsx'
 import '../entities/citation/citation.css'
 
@@ -21,6 +23,7 @@ export default function ProductAskPanel({ product }) {
   const [error, setError] = useState(null)
   const [lastAsk, setLastAsk] = useState(null)
   const [explain, setExplain] = useState(() => readJSON(EXPLAIN_KEY, true) !== false)
+  const staff = useStaffMode()
   const controller = useRef(null)
 
   useEffect(() => () => controller.current?.abort(), [])
@@ -45,7 +48,7 @@ export default function ProductAskPanel({ product }) {
         productId: product.product_id,
         sources,
         debug: true,
-        explain,
+        explain: explainFor(staff, explain),
         signal: requestController.signal,
       })
       if (controller.current !== requestController) return
@@ -79,10 +82,12 @@ export default function ProductAskPanel({ product }) {
         <p className="product-ask-kicker">{t('ask.kicker')}</p>
         <h2 id="product-ask-title">{t('ask.title')}</h2>
         <p>{t('ask.intro')}</p>
-        <label className="product-ask-explain" title={t('chat.explainHint')}>
-          <input type="checkbox" checked={explain} onChange={toggleExplain} />
-          {t('chat.explain')} <span className="sm-muted sm-small">(explain=true)</span>
-        </label>
+        {staff.active && (
+          <label className="product-ask-explain" title={t('chat.explainHint')}>
+            <input type="checkbox" checked={explain} onChange={toggleExplain} />
+            {t('chat.explain')} <span className="sm-muted sm-small">(explain=true)</span>
+          </label>
+        )}
       </div>
 
       {answers.length > 0 && (

@@ -313,6 +313,58 @@
 .adm-kappa-bad .adm-kappa-value { color: var(--adm-bad); }
 .adm-shortcuts { grid-template-columns: 90px 1fr; }
 
+/* Sidebar groups */
+.adm-nav-group + .adm-nav-group { margin-top: 12px; }
+.adm-nav-group-title { margin: 0 0 4px; padding: 0 10px; color: var(--adm-muted); font-size: .72rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+
+/* Search Playground */
+.adm-pg-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.adm-pg-query { grid-column: 1 / -1; }
+.adm-pg-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
+@media (max-width: 800px) { .adm-pg-form { grid-template-columns: minmax(0, 1fr); } }
+.adm-pg-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.adm-pg-grid.is-single { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 1000px) { .adm-pg-grid { grid-template-columns: minmax(0, 1fr); } }
+.adm-pg-col { display: grid; gap: 10px; }
+.adm-pg-col-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.adm-pg-side { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-right: 6px; border-radius: 50%; background: var(--adm-accent); color: var(--adm-accent-ink); font-size: .78rem; font-weight: 700; }
+.adm-pg-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.adm-pg-stats div { padding: 6px 8px; border-radius: var(--adm-radius-sm); background: var(--adm-surface-2); }
+.adm-pg-stats dt { color: var(--adm-muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .03em; }
+.adm-pg-stats dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.adm-pg-results { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.adm-pg-results li { display: grid; grid-template-columns: 34px 40px minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--adm-line); border-radius: var(--adm-radius-sm); }
+.adm-pg-results li.is-shared { border-left: 3px solid var(--adm-good); }
+.adm-pg-results li.is-unique { border-left: 3px solid var(--adm-warn); }
+.adm-pg-rank { color: var(--adm-muted); font-weight: 700; font-variant-numeric: tabular-nums; }
+.adm-pg-thumb { width: 40px; height: 34px; display: grid; place-items: center; overflow: hidden; border-radius: 4px; background: var(--adm-surface-2); }
+.adm-pg-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.adm-pg-title { display: grid; min-width: 0; }
+.adm-pg-title a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--adm-ink); }
+.adm-pg-title small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-pg-score { font-family: var(--adm-mono); font-size: .8rem; }
+.adm-pg-cross { white-space: nowrap; min-width: 64px; text-align: right; }
+.adm-pg-cross em { font-style: normal; }
+.adm-pg-cross .up { color: var(--adm-good); }
+.adm-pg-cross .down { color: var(--adm-bad); }
+@media (max-width: 560px) {
+  .adm-pg-results li { grid-template-columns: 30px minmax(0, 1fr) auto; }
+  .adm-pg-thumb, .adm-pg-score { display: none; }
+}
+
+/* Storefront search algorithm card (Config) */
+.adm-storefront-card { border-left: 4px solid var(--adm-accent); }
+.adm-storefront-form { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; gap: 12px; align-items: end; }
+@media (max-width: 800px) { .adm-storefront-form { grid-template-columns: minmax(0, 1fr); } }
+.adm-storefront-active { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin: 0 0 12px; }
+.adm-storefront-active code { font-size: 1rem; font-weight: 700; }
+.adm-storefront-desc { margin: 6px 0 0; }
+.adm-storefront-history { margin: 12px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.adm-storefront-history li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: .88rem; }
+
+/* Embedding map inside the console */
+.adm-content .emap-page { padding-top: 0; }
+
 /* Login */
 .adm-login { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
 .adm-login-card { width: min(380px, 100%); display: grid; gap: 14px; padding: 24px; }

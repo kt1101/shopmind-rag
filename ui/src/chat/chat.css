@@ -142,6 +142,19 @@
   gap: 8px;
 }
 
+.chat-plan { display: grid; gap: 6px; margin-top: 8px; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-2); }
+.chat-plan-needs { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
+.chat-plan-needs li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+.chat-plan-mark { width: 14px; font-weight: 700; color: var(--color-success); }
+.chat-plan-needs li.is-skipped_budget .chat-plan-mark { color: var(--color-warning); }
+.chat-plan-needs li.is-no_match .chat-plan-mark { color: var(--color-text-muted); }
+.chat-plan-needs li:not(.is-chosen) .chat-plan-label { color: var(--color-text-muted); }
+.chat-plan-status { font-size: 11px; color: var(--color-text-muted); }
+.chat-plan-total { margin: 0; font-size: 13px; }
+.chat-plan-total.is-over strong { color: var(--color-danger); }
+.chat-plan-link { justify-self: start; color: var(--color-accent); font-size: 13px; font-weight: 700; text-decoration: none; }
+.chat-plan-link:hover { text-decoration: underline; }
+
 .chat-suggestion-chip {
   text-align: left;
   background: var(--surface, var(--color-surface));

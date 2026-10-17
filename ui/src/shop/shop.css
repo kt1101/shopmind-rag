@@ -87,23 +87,6 @@
   color: var(--color-text-muted);
 }
 
-.shop .search-mode-select {
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: var(--color-surface-2);
-  color: var(--color-text);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 8px;
-  cursor: pointer;
-  outline: none;
-  flex-shrink: 0;
-}
-
-.shop .search-mode-select:hover {
-  border-color: var(--color-border-strong);
-}
-
 .shop .search-camera-button {
   display: grid;
   place-items: center;
@@ -1020,6 +1003,14 @@
   white-space: nowrap;
 }
 
+.shop .search-meta-pipeline {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+  font-size: 11px;
+}
+
 .shop .search-meta-mode {
   color: var(--color-text);
   font-weight: 600;
@@ -1571,8 +1562,33 @@
 .shop .skip-link { position: absolute; left: -9999px; top: 8px; z-index: 2000; padding: 8px 12px; border-radius: var(--radius-sm); background: var(--color-accent); color: var(--color-on-accent); }
 .shop .skip-link:focus { left: 12px; }
 .shop .header-nav { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-.shop .header-link { padding: 6px 8px; border-radius: var(--radius-sm); color: var(--color-text-muted); font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; }
-.shop .header-link:hover, .shop .header-link.active { color: var(--color-text); background: var(--color-surface-3); }
+.shop .header-plan-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1px solid var(--color-accent);
+  border-radius: 999px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.shop .header-plan-link:hover, .shop .header-plan-link.active { background: var(--color-accent); color: var(--color-on-accent); }
+.shop .header-staff-pill {
+  padding: 3px 9px;
+  border: 1px solid var(--color-warning);
+  border-radius: 999px;
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
 .shop .header-icon-link {
   position: relative;
   display: inline-grid;
@@ -1612,11 +1628,12 @@
 }
 .shop .site-footer-note { margin-left: auto; font-size: 12px; }
 @media (max-width: 1100px) {
-  .shop .header-link--secondary { display: none; }
+  .shop .header-staff-pill { display: none; }
 }
 @media (max-width: 720px) {
   .shop .header-nav { margin-left: auto; }
-  .shop .header-link { display: none; }
+  .shop .header-plan-link { padding: 6px 9px; }
+  .shop .header-plan-link span { display: none; }
   .shop .site-footer-note { margin-left: 0; width: 100%; }
 }
 

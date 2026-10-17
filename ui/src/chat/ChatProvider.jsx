@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { getChatSession } from '../api.js'
 import { readJSON, removeKey, writeJSON } from '../shared/lib/storage.js'
+import { explainFor } from '../shared/lib/staffMode.js'
+import { useStaffMode } from '../shared/lib/useStaffMode.js'
 import { chatReducer, historyFor, initialChatState } from './chatState.js'
 import { fetchReply } from './chatReply.js'
 
@@ -24,10 +26,12 @@ export function eventToAction(evt) {
 export function ChatProvider({ children, initial = initialChatState }) {
   const [state, dispatch] = useReducer(chatReducer, initial)
   const [explain, setExplainState] = useState(() => readJSON(EXPLAIN_KEY, true) !== false)
+  const staff = useStaffMode()
   const stateRef = useRef(state)
   stateRef.current = state
-  const explainRef = useRef(explain)
-  explainRef.current = explain
+  // Glass-box data is requested only in staff mode (and when the staff toggle is on).
+  const explainRef = useRef(false)
+  explainRef.current = explainFor(staff, explain)
 
   // Restore the previous conversation (server-side session) once.
   useEffect(() => {
@@ -106,6 +110,7 @@ export function ChatProvider({ children, initial = initialChatState }) {
       scope: state.scope,
       live: state.live,
       explain,
+      staff: staff.active,
       openChat,
       closeChat,
       send,
@@ -114,7 +119,7 @@ export function ChatProvider({ children, initial = initialChatState }) {
       newChat,
       setExplain,
     }),
-    [state.open, state.pending, state.messages, state.scope, state.live, explain, openChat, closeChat, send, retry, setScope, newChat, setExplain],
+    [state.open, state.pending, state.messages, state.scope, state.live, explain, staff.active, openChat, closeChat, send, retry, setScope, newChat, setExplain],
   )
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>

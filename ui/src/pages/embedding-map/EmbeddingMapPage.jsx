@@ -6,7 +6,6 @@ import { SPACES, categoryColors, categoryCounts, extent, makeScale, nearestPoint
 import { categoryLabel } from '../../shared/i18n.js'
 import { useI18n } from '../../shared/ui/I18nProvider.jsx'
 import { SkeletonBlock } from '../../shared/ui/Skeleton.jsx'
-import StatusBlock from '../../shop/StatusBlock.jsx'
 import './embedding-map.css'
 
 const WIDTH = 820
@@ -61,7 +60,7 @@ export default function EmbeddingMapPage() {
     setQuery((q) => ({ ...q, loading: true, error: null }))
     Promise.all([
       projectEmbedding({ space, query: activeQuery, signal: controller.signal }),
-      searchText({ query: activeQuery, mode: 'hybrid', topK: TOP_K, filters: {}, signal: controller.signal }).catch(() => ({ data: { results: [] } })),
+      searchText({ query: activeQuery, topK: TOP_K, filters: {}, signal: controller.signal }).catch(() => ({ data: { results: [] } })),
     ])
       .then(([proj, search]) => {
         if (controller.signal.aborted) return
@@ -125,7 +124,7 @@ export default function EmbeddingMapPage() {
           <h1>{t('map.title')}</h1>
           <p className="sm-muted">{t('map.intro')}</p>
         </div>
-        <Link to="/lab" className="sm-button sm-button--small">{t('nav.lab')} →</Link>
+        <Link to="/admin/playground" className="sm-button sm-button--small">Search Playground →</Link>
       </header>
 
       <div className="emap-controls">
@@ -144,7 +143,11 @@ export default function EmbeddingMapPage() {
       </div>
 
       {map.error ? (
-        <StatusBlock tone="error" title={t('map.failed')} message={map.error.message} action={{ label: t('state.retry'), onClick: () => setReload((n) => n + 1) }} />
+        <div className="adm-state adm-state-error" role="alert">
+          <p className="adm-state-title">{t('map.failed')}</p>
+          <p className="adm-muted">{map.error.message}{map.error.code === 'embedding_map_not_built' ? ' (run the build_embedding_map job on Indexes & Jobs)' : ''}</p>
+          <button type="button" className="adm-btn" onClick={() => setReload((n) => n + 1)}>{t('state.retry')}</button>
+        </div>
       ) : map.loading && !map.data ? (
         <div role="status" aria-label={t('map.loading')}><SkeletonBlock height={420} /></div>
       ) : (

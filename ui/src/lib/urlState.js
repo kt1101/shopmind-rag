@@ -1,9 +1,6 @@
-export const SEARCH_MODES = {
-  hybrid: 'Hybrid',
-  bm25: 'BM25',
-  dense: 'Dense text',
-  cross_modal: 'Cross-modal',
-}
+// Storefront search URLs never carry an algorithm: the backend runs the admin-configured
+// default pipeline (config `defaults.search`, docs/API_CONTRACT.md "Storefront vs. staff").
+// Old links with `?mode=` still work, the parameter is simply ignored.
 
 export const DEFAULT_ALPHA = 0.6
 // URL filter fields. `color` exists only on search (the catalog listing has no colour filter).
@@ -43,26 +40,24 @@ export function parseFilters(params) {
 export function parseSearch(params) {
   const p = params instanceof URLSearchParams ? params : new URLSearchParams(params || '')
   const filters = parseFilters(p)
-  const rawMode = p.get('mode')
-  const mode = rawMode && Object.prototype.hasOwnProperty.call(SEARCH_MODES, rawMode) ? rawMode : 'hybrid'
   const rawQuery = (p.get('q') || '').trim()
 
   if (p.get('type') === 'image') {
-    return { type: 'image', query: '', mode, filters }
+    return { type: 'image', query: '', filters }
   }
 
   // F1: image + text. Without text it degrades to an image search.
   if (p.get('type') === 'compose') {
     return rawQuery
-      ? { type: 'compose', query: rawQuery, mode, filters, alpha: parseAlpha(p.get('alpha')) }
-      : { type: 'image', query: '', mode, filters }
+      ? { type: 'compose', query: rawQuery, filters, alpha: parseAlpha(p.get('alpha')) }
+      : { type: 'image', query: '', filters }
   }
 
   if (rawQuery.length > 0) {
-    return { type: 'text', query: rawQuery, mode, filters }
+    return { type: 'text', query: rawQuery, filters }
   }
 
-  return { type: null, query: '', mode, filters }
+  return { type: null, query: '', filters }
 }
 
 function appendFilters(params, filters, fields) {
@@ -78,7 +73,7 @@ export function buildCatalogUrl(filters = {}) {
   return qs ? `/?${qs}` : '/'
 }
 
-export function buildSearchUrl({ type, query, mode, filters, alpha } = {}) {
+export function buildSearchUrl({ type, query, filters, alpha } = {}) {
   const params = new URLSearchParams()
   const trimmedQuery = typeof query === 'string' ? query.trim() : ''
 
@@ -89,9 +84,7 @@ export function buildSearchUrl({ type, query, mode, filters, alpha } = {}) {
     params.append('q', trimmedQuery)
     params.append('alpha', String(parseAlpha(alpha)))
   } else {
-    const validMode = mode && Object.prototype.hasOwnProperty.call(SEARCH_MODES, mode) ? mode : 'hybrid'
     params.append('q', trimmedQuery)
-    params.append('mode', validMode)
   }
 
   appendFilters(params, filters, FILTER_FIELDS)

@@ -6,7 +6,7 @@ import { openInspector } from '../lib/inspector.js'
 import { formatDateTime, formatMs } from '../lib/format.js'
 import { Card, EmptyState, ErrorState, JsonView, Modal, PageHeader, Pagination, Pill, Skeleton, TableSkeleton } from '../components/ui.jsx'
 
-const KINDS = ['search', 'image_search', 'compose_search', 'rag', 'chat', 'compare']
+const KINDS = ['search', 'image_search', 'compose_search', 'rag', 'chat', 'compare', 'plan']
 const LIMIT = 20
 
 function TraceModal({ traceId, onClose }) {

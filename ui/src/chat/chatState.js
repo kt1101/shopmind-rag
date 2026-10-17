@@ -105,6 +105,7 @@ export function chatReducer(state = initialChatState, action = {}) {
             kind: action.kind ?? 'search',
             evidence: action.evidence ?? null,
             ...(action.products ? { products: action.products } : {}),
+            ...(action.plan ? { plan: action.plan } : {}),
             ...(action.intent ? { intent: action.intent } : {}),
             ...(action.standalone ? { standalone: action.standalone } : {}),
             ...(action.traceId ? { traceId: action.traceId } : {}),

@@ -38,10 +38,14 @@ export function checkReadiness(signal, fetchImpl = fetch) {
 
 // --- search -----------------------------------------------------------------------------
 
+// POST /search/text. The storefront omits `mode` and `pipeline` so the backend runs the
+// admin-configured default (`defaults.search`); staff tools (Search Playground) pass `pipeline`.
 export function searchText(args = {}) {
   if (useMock(args)) return mock('searchText', args)
-  const { query, mode, topK, offset, filters, sort, explain, signal, fetchImpl = fetch } = args
-  const body = { query: (query || '').trim(), mode, top_k: topK, filters: cleanFilters(filters) }
+  const { query, mode, pipeline, topK, offset, filters, sort, explain, signal, fetchImpl = fetch } = args
+  const body = { query: (query || '').trim(), top_k: topK, filters: cleanFilters(filters) }
+  if (mode) body.mode = mode
+  if (pipeline) body.pipeline = pipeline
   if (offset) body.offset = offset
   if (sort) body.sort = sort
   return request(`${API}/search/text`, { ...jsonBody({ ...body, ...explainFlag(explain) }), signal }, fetchImpl)
@@ -139,6 +143,23 @@ export function ragCompare(args = {}) {
   const { productIds = [], question, explain, signal, fetchImpl = fetch } = args
   const body = { product_ids: productIds, ...(question && question.trim() ? { question: question.trim() } : {}), ...explainFlag(explain) }
   return request(`${API}/rag/compare`, { ...jsonBody(body), signal }, fetchImpl)
+}
+
+// F6 shopping planner. `budget` (USD) is optional; the backend may also parse it from the text.
+export function planBody({ request: text, budget, language, maxNeeds, explain } = {}) {
+  const body = { request: String(text || '').trim() }
+  const amount = Number(budget)
+  if (budget !== null && budget !== undefined && budget !== '' && Number.isFinite(amount) && amount > 0) body.budget = amount
+  if (language === 'vi' || language === 'en') body.language = language
+  if (Number.isInteger(maxNeeds)) body.max_needs = Math.min(8, Math.max(2, maxNeeds))
+  if (explain) body.explain = true
+  return body
+}
+
+export function ragPlan(args = {}) {
+  if (useMock(args)) return mock('ragPlan', args)
+  const { signal, fetchImpl = fetch } = args
+  return request(`${API}/rag/plan`, { ...jsonBody(planBody(args)), signal }, fetchImpl)
 }
 
 // --- chat -------------------------------------------------------------------------------
@@ -241,10 +262,11 @@ export function sendClick(args = {}) {
 
 // --- meta -------------------------------------------------------------------------------
 
+// `includeHidden` also lists evaluation-only pipelines (`public: false`), for staff tools.
 export function getPipelines(args = {}) {
   if (useMock(args)) return mock('getPipelines', args)
-  const { signal, fetchImpl = fetch } = args
-  return request(`${API}/meta/pipelines`, { signal }, fetchImpl)
+  const { includeHidden = false, signal, fetchImpl = fetch } = args
+  return request(`${API}/meta/pipelines${includeHidden ? '?include_hidden=true' : ''}`, { signal }, fetchImpl)
 }
 
 export function getEmbeddingMap(args = {}) {

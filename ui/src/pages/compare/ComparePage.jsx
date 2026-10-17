@@ -8,6 +8,7 @@ import FeedbackWidget from '../../features/feedback/FeedbackWidget.jsx'
 import { useShopLists } from '../../features/shop-lists/ShopListsProvider.jsx'
 import { buildCompareUrl, parseCompareIds } from '../../features/shop-lists/shopLists.js'
 import { categoryLabel } from '../../shared/i18n.js'
+import { useStaffMode } from '../../shared/lib/useStaffMode.js'
 import { useI18n } from '../../shared/ui/I18nProvider.jsx'
 import { Skeleton } from '../../shared/ui/Skeleton.jsx'
 import RagInspector from '../../widgets/inspector/RagInspector.jsx'
@@ -21,6 +22,7 @@ export default function ComparePage() {
   const navigate = useNavigate()
   const { t, lang } = useI18n()
   const { compare, removeFromCompare } = useShopLists()
+  const staff = useStaffMode()
   const ids = useMemo(() => parseCompareIds(params.get('ids')), [params])
   const idsKey = ids.join(',')
 
@@ -37,7 +39,7 @@ export default function ComparePage() {
     }
     const controller = new AbortController()
     setState((s) => ({ ...s, loading: true, error: null }))
-    ragCompare({ productIds: ids, question: asked, explain: true, signal: controller.signal })
+    ragCompare({ productIds: ids, question: asked, explain: staff.active, signal: controller.signal })
       .then((res) => {
         if (!controller.signal.aborted) setState({ data: res?.data || null, loading: false, error: null })
       })
@@ -45,7 +47,7 @@ export default function ComparePage() {
         if (!controller.signal.aborted && error.name !== 'AbortError') setState({ data: null, loading: false, error })
       })
     return () => controller.abort()
-  }, [idsKey, asked, reload]) // ids is derived from idsKey
+  }, [idsKey, asked, reload, staff.active]) // ids is derived from idsKey
 
   const table = useMemo(() => compareTable(state.data, t('compare.noData')), [state.data, t])
 
@@ -146,14 +148,14 @@ export default function ComparePage() {
             </form>
 
             <div className="answer-tools">
-              {data.trace && (
+              {staff.active && data.trace && (
                 <button type="button" className="sm-button sm-button--small" aria-expanded={showTrace} onClick={() => setShowTrace((v) => !v)}>
                   <span aria-hidden="true">🔍</span> {showTrace ? t('answer.hideTrace') : t('answer.showTrace')}
                 </button>
               )}
               <FeedbackWidget target="answer" traceId={data.trace_id} query={asked || `compare:${idsKey}`} compact />
             </div>
-            {showTrace && data.trace && <RagInspector trace={data.trace} />}
+            {staff.active && showTrace && data.trace && <RagInspector trace={data.trace} />}
           </section>
         </div>
       ) : null}

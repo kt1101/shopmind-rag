@@ -6,8 +6,9 @@ const filters = { category: [], brand: ['Acme'], color: [] }
 const file = { name: 'a.png' }
 
 test('maps text, image and compose searches to API calls', () => {
-  assert.deepEqual(buildSearchCall({ type: 'text', query: 'boots', mode: 'bm25', filters }, null, { explain: true }),
-    { kind: 'text', args: { query: 'boots', mode: 'bm25', topK: 20, filters, explain: true } })
+  assert.deepEqual(buildSearchCall({ type: 'text', query: 'boots', filters }, null, { explain: true }),
+    { kind: 'text', args: { query: 'boots', topK: 20, filters, explain: true } })
+  assert.equal('mode' in buildSearchCall({ type: 'text', query: 'boots', mode: 'bm25', filters }, null).args, false, 'storefront never picks an algorithm')
   assert.equal(buildSearchCall({ type: 'image', filters }, file).kind, 'image')
   assert.deepEqual(buildSearchCall({ type: 'compose', query: 'đen', alpha: 0.3, filters }, file).args, { file, text: 'đen', alpha: 0.3, topK: 20, explain: false })
   assert.equal(buildSearchCall({ type: 'compose', query: 'đen', filters }, null), null, 'needs the image')

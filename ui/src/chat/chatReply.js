@@ -1,4 +1,5 @@
 import * as defaultApi from '../api.js'
+import { buildPlanUrl } from '../features/planner/plan.js'
 
 // Statuses that mean "the /chat endpoint is not deployed": fall back to the A3/A1 endpoints.
 const MISSING_ENDPOINT = new Set([404, 405, 501])
@@ -11,6 +12,7 @@ export function normalizeChatPayload(data, question) {
     answer: data?.answer ?? '',
     sources: Array.isArray(data?.sources) ? data.sources : [],
     products,
+    plan: normalizeChatPlan(data?.plan),
     intent,
     standalone: data?.standalone_question && data.standalone_question !== question ? data.standalone_question : null,
     evidence: { insufficient_evidence: Boolean(data?.insufficient_evidence), metadata: data?.metadata ?? {} },
@@ -47,7 +49,7 @@ async function legacyReply({ question, scope, signal, api }) {
     }
   }
 
-  const { data } = await api.searchText({ query: question, mode: 'hybrid', topK: 3, filters: {}, signal })
+  const { data } = await api.searchText({ query: question, topK: 3, filters: {}, signal })
   const results = data?.results ?? []
   return {
     kind: 'search',
@@ -56,6 +58,34 @@ async function legacyReply({ question, scope, signal, api }) {
       : `I couldn't find products matching "${question}". Try different words.`,
     sources: results,
   }
+}
+
+// `plan` of an intent=shopping_plan reply -> {needs:[{label, productId, status}], total, budget, counts}.
+export function normalizeChatPlan(plan) {
+  if (!plan || typeof plan !== 'object' || !Array.isArray(plan.needs)) return null
+  const needs = plan.needs.filter((n) => n && (n.label || n.product_id)).map((n) => ({
+    label: String(n.label ?? n.product_id),
+    productId: n.product_id ?? null,
+    status: ['chosen', 'skipped_budget', 'no_match'].includes(n.status) ? n.status : n.product_id ? 'chosen' : 'no_match',
+  }))
+  const total = Number.isFinite(plan.total) ? plan.total : null
+  const budget = Number.isFinite(plan.budget) && plan.budget > 0 ? plan.budget : null
+  return {
+    needs,
+    total,
+    budget,
+    withinBudget: budget == null || total == null ? true : total <= budget,
+    counts: {
+      chosen: needs.filter((n) => n.status === 'chosen').length,
+      skipped: needs.filter((n) => n.status === 'skipped_budget').length,
+      noMatch: needs.filter((n) => n.status === 'no_match').length,
+    },
+  }
+}
+
+// "Mở kế hoạch đầy đủ" link: the planner page re-runs the user's own message.
+export function planHref(message) {
+  return buildPlanUrl({ query: message })
 }
 
 // Progress line for live `step` events: consecutive steps of the same type merge.

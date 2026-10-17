@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { getPipelines } from '../../api.js'
+import { isPlanTrace } from '../../entities/trace/planTrace.js'
 import { isSearchTrace, traceSummary } from '../../entities/trace/traceModel.js'
 import Drawer from '../../shared/ui/Drawer.jsx'
 import { useI18n } from '../../shared/ui/I18nProvider.jsx'
 import { Skeleton } from '../../shared/ui/Skeleton.jsx'
+import PlanInspector from './PlanInspector.jsx'
 import RagInspector from './RagInspector.jsx'
 import SearchInspector from './SearchInspector.jsx'
 import { formatMs } from './parts.jsx'
@@ -18,12 +20,19 @@ function loadPipelines() {
   return pipelinesPromise
 }
 
-// Renders any trace: the Search Inspector for search kinds, the RAG Inspector otherwise.
-// `view` forces 'search' or 'rag' (e.g. a chat trace whose intent was product_search).
+// Renders any trace: the Search Inspector for search kinds, the planner view for shopping
+// plans, the RAG Inspector otherwise. `view` forces 'search', 'rag' or 'plan'.
 export function TraceInspector({ trace, titles, view }) {
   if (!trace) return null
+  if (view === 'plan' || (!view && isPlanTrace(trace))) return <PlanInspector trace={trace} />
   const search = view === 'search' || (view !== 'rag' && isSearchTrace(trace))
   return search ? <SearchInspector trace={trace} titles={titles} /> : <RagInspector trace={trace} />
+}
+
+function drawerTitle(t, trace, view) {
+  if (!trace) return t('inspector.title')
+  if (view === 'plan' || (!view && isPlanTrace(trace))) return t('inspector.planTitle')
+  return view !== 'search' && !isSearchTrace(trace) ? t('inspector.ragTitle') : t('inspector.title')
 }
 
 // Reusable glass-box drawer. Controlled: the caller supplies the trace (or loading/error).
@@ -57,7 +66,7 @@ export default function InspectorDrawer({ open, onClose, trace, loading = false,
     <Drawer
       open={open}
       onClose={onClose}
-      title={title || (trace && view !== 'search' && !isSearchTrace(trace) ? t('inspector.ragTitle') : t('inspector.title'))}
+      title={title || drawerTitle(t, trace, view)}
       subtitle={subtitle}
       closeLabel={t('inspector.close')}
       width={820}

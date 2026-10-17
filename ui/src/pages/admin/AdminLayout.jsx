@@ -2,17 +2,27 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { useAuth } from './auth/AuthContext.jsx'
 import { USE_MOCK_API } from '../../shared/api/http.js'
+import { getTrace } from '../../shared/api/admin.js'
+import InspectorHost from '../../widgets/inspector/InspectorHost.jsx'
 
+const OPERATE = 'Operate'
+const GLASS_BOX = 'Glass-box & lab'
+
+// Engineering tools (traces, playground, embedding map) live here, never on the storefront.
 export const NAV = [
-  { to: '/admin', label: 'Dashboard', end: true },
-  { to: '/admin/config', label: 'Pipeline & Config' },
-  { to: '/admin/traces', label: 'Traces' },
-  { to: '/admin/indexes', label: 'Indexes & Jobs' },
-  { to: '/admin/policies', label: 'Policies' },
-  { to: '/admin/eval', label: 'Evaluation' },
-  { to: '/admin/feedback', label: 'Feedback' },
-  { to: '/admin/annotate', label: 'Annotation' },
+  { to: '/admin', label: 'Dashboard', end: true, group: OPERATE },
+  { to: '/admin/config', label: 'Pipeline & Config', group: OPERATE },
+  { to: '/admin/indexes', label: 'Indexes & Jobs', group: OPERATE },
+  { to: '/admin/policies', label: 'Policies', group: OPERATE },
+  { to: '/admin/feedback', label: 'Feedback', group: OPERATE },
+  { to: '/admin/traces', label: 'Traces', group: GLASS_BOX },
+  { to: '/admin/playground', label: 'Search Playground', group: GLASS_BOX },
+  { to: '/admin/embedding-map', label: 'Embedding Map', group: GLASS_BOX },
+  { to: '/admin/eval', label: 'Evaluation', group: GLASS_BOX },
+  { to: '/admin/annotate', label: 'Annotation', group: GLASS_BOX },
 ]
+
+export const NAV_GROUPS = [...new Set(NAV.map((item) => item.group))].map((title) => ({ title, items: NAV.filter((item) => item.group === title) }))
 
 const SECTION_LABELS = Object.fromEntries(NAV.filter((n) => n.to !== '/admin').map((n) => [n.to.split('/')[2], n]))
 SECTION_LABELS.jobs = { to: '/admin/indexes', label: 'Indexes & Jobs' }
@@ -47,15 +57,20 @@ export default function AdminLayout() {
       <aside className="adm-sidebar" aria-label="Admin navigation">
         <Link to="/admin" className="adm-brand">ShopMind <span>Admin</span></Link>
         <nav>
-          <ul>
-            {NAV.map((item) => (
-              <li key={item.to}>
-                <NavLink to={item.to} end={item.end} className={({ isActive }) => (isActive ? 'active' : undefined)}>
-                  {item.label}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
+          {NAV_GROUPS.map((group) => (
+            <div key={group.title} className="adm-nav-group" role="group" aria-labelledby={`adm-nav-${group.title.replace(/\W+/g, '-')}`}>
+              <p className="adm-nav-group-title" id={`adm-nav-${group.title.replace(/\W+/g, '-')}`}>{group.title}</p>
+              <ul>
+                {group.items.map((item) => (
+                  <li key={item.to}>
+                    <NavLink to={item.to} end={item.end} className={({ isActive }) => (isActive ? 'active' : undefined)}>
+                      {item.label}
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </nav>
         <div className="adm-sidebar-foot">
           <Link to="/">← Storefront</Link>
@@ -84,6 +99,7 @@ export default function AdminLayout() {
           <Outlet />
         </main>
       </div>
+      <InspectorHost loadTrace={getTrace} />
     </div>
   )
 }

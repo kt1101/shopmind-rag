@@ -1,14 +1,26 @@
 // Admin session storage: the token lives in memory (shared/api/http.js) and is mirrored to
-// sessionStorage so a reload keeps the session. Every storage access is wrapped in try/catch:
-// private windows, blocked site data and previews can throw.
+// localStorage so a reload keeps the session and other tabs see logins/logouts (the storefront's
+// staff mode listens to the `storage` event, see shared/lib/useStaffMode.js). Expired sessions
+// are dropped on load. Every storage access is wrapped in try/catch: private windows, blocked
+// site data and previews can throw.
 
 export const SESSION_KEY = 'shopmind.admin.session'
+// Same-tab notification (the `storage` event only reaches *other* tabs).
+export const SESSION_EVENT = 'shopmind:admin-session'
 
 function defaultStorage() {
   try {
-    return typeof sessionStorage === 'undefined' ? null : sessionStorage
+    return typeof localStorage === 'undefined' ? null : localStorage
   } catch {
     return null
+  }
+}
+
+function notify() {
+  try {
+    if (typeof window !== 'undefined' && typeof CustomEvent !== 'undefined') window.dispatchEvent(new CustomEvent(SESSION_EVENT))
+  } catch {
+    // ignore
   }
 }
 
@@ -31,6 +43,7 @@ export function saveSession(session, storage = defaultStorage()) {
   if (!storage) return false
   try {
     storage.setItem(SESSION_KEY, JSON.stringify(session))
+    notify()
     return true
   } catch {
     return false
@@ -44,6 +57,7 @@ export function clearSession(storage = defaultStorage()) {
   } catch {
     // ignore: nothing else we can do
   }
+  notify()
 }
 
 export function loadSession(storage = defaultStorage(), now = Date.now()) {

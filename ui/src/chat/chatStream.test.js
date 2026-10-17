@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { fetchReply, normalizeChatPayload, progressItems, sourceCount } from './chatReply.js'
+import { fetchReply, normalizeChatPayload, normalizeChatPlan, planHref, progressItems, sourceCount } from './chatReply.js'
 import { applyStep, chatReducer, historyFor, initialChatState } from './chatState.js'
 
 test('fetchReply streams through /chat when available and normalizes the done payload', async () => {
@@ -88,4 +88,22 @@ test('progress items merge consecutive steps of the same type', () => {
   assert.equal(sourceCount('2 product, 3 review, 0 policy'), 3)
   assert.equal(sourceCount(''), null)
   assert.deepEqual(applyStep([], {}), [])
+})
+
+test('shopping_plan replies keep the plan; the full-plan link re-runs the message', () => {
+  const r = normalizeChatPayload({
+    answer: 'Kế hoạch đi biển', intent: 'shopping_plan', products: [{ product_id: 'M-013' }],
+    plan: { needs: [{ label: 'Ba lô', product_id: 'M-013', status: 'chosen' }, { label: 'Áo gió', product_id: null, status: 'skipped_budget' }, { label: 'Kem', product_id: null }, null], total: 115, budget: 300 },
+  }, 'đi biển 300$')
+  assert.deepEqual(r.plan.needs.map((n) => [n.label, n.productId, n.status]), [['Ba lô', 'M-013', 'chosen'], ['Áo gió', null, 'skipped_budget'], ['Kem', null, 'no_match']])
+  assert.deepEqual(r.plan.counts, { chosen: 1, skipped: 1, noMatch: 1 })
+  assert.equal(r.plan.withinBudget, true)
+  assert.equal(normalizeChatPlan({ needs: [], total: 400, budget: 300 }).withinBudget, false)
+  assert.equal(normalizeChatPlan({ total: 1 }), null)
+  assert.equal(normalizeChatPayload({ answer: 'x' }, 'q').plan, null)
+  assert.equal(planHref('Chuẩn bị đi biển, 300$'), '/plan?q=Chu%E1%BA%A9n+b%E1%BB%8B+%C4%91i+bi%E1%BB%83n%2C+300%24')
+  let s = chatReducer(initialChatState, { type: 'send', content: 'đi biển 300$' })
+  s = chatReducer(s, { type: 'receive', ...r })
+  assert.equal(s.messages.at(-1).plan.total, 115)
+  assert.equal(s.messages.at(-1).question, 'đi biển 300$')
 })

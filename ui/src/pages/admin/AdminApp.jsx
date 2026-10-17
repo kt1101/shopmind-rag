@@ -14,6 +14,9 @@ import EvalPage from './pages/EvalPage.jsx'
 import EvalRunPage from './pages/EvalRunPage.jsx'
 import FeedbackPage from './pages/FeedbackPage.jsx'
 import AnnotationPage from './pages/AnnotationPage.jsx'
+import SearchPlaygroundPage from './pages/SearchPlaygroundPage.jsx'
+import EmbeddingMapPage from '../embedding-map/EmbeddingMapPage.jsx'
+import '../../shared/ui/ui.css'
 import { EmptyState } from './components/ui.jsx'
 
 export default function AdminApp() {
@@ -33,6 +36,8 @@ export default function AdminApp() {
             <Route path="eval/:runId" element={<EvalRunPage />} />
             <Route path="feedback" element={<FeedbackPage />} />
             <Route path="annotate" element={<AnnotationPage />} />
+            <Route path="playground" element={<SearchPlaygroundPage />} />
+            <Route path="embedding-map" element={<EmbeddingMapPage />} />
             <Route path="*" element={<EmptyState title="Page not found" message="This admin page does not exist." />} />
           </Route>
         </Routes>

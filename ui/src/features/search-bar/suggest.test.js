@@ -38,7 +38,7 @@ test('suggestion targets', () => {
 test('did-you-mean builds search links and skips the current query', () => {
   const out = didYouMean('acme', S)
   assert.deepEqual(out.map((o) => o.label), ['Giày chạy bộ', 'Acme Runner'])
-  assert.equal(out[1].href, '/search?q=Acme+Runner&mode=hybrid')
+  assert.equal(out[1].href, '/search?q=Acme+Runner')
 })
 
 test('feedback payload validation and state machine', () => {

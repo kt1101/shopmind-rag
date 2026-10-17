@@ -1,11 +1,12 @@
 // Maps the parsed URL search (lib/urlState parseSearch) + the attached image to one API call.
+// Text searches send no `mode` / `pipeline`: the backend runs the admin-configured default.
 
 export const RESULT_LIMIT = 20
 
 export function buildSearchCall(search, imageFile, { explain = false, topK = RESULT_LIMIT } = {}) {
   if (!search?.type) return null
   if (search.type === 'text') {
-    return { kind: 'text', args: { query: search.query, mode: search.mode, topK, filters: search.filters, explain } }
+    return { kind: 'text', args: { query: search.query, topK, filters: search.filters, explain } }
   }
   if (!imageFile) return null
   if (search.type === 'compose') {

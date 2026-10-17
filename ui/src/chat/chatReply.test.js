@@ -36,7 +36,7 @@ test('unscoped questions run a hybrid catalog search for the top 3', async () =>
   const results = [{ product_id: 'P1', title: 'Boot' }, { product_id: 'P2', title: 'Hiker' }]
   const api = fakeApi({ searchResults: results })
   const reply = await fetchReply({ question: 'waterproof boots', scope: null, api })
-  assert.deepEqual(api.calls[0], ['searchText', { query: 'waterproof boots', mode: 'hybrid', topK: 3, filters: {}, signal: undefined }])
+  assert.deepEqual(api.calls[0], ['searchText', { query: 'waterproof boots', topK: 3, filters: {}, signal: undefined }])
   assert.equal(reply.kind, 'search')
   assert.deepEqual(reply.sources, results)
   assert.ok(reply.answer.includes('waterproof boots'))

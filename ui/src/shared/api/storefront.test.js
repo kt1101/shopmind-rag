@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
-  askProduct, chatRequestBody, chatStream, getEmbeddingMap, getFacets, getSimilarProducts, projectEmbedding, ragCompare,
+  askProduct, chatRequestBody, chatStream, getEmbeddingMap, getPipelines, planBody, ragPlan, getFacets, getSimilarProducts, projectEmbedding, ragCompare,
   resolveImageUrl, searchCompose, searchImage, searchSuggest, searchText, sendClick, sendFeedback, uploadChatImage,
 } from './storefront.js'
 
@@ -21,6 +21,32 @@ test('explain is only sent when requested (text and image search)', async () => 
   const file = new File(['x'], 'a.png', { type: 'image/png' })
   await searchImage({ file, topK: 5, filters: { brand: 'Acme' }, explain: true, fetchImpl })
   assert.equal(calls[1].url, '/api/v1/search/image?top_k=5&brand=Acme&explain=true')
+})
+
+test('storefront text search sends no mode or pipeline; staff tools may name a pipeline', async () => {
+  const { calls, fetchImpl } = capture({ results: [] })
+  await searchText({ query: ' boots ', topK: 20, filters: {}, fetchImpl })
+  assert.deepEqual(JSON.parse(calls[0].options.body), { query: 'boots', top_k: 20, filters: {} })
+  await searchText({ query: 'boots', pipeline: 'search.bm25', topK: 10, filters: {}, explain: true, fetchImpl })
+  assert.deepEqual(JSON.parse(calls[1].options.body), { query: 'boots', pipeline: 'search.bm25', top_k: 10, filters: {}, explain: true })
+})
+
+test('ragPlan posts the planner body; budget/language/max_needs/explain only when valid', async () => {
+  const { calls, fetchImpl } = capture({ needs: [] })
+  await ragPlan({ request: '  đi biển 5 ngày ', budget: '300', language: 'vi', maxNeeds: 12, explain: true, fetchImpl })
+  assert.equal(calls[0].url, '/api/v1/rag/plan')
+  assert.deepEqual(JSON.parse(calls[0].options.body), { request: 'đi biển 5 ngày', budget: 300, language: 'vi', max_needs: 8, explain: true })
+  assert.deepEqual(planBody({ request: 'x', budget: '', language: 'fr' }), { request: 'x' })
+  assert.deepEqual(planBody({ request: 'x', budget: -5 }), { request: 'x' })
+  assert.deepEqual(planBody({ request: 'x', budget: 'abc', maxNeeds: 1 }), { request: 'x', max_needs: 2 })
+})
+
+test('getPipelines asks for hidden pipelines only when requested', async () => {
+  const { calls, fetchImpl } = capture({ pipelines: [] })
+  await getPipelines({ fetchImpl })
+  await getPipelines({ includeHidden: true, fetchImpl })
+  assert.equal(calls[0].url, '/api/v1/meta/pipelines')
+  assert.equal(calls[1].url, '/api/v1/meta/pipelines?include_hidden=true')
 })
 
 test('searchCompose sends multipart image, text, alpha, top_k and explain', async () => {

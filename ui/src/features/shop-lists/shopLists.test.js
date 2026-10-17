@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
-  COMPARE_MAX, addToCart, buildCompareUrl, cartCount, cartTotal, clampQuantity, parseCompareIds, removeItem, sanitizeList, setCartQuantity, snapshot, toggleItem,
+  COMPARE_MAX, addAllToCart, addToCart, buildCompareUrl, cartCount, cartTotal, clampQuantity, parseCompareIds, removeItem, sanitizeList, setCartQuantity, snapshot, toggleItem,
 } from './shopLists.js'
 
 const p = (id, extra = {}) => ({ product_id: id, title: `T${id}`, description: 'long text', ...extra })
@@ -48,4 +48,11 @@ test('compare ids round-trip through the URL', () => {
   assert.deepEqual(parseCompareIds(' A, B ,A,,C,D'), ['A', 'B', 'C'])
   assert.equal(buildCompareUrl(['A/1', 'B']), '/compare?ids=A%2F1,B')
   assert.equal(buildCompareUrl([]), '/compare')
+})
+
+test('a whole plan can be added to the cart at once', () => {
+  const cart = addAllToCart([{ ...snapshot(p('A')), quantity: 1 }], [p('A'), p('B', { price: { amount: 5, currency: 'USD', synthetic: true } }), null])
+  assert.deepEqual(cart.map((x) => [x.product_id, x.quantity]), [['A', 2], ['B', 1]])
+  assert.deepEqual(cartTotal(cart), { amount: 5, currency: 'USD', synthetic: true })
+  assert.deepEqual(addAllToCart([], undefined), [])
 })
