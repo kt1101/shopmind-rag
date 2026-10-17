@@ -29,7 +29,6 @@ export const ADMIN = {
     'adm.mockHint': 'VITE_MOCK_API=1: dữ liệu giả lập',
     'adm.notFound.title': 'Không có trang này',
     'adm.notFound.text': 'Trang quản trị này không tồn tại.',
-    'adm.loadingConsole': 'Đang tải trang quản trị…',
 
     // shared states
     'adm.loading': 'Đang tải',
@@ -61,7 +60,6 @@ export const ADMIN = {
     'adm.next': 'Sau',
     'adm.page': 'Trang {page}/{pages} · {total} mục',
     'adm.showTable': 'Xem bảng số liệu',
-    'adm.trend': 'Xu hướng: {count} điểm, gần nhất {last}',
     'adm.pill.queued': 'đang chờ',
     'adm.pill.running': 'đang chạy',
     'adm.pill.succeeded': 'thành công',
@@ -410,7 +408,6 @@ export const ADMIN = {
     'adm.mockHint': 'VITE_MOCK_API=1: data is synthetic',
     'adm.notFound.title': 'Page not found',
     'adm.notFound.text': 'This admin page does not exist.',
-    'adm.loadingConsole': 'Loading admin…',
 
     'adm.loading': 'Loading',
     'adm.empty': 'Nothing here yet',
@@ -441,7 +438,6 @@ export const ADMIN = {
     'adm.next': 'Next',
     'adm.page': 'Page {page} of {pages} · {total} items',
     'adm.showTable': 'Show data table',
-    'adm.trend': 'Trend: {count} points, last {last}',
     'adm.pill.queued': 'queued',
     'adm.pill.running': 'running',
     'adm.pill.succeeded': 'succeeded',

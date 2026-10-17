@@ -1867,3 +1867,16 @@
 .shop .product-card .eyebrow { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .shop .filter-section-title { font-family: var(--font-sans); letter-spacing: .06em; }
 .shop .filter-checkbox-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Text labels in the sans font as well (numbers, ids and scores stay monospace). */
+.shop .filter-loading,
+.shop .filter-field label > span,
+.shop .filter-status,
+.shop .product-ask .asked-question span,
+.shop .product-ask .answer-sources h3,
+.shop .product-ask .experimental-label,
+.shop .product-ask .ask-form > label,
+.shop .product-ask .ask-source-options legend {
+  font-family: var(--font-sans);
+  letter-spacing: .04em;
+}

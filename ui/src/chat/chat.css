@@ -598,3 +598,4 @@
 .chat-error-links { margin: 4px 0 0; font-size: 13px; }
 .chat-error-links a { color: var(--color-accent); font-weight: 600; }
 .chat-launcher:focus-visible, .chat-panel button:focus-visible, .chat-panel a:focus-visible, .chat-input:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.chat-citations-title, .chat-citation-type { font-family: var(--font-sans); letter-spacing: .04em; }

@@ -39,8 +39,16 @@ export default function ProductAskPanel({ product }) {
   const [explain, setExplain] = useState(() => readJSON(EXPLAIN_KEY, true) !== false)
   const staff = useStaffMode()
   const controller = useRef(null)
+  const resultRef = useRef(null)
 
   useEffect(() => () => controller.current?.abort(), [])
+
+  // The panel sits below the fold on most screens: bring a new answer or an error into view.
+  useEffect(() => {
+    if (!error && answers.length === 0) return
+    const target = error ? resultRef.current : resultRef.current?.closest?.('.product-ask')?.querySelector('.answer-turn:last-child')
+    target?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })
+  }, [error, answers.length])
 
   function toggleExplain() {
     setExplain((value) => {
@@ -148,7 +156,7 @@ export default function ProductAskPanel({ product }) {
       </form>
 
       {loading && <p className="ask-status" role="status">{t('ask.loadingLong')}</p>}
-      {error && <AskError error={error} onRetry={lastAsk ? () => ask(lastAsk) : null} />}
+      <div ref={resultRef}>{error && <AskError error={error} onRetry={lastAsk ? () => ask(lastAsk) : null} />}</div>
     </section>
   )
 }
