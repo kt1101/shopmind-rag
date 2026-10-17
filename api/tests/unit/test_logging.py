@@ -6,8 +6,8 @@ import logging
 import pytest
 from fastapi.testclient import TestClient
 
-import shopmind.app.main as main_module
-from shopmind.app.core.logging import configure_logging, log_search_event
+import shopmind.main as main_module
+from shopmind.core.logging import configure_logging, log_search_event
 from tests.api.conftest import FakeEmbedder, FakeRepository, FakeSearchService
 
 

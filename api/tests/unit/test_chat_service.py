@@ -6,12 +6,12 @@ import threading
 
 import pytest
 
-from shopmind.app.chat.models import ChatTurn
-from shopmind.app.chat.service import ChatService, answer_payload
-from shopmind.app.core.config import ChatConfig
-from shopmind.app.llm.base import InvalidLLMOutput, LLMProviderError
-from shopmind.app.rag.models import Citation, GenerationDelta, GenerationFinal, GenerationReset, PreparedContext, RAGAnswer
-from shopmind.app.rag.service import RAGGenerationError
+from shopmind.application.chat.models import ChatTurn
+from shopmind.application.chat.service import ChatService, answer_payload
+from shopmind.core.config import ChatConfig
+from shopmind.infrastructure.llm.base import InvalidLLMOutput, LLMProviderError
+from shopmind.application.rag.models import Citation, GenerationDelta, GenerationFinal, GenerationReset, PreparedContext, RAGAnswer
+from shopmind.application.rag.service import RAGGenerationError
 
 ANSWER = RAGAnswer("Final text", (Citation("D1", "policy", "Returns", 0.5, policy_version="v1"),), False, {"x": 1})
 
@@ -137,7 +137,7 @@ def test_answer_payload_shape():
     payload = answer_payload(ANSWER, "sq")
     assert payload == {
         "answer": "Final text",
-        "sources": [{"document_id": "D1", "source": "policy", "title": "Returns", "score": 0.5, "product_id": None, "policy_version": "v1", "source_url": None, "metadata": {}}],
+        "sources": [{"citation_id": "D1", "document_id": "D1", "source": "policy", "title": "Returns", "score": 0.5, "product_id": None, "policy_version": "v1", "source_url": None, "url": None, "snippet": None, "image_url": None, "metadata": {}}],
         "insufficient_evidence": False,
         "standalone_question": "sq",
     }
@@ -150,9 +150,9 @@ def test_stream_event_sequence():
     cancelled = threading.Event()
     out = list(svc.stream(p, cancelled))
     assert [e.event for e in out] == ["meta", "delta", "reset", "delta", "done"]
-    assert out[0].data == {"standalone_question": "q", "rewrite_fallback": False}
+    assert out[0].data == {"standalone_question": "q", "rewrite_fallback": False, "session_id": p.session_id, "intent": "product_question", "trace_id": None}
     assert out[1].data == {"text": "Fin"} and out[2].data == {"reason": "citation_retry"}
-    assert out[-1].data == answer_payload(ANSWER, "q")
+    assert out[-1].data == {**answer_payload(ANSWER, "q", p), "trace_id": None}
     assert rag.stream_cancelled == [cancelled]
 
 

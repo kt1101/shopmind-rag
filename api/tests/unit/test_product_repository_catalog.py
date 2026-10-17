@@ -4,10 +4,10 @@ import json
 
 import pytest
 
-from shopmind.app.domain.catalog import ProductPage
-from shopmind.app.infrastructure.elasticsearch.repository import ElasticsearchProductRepository, ProductIndexMissing
+from shopmind.domain.catalog import ProductPage
+from shopmind.infrastructure.elasticsearch.repository import ElasticsearchProductRepository, ProductIndexMissing
 
-_EXCLUDES = {"text_vector", "image_vector", "search_text"}
+_EXCLUDES = {"text_vector", "image_vector", "siglip_text_vector", "embedding_identities", "search_text"}
 
 
 class _GetClient:

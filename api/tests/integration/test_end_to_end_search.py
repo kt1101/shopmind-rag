@@ -1,18 +1,18 @@
-from shopmind.app.embedding.validation import index_embedding_metadata
+from shopmind.infrastructure.embedding.validation import index_embedding_metadata
 
 import os
 import uuid
 import numpy as np
 import pytest
 from PIL import Image
-from shopmind.app.domain.search_query import SearchMode, SearchRequest
-from shopmind.app.infrastructure.elasticsearch.index import create_versioned_index, switch_alias
-from shopmind.app.infrastructure.elasticsearch.repository import ElasticsearchProductRepository
-from shopmind.app.retrieval.bm25 import BM25Retriever
-from shopmind.app.retrieval.dense import CrossModalRetriever, ImageDenseRetriever, TextDenseRetriever
-from shopmind.app.retrieval.hybrid import HybridRetriever
-from shopmind.app.retrieval.reranker import NoOpReranker
-from shopmind.app.search.service import SearchService
+from shopmind.domain.search_query import SearchMode, SearchRequest
+from shopmind.infrastructure.elasticsearch.index import create_versioned_index, switch_alias
+from shopmind.infrastructure.elasticsearch.repository import ElasticsearchProductRepository
+from shopmind.application.retrieval.bm25 import BM25Retriever
+from shopmind.application.retrieval.dense import CrossModalRetriever, ImageDenseRetriever, TextDenseRetriever
+from shopmind.application.retrieval.hybrid import HybridRetriever
+from shopmind.application.retrieval.reranker import NoOpReranker
+from shopmind.application.search.service import SearchService
 
 pytestmark = pytest.mark.integration
 

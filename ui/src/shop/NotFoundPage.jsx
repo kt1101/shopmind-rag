@@ -1,11 +1,13 @@
 import { Link } from 'react-router'
+import { useI18n } from '../shared/ui/I18nProvider.jsx'
 
 export default function NotFoundPage() {
+  const { t } = useI18n()
   return (
     <div className="not-found-page">
-      <h1>Page not found</h1>
-      <p>The page you are looking for does not exist.</p>
-      <Link to="/">Return to catalog</Link>
+      <h1>{t('notFound.title')}</h1>
+      <p>{t('notFound.text')}</p>
+      <Link to="/">{t('notFound.back')}</Link>
     </div>
   )
 }

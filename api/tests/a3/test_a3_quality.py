@@ -6,13 +6,13 @@ from types import SimpleNamespace
 
 import pytest
 
-from shopmind.app.domain.search_result import RetrievedDocument
-from shopmind.app.llm.base import LLMProviderError
-from shopmind.app.llm.openai_provider import OpenAIProvider
-from shopmind.app.rag.citations import CitationResolver
-from shopmind.app.rag.context import ContextBuilder
-from shopmind.app.rag.models import RAGRequest
-from shopmind.app.rag.service import RAGGenerationError
+from shopmind.domain.search_result import RetrievedDocument
+from shopmind.infrastructure.llm.base import LLMProviderError
+from shopmind.infrastructure.llm.openai_provider import OpenAIProvider
+from shopmind.application.rag.citations import CitationResolver
+from shopmind.application.rag.context import ContextBuilder
+from shopmind.application.rag.models import RAGRequest
+from shopmind.application.rag.service import RAGGenerationError
 from tests.a3.test_a3_service import Retriever, _service
 
 

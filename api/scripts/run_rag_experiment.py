@@ -5,9 +5,9 @@ from pathlib import Path
 
 from evaluation.rag.datasets import load_rag_cases
 from evaluation.rag.runner import run_rag_experiment
-from shopmind.app.core.config import load_app_config
-from shopmind.app.main import _wire_runtime, create_app
-from shopmind.app.rag.service import create_rag_service
+from shopmind.core.config import load_app_config
+from shopmind.main import _wire_runtime, create_app
+from shopmind.application.rag.service import create_rag_service
 
 
 def main() -> None:

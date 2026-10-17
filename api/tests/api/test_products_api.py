@@ -4,10 +4,10 @@ import elasticsearch
 import pytest
 from fastapi.testclient import TestClient
 
-from shopmind.app.api.errors import InvalidPagination, ProductNotFound, SearchInfrastructureError
-from shopmind.app.catalog.service import CatalogService
-from shopmind.app.infrastructure.elasticsearch.repository import ProductIndexMissing
-from shopmind.app.main import create_app
+from shopmind.interfaces.http.errors import InvalidPagination, ProductNotFound, SearchInfrastructureError
+from shopmind.application.catalog.service import CatalogService
+from shopmind.infrastructure.elasticsearch.repository import ProductIndexMissing
+from shopmind.main import create_app
 
 
 class FakeCatalogService:
@@ -42,8 +42,8 @@ def client(fake):
 def test_list_products_response_shape(client, fake):
     r = client.get("/api/v1/products?category=SHOES&category=BOOT&brand=Klepe&page=2&page_size=12")
     assert r.status_code == 200 and fake.calls[-1] == {"categories": ["SHOES", "BOOT"], "brands": ["Klepe"], "page": 2, "page_size": 12}
-    assert set(r.json()) == {"items", "total", "page", "page_size", "facets"}
-    assert set(r.json()["items"][0]) == {"product_id", "title", "image_url", "brand", "category"}
+    assert set(r.json()) == {"items", "total", "page", "page_size", "limit", "offset", "facets"}
+    assert set(r.json()["items"][0]) == {"product_id", "title", "image_url", "brand", "category", "price"}
     assert r.json()["facets"] == {"category": [{"value": "SHOES", "label": "Shoes", "count": 1}]}
 
 
@@ -72,7 +72,8 @@ def test_list_products_invalid_pagination(client, fake):
 def test_product_detail_has_only_whitelisted_fields(client):
     r = client.get("/api/v1/products/P1")
     assert r.status_code == 200
-    assert set(r.json()) == {"product_id", "title", "brand", "category", "category_label", "description", "attributes", "bullet_points", "category_path", "image_url"}
+    # Contract additions: gallery and synthetic commerce data (null when not configured).
+    assert set(r.json()) == {"product_id", "title", "brand", "category", "category_label", "description", "attributes", "bullet_points", "category_path", "image_url", "images", "price", "stock"}
     assert "search_text" not in r.text and "text_vector" not in r.text
 
 

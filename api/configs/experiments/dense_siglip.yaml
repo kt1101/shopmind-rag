@@ -1,0 +1,18 @@
+# Previous dense setup: SigLIP2 text vectors (siglip_text_vector), kept to show the A-1 gain.
+experiment:
+  name: dense_siglip
+  dataset_version: abo_a1_1500_v1
+  index_version: products_a1_1500_v2
+retrieval:
+  mode: dense
+  top_k: 10
+  candidate_k: 100
+  pipeline: search.dense_siglip
+fusion:
+  method: none
+  rrf_k: 60
+embedding:
+  model: google/siglip2-base-patch16-224
+  version: default
+reranker:
+  enabled: false

@@ -1,9 +1,10 @@
-export const SEARCH_MODES = {
-  hybrid: 'Hybrid',
-  bm25: 'BM25',
-  dense: 'Dense text',
-  cross_modal: 'Cross-modal',
-}
+// Storefront search URLs never carry an algorithm: the backend runs the admin-configured
+// default pipeline (config `defaults.search`, docs/API_CONTRACT.md "Storefront vs. staff").
+// Old links with `?mode=` still work, the parameter is simply ignored.
+
+export const DEFAULT_ALPHA = 0.6
+// URL filter fields. `color` exists only on search (the catalog listing has no colour filter).
+export const FILTER_FIELDS = ['category', 'brand', 'color']
 
 function normalizeValues(values) {
   if (!values || !Array.isArray(values)) return []
@@ -20,89 +21,81 @@ function normalizeValues(values) {
   return result
 }
 
+export function parseAlpha(value) {
+  if (value === null || value === undefined || value === '') return DEFAULT_ALPHA
+  const n = Number(value)
+  if (!Number.isFinite(n)) return DEFAULT_ALPHA
+  return Math.round(Math.min(1, Math.max(0, n)) * 100) / 100
+}
+
 export function parseFilters(params) {
   const p = params instanceof URLSearchParams ? params : new URLSearchParams(params || '')
   return {
     category: normalizeValues(p.getAll('category')),
     brand: normalizeValues(p.getAll('brand')),
+    color: normalizeValues(p.getAll('color')),
   }
 }
 
 export function parseSearch(params) {
   const p = params instanceof URLSearchParams ? params : new URLSearchParams(params || '')
   const filters = parseFilters(p)
-  const rawMode = p.get('mode')
-  const mode = rawMode && Object.prototype.hasOwnProperty.call(SEARCH_MODES, rawMode) ? rawMode : 'hybrid'
+  const rawQuery = (p.get('q') || '').trim()
 
   if (p.get('type') === 'image') {
-    return {
-      type: 'image',
-      query: '',
-      mode,
-      filters,
-    }
+    return { type: 'image', query: '', filters }
   }
 
-  const rawQuery = (p.get('q') || '').trim()
+  // F1: image + text. Without text it degrades to an image search.
+  if (p.get('type') === 'compose') {
+    return rawQuery
+      ? { type: 'compose', query: rawQuery, filters, alpha: parseAlpha(p.get('alpha')) }
+      : { type: 'image', query: '', filters }
+  }
+
   if (rawQuery.length > 0) {
-    return {
-      type: 'text',
-      query: rawQuery,
-      mode,
-      filters,
-    }
+    return { type: 'text', query: rawQuery, filters }
   }
 
-  return {
-    type: null,
-    query: '',
-    mode,
-    filters,
+  return { type: null, query: '', filters }
+}
+
+function appendFilters(params, filters, fields) {
+  for (const field of fields) {
+    for (const value of normalizeValues(filters?.[field])) params.append(field, value)
   }
 }
 
 export function buildCatalogUrl(filters = {}) {
   const params = new URLSearchParams()
-  const categories = normalizeValues(filters?.category)
-  const brands = normalizeValues(filters?.brand)
-
-  for (const cat of categories) {
-    params.append('category', cat)
-  }
-  for (const b of brands) {
-    params.append('brand', b)
-  }
-
+  appendFilters(params, filters, ['category', 'brand'])
   const qs = params.toString()
   return qs ? `/?${qs}` : '/'
 }
 
-export function buildSearchUrl({ type, query, mode, filters } = {}) {
+export function buildSearchUrl({ type, query, filters, alpha } = {}) {
   const params = new URLSearchParams()
+  const trimmedQuery = typeof query === 'string' ? query.trim() : ''
 
   if (type === 'image') {
     params.append('type', 'image')
-  } else {
-    const trimmedQuery = typeof query === 'string' ? query.trim() : ''
-    const validMode = mode && Object.prototype.hasOwnProperty.call(SEARCH_MODES, mode) ? mode : 'hybrid'
+  } else if (type === 'compose') {
+    params.append('type', 'compose')
     params.append('q', trimmedQuery)
-    params.append('mode', validMode)
+    params.append('alpha', String(parseAlpha(alpha)))
+  } else {
+    params.append('q', trimmedQuery)
   }
 
-  const categories = normalizeValues(filters?.category)
-  const brands = normalizeValues(filters?.brand)
-
-  for (const cat of categories) {
-    params.append('category', cat)
-  }
-  for (const b of brands) {
-    params.append('brand', b)
-  }
-
+  appendFilters(params, filters, FILTER_FIELDS)
   const qs = params.toString()
   return qs ? `/search?${qs}` : '/search'
 }
 
 export function productPath(productId) {
   return `/products/${encodeURIComponent(String(productId ?? ''))}`
+}
+
+export function hasActiveFilters(filters = {}) {
+  return FILTER_FIELDS.some((field) => (filters[field] || []).length > 0)
 }

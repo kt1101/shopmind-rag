@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    name: api (python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: api/pyproject.toml
+
+      - name: Install CPU-only torch
+        # The default PyPI torch wheel pulls several GB of CUDA libraries; tests never use a GPU.
+        run: python -m pip install --upgrade pip && python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.2,<3.0"
+
+      - name: Install API
+        run: python -m pip install -e '.[dev]'
+
+      - name: Ruff
+        run: ruff check shopmind evaluation scripts tests
+
+      - name: Fast tests
+        # These two tests read data/a1_abo_1500/products.jsonl, a generated (git-ignored)
+        # dataset built by scripts.prepare_a1_abo_subset. It is not available in CI.
+        run: >-
+          pytest tests/unit tests/api tests/evaluation tests/a3 tests/platform -q
+          --deselect tests/evaluation/test_accuracy_benchmark.py::test_benchmark_is_complete_disjoint_and_reproducible
+          --deselect tests/a3/test_a3_storage.py::test_review_matches_only_exact_catalog_asin_or_parent_asin
+
+  ui:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+  integration:
+    runs-on: ubuntu-latest
+    # Non-blocking until the integration suite has a stable CI history.
+    continue-on-error: true
+    services:
+      elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: "false"
+          ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+        ports:
+          - 9200:9200
+        options: >-
+          --health-cmd "curl -fsS http://localhost:9200/_cluster/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 20
+          --health-start-period 30s
+    env:
+      ELASTICSEARCH_URL: http://localhost:9200
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: api/pyproject.toml
+
+      - name: Install CPU-only torch
+        run: python -m pip install --upgrade pip && python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.2,<3.0"
+
+      - name: Install API
+        run: python -m pip install -e '.[dev]'
+
+      - name: Integration tests
+        run: pytest tests/integration -m integration -q
+
+  hardcode-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: No physical index names or model ids in application code
+        run: sh scripts/ci/check_hardcode.sh

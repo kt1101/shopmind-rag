@@ -3,10 +3,10 @@ from __future__ import annotations
 import elasticsearch
 import pytest
 
-from shopmind.app.api.errors import InvalidFilter, InvalidPagination, ProductNotFound, SearchInfrastructureError
-from shopmind.app.catalog.service import CatalogService, humanize_category
-from shopmind.app.domain.catalog import ProductPage
-from shopmind.app.infrastructure.elasticsearch.repository import ProductIndexMissing
+from shopmind.interfaces.http.errors import InvalidFilter, InvalidPagination, ProductNotFound, SearchInfrastructureError
+from shopmind.application.catalog.service import CatalogService, humanize_category
+from shopmind.domain.catalog import ProductPage
+from shopmind.infrastructure.elasticsearch.repository import ProductIndexMissing
 
 
 class FakeRepo:
@@ -59,7 +59,7 @@ def test_detail_maps_metadata_and_tolerates_missing_fields():
         "description": "", "attributes": {"color": "Black", "size": 9}, "metadata": {"bullet_points": ["Soft", 3], "node_paths": ["/Home/Bedding//Sheets"]}})).get_product("P1")
     assert d["category_label"] == "Home Bed And Bath" and d["brand"] is None and d["image_url"] is None
     assert d["attributes"] == {"color": "Black", "size": "9"} and d["bullet_points"] == ["Soft"] and d["category_path"] == ["Home", "Bedding", "Sheets"]
-    assert set(d) == {"product_id", "title", "brand", "category", "category_label", "description", "attributes", "bullet_points", "category_path", "image_url"}
+    assert set(d) == {"product_id", "title", "brand", "category", "category_label", "description", "attributes", "bullet_points", "category_path", "image_url", "images"}
 
 
 def test_detail_without_metadata_has_empty_lists():

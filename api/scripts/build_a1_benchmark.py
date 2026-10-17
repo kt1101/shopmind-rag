@@ -139,14 +139,14 @@ def build_benchmark(products_path: str | Path, output_dir: str | Path, *, seed: 
         query_id = f"i{index:03}"
         relative_path = Path("images") / f"{query_id}.jpg"
         _transform_image(Path(row["main_image_path"]), output / relative_path)
-        queries.append({"query_id": query_id, "query_type": "image", "image_path": str(relative_path), "group": "image"})
+        queries.append({"query_id": query_id, "query_type": "image", "image_path": relative_path.as_posix(), "group": "image"})
         qrels.extend([
             {"query_id": query_id, "product_id": row["product_id"], "relevance": 2},
             {"query_id": query_id, "product_id": _distractor(row, products), "relevance": 0},
         ])
 
     for filename, rows in (("queries.jsonl", queries), ("qrels.jsonl", qrels)):
-        (output / filename).write_text("".join(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n" for row in rows), encoding="utf-8")
+        (output / filename).write_text("".join(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n" for row in rows), encoding="utf-8", newline="\n")
     (output / "README.md").write_text(
         "# ShopMind A1 benchmark\n\n"
         "100 deterministic queries: 80 text (45 English, 35 Vietnamese) and 20 transformed image queries.\n\n"

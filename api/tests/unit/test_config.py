@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from shopmind.app.core.config import load_app_config, parse_origins
+from shopmind.core.config import load_app_config, parse_origins
 
 _MINIMAL_YAML = (
     "elasticsearch:\n  url: http://localhost:9200\n  index_alias: products\n"

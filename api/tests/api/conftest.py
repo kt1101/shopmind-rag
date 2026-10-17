@@ -3,8 +3,8 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from shopmind.app.domain.search_result import SearchResult
-from shopmind.app.main import create_app
+from shopmind.domain.search_result import SearchResult
+from shopmind.main import create_app
 
 
 class FakeSearchService:

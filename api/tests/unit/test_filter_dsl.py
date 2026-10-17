@@ -1,5 +1,5 @@
 import pytest
-from shopmind.app.infrastructure.elasticsearch.repository import build_filter_clauses
+from shopmind.infrastructure.elasticsearch.repository import build_filter_clauses
 
 
 def test_filters_support_single_and_multi_values():
@@ -14,7 +14,7 @@ def test_product_id_uses_keyword_field_directly():
 
 
 def test_partial_filter_clauses_use_contains_for_catalog_fields_and_prefix_for_product_id():
-    from shopmind.app.infrastructure.elasticsearch.repository import build_partial_filter_clauses
+    from shopmind.infrastructure.elasticsearch.repository import build_partial_filter_clauses
 
     assert build_partial_filter_clauses({"brand": "amaz", "category": "cell phone", "product_id": "b01"}) == [
         {"wildcard": {"brand.keyword": {"value": "*amaz*", "case_insensitive": True}}},

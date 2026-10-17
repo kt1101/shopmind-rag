@@ -2,13 +2,13 @@ from __future__ import annotations
 import argparse,json
 from pathlib import Path
 import numpy as np
-from shopmind.app.core.config import load_app_config
-from shopmind.app.embedding.validation import index_embedding_metadata, validate_vectors
-from shopmind.app.infrastructure.elasticsearch.client import create_elasticsearch_client
-from shopmind.app.infrastructure.elasticsearch.index import switch_alias
-from shopmind.app.infrastructure.elasticsearch.knowledge_index import create_knowledge_index, validate_knowledge_index
-from shopmind.app.infrastructure.elasticsearch.knowledge_repository import ElasticsearchKnowledgeRepository
-from shopmind.pipeline.knowledge_embedding_artifacts import load_knowledge_embedding_artifacts
+from shopmind.core.config import load_app_config
+from shopmind.infrastructure.embedding.validation import index_embedding_metadata, validate_vectors
+from shopmind.infrastructure.elasticsearch.client import create_elasticsearch_client
+from shopmind.infrastructure.elasticsearch.index import switch_alias
+from shopmind.infrastructure.elasticsearch.knowledge_index import create_knowledge_index, validate_knowledge_index
+from shopmind.infrastructure.elasticsearch.knowledge_repository import ElasticsearchKnowledgeRepository
+from shopmind.ingestion.knowledge_embedding_artifacts import load_knowledge_embedding_artifacts
 
 def _load_jsonl(path:Path): return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 def build_review_index_documents(rows,document_ids,vectors,*,embedding_model:str,embedding_version:str):

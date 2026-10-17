@@ -1,6 +1,6 @@
-from shopmind.app.domain.search_query import SearchMode, SearchRequest
-from shopmind.app.domain.search_result import RawSearchHit
-from shopmind.app.retrieval.bm25 import BM25Retriever
+from shopmind.domain.search_query import SearchMode, SearchRequest
+from shopmind.domain.search_result import RawSearchHit
+from shopmind.application.retrieval.bm25 import BM25Retriever
 
 
 class FakeRepo:
@@ -41,7 +41,7 @@ def test_bm25_empty_hits_become_empty_results_and_filters_forward_unchanged():
 
 
 def test_lexical_normalization_translates_catalog_terms_without_changing_ids():
-    from shopmind.app.retrieval.language import normalize_lexical_query, catalog_color_terms
+    from shopmind.application.retrieval.language import normalize_lexical_query, catalog_color_terms
     assert "pillow" in normalize_lexical_query("Tìm gối màu xám của Ravenna Home.")
     assert "gray" in normalize_lexical_query("Tìm gối màu xám của Ravenna Home.")
     assert normalize_lexical_query("b07ABC1234")=="b07ABC1234"

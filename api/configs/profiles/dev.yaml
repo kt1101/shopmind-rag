@@ -1,0 +1,9 @@
+# Local development on the host: SQLite file (tables created at startup), admin auth on.
+# The values below are DEV-ONLY placeholders; JWT_SECRET / ADMIN_PASSWORD env vars override them.
+database:
+  url: sqlite:///./data/shopmind.db
+  auto_create: true
+auth:
+  enabled: true
+  jwt_secret: dev-only-insecure-jwt-secret-change-me
+  admin_password: admin

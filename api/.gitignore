@@ -5,6 +5,10 @@ venv/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+*.db
 .coverage
 htmlcov/
 .DS_Store
@@ -20,3 +24,4 @@ evaluation/benchmarks/a1/images/
 models/
 .superpowers/
 data/evaluation/
+data/jobs/

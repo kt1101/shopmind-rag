@@ -1,0 +1,66 @@
+# Shopping-planner occasions (F6). Used to decompose a request into needs when no LLM is configured,
+# and as a hint for the LLM decomposer. Categories must be catalog category values; queries are short
+# product phrases (English works best against multilingual ABO titles; the E5 embedder also reads vi).
+# priority: must = core of the occasion, nice = only if the budget allows.
+occasions:
+  new_apartment:
+    label: {vi: Dọn vào nhà mới, en: Moving into a new home}
+    keywords: [chuyển nhà, chuyển vào, nhà mới, căn hộ, chung cư, studio, phòng trọ, dọn nhà, phòng khách, phòng ngủ, new apartment, new home, moving, move in, living room, bedroom]
+    needs:
+      - {label: {vi: Ghế sofa, en: Sofa}, query: sofa couch, categories: [SOFA], priority: must}
+      - {label: {vi: Bàn, en: Table}, query: table, categories: [TABLE, DESK], priority: must}
+      - {label: {vi: Đèn, en: Lamp}, query: lamp, categories: [LAMP, LIGHT_FIXTURE, HOME_LIGHTING_AND_LAMPS], priority: must}
+      - {label: {vi: Bộ ga giường, en: Bedding}, query: bed sheet set, categories: [FLAT_SHEET, HOME_BED_AND_BATH], priority: must}
+      - {label: {vi: Thảm, en: Rug}, query: area rug, categories: [RUG], priority: nice}
+      - {label: {vi: Tranh treo tường, en: Wall art}, query: wall art print, categories: [WALL_ART], priority: nice}
+  trip:
+    label: {vi: Đi du lịch / đi biển, en: Trip / beach holiday}
+    keywords: [du lịch, đi biển, đi chơi, nghỉ mát, nghỉ dưỡng, công tác, beach, trip, travel, vacation, holiday]
+    needs:
+      - {label: {vi: Vali / balo, en: Suitcase or backpack}, query: suitcase luggage, categories: [SUITCASE, LUGGAGE, BACKPACK], priority: must}
+      - {label: {vi: Dép / xăng đan, en: Sandals}, query: sandals, categories: [SANDAL], priority: must}
+      - {label: {vi: Mũ, en: Hat}, query: sun hat, categories: [HAT], priority: must}
+      - {label: {vi: Kính râm, en: Sunglasses}, query: sunglasses, categories: [SUNGLASSES, EYEWEAR], priority: nice}
+      - {label: {vi: Túi đi biển, en: Beach bag}, query: tote bag, categories: [TOTE_BAG, HANDBAG], priority: nice}
+      - {label: {vi: Ô / dù, en: Umbrella}, query: umbrella, categories: [UMBRELLA], priority: nice}
+  home_office:
+    label: {vi: Góc làm việc tại nhà, en: Home office}
+    keywords: [làm việc tại nhà, góc làm việc, bàn làm việc, văn phòng, học online, work from home, home office, desk setup, study]
+    needs:
+      - {label: {vi: Bàn làm việc, en: Desk}, query: desk table, categories: [DESK, TABLE], priority: must}
+      - {label: {vi: Ghế, en: Chair}, query: office chair, categories: [CHAIR, STOOL_SEATING], priority: must}
+      - {label: {vi: Đèn bàn, en: Desk lamp}, query: desk lamp, categories: [LAMP, LIGHT_FIXTURE], priority: must}
+      - {label: {vi: Văn phòng phẩm, en: Office supplies}, query: office supplies, categories: [OFFICE_PRODUCTS, WRITING_INSTRUMENT, STAPLER, FILE_FOLDER], priority: nice}
+      - {label: {vi: Tai nghe, en: Headphones}, query: headphones, categories: [HEADPHONES], priority: nice}
+      - {label: {vi: Kệ / hộp đựng đồ, en: Storage}, query: shelf storage, categories: [SHELF, STORAGE_BOX, STORAGE_RACK], priority: nice}
+  gift:
+    label: {vi: Quà tặng, en: Gift}
+    keywords: [quà, tặng, sinh nhật, kỷ niệm, valentine, bạn gái, người yêu, vợ, mẹ, gift, birthday, anniversary, present]
+    needs:
+      - {label: {vi: Trang sức, en: Jewelry}, query: necklace earrings ring, categories: [FINENECKLACEBRACELETANKLET, FINEEARRING, FINERING, NECKLACE, EARRING, RING], priority: must}
+      - {label: {vi: Túi xách / ví, en: Bag or wallet}, query: handbag, categories: [HANDBAG, TOTE_BAG, WALLET], priority: nice}
+      - {label: {vi: Làm đẹp, en: Beauty}, query: beauty skin care, categories: [BEAUTY, SKIN_MOISTURIZER], priority: nice}
+  new_pet:
+    label: {vi: Đón thú cưng mới, en: New pet}
+    keywords: [chó, cún, mèo, thú cưng, puppy, kitten, pet, dog, cat]
+    needs:
+      - {label: {vi: Giường / đệm thú cưng, en: Pet bed}, query: pet bed, categories: [PET_SUPPLIES], priority: must}
+      - {label: {vi: Bát ăn, en: Food bowl}, query: pet bowl, categories: [PET_SUPPLIES], priority: must}
+      - {label: {vi: Đồ chơi, en: Toy}, query: dog toy, categories: [PET_SUPPLIES], priority: nice}
+      - {label: {vi: Dây dắt / vòng cổ, en: Leash or collar}, query: leash collar, categories: [PET_SUPPLIES], priority: nice}
+  kitchen:
+    label: {vi: Sắm đồ bếp, en: Kitchen starter set}
+    keywords: [nấu ăn, bếp, nhà bếp, kitchen, cooking, cook]
+    needs:
+      - {label: {vi: Chảo / nồi, en: Pan or pot}, query: frying pan pot, categories: [SAUTE_FRY_PAN, DUTCH_OVENS, SHEET_PAN, KITCHEN], priority: must}
+      - {label: {vi: Dao, en: Knife}, query: kitchen knife, categories: [KITCHEN_KNIFE, KITCHEN], priority: must}
+      - {label: {vi: Ly / cốc, en: Cups}, query: drinking glass cup, categories: [DRINKING_CUP, BOTTLE], priority: nice}
+      - {label: {vi: Hũ đựng, en: Storage jars}, query: storage jar, categories: [JAR, STORAGE_BOX], priority: nice}
+  fitness:
+    label: {vi: Tập luyện tại nhà, en: Home workout}
+    keywords: [tập gym, gym, thể dục, tập luyện, chạy bộ, yoga, workout, fitness, exercise, running]
+    needs:
+      - {label: {vi: Giày thể thao, en: Sport shoes}, query: running shoes, categories: [SHOES, TECHNICAL_SPORT_SHOE], priority: must}
+      - {label: {vi: Thảm tập, en: Exercise mat}, query: yoga exercise mat, categories: [EXERCISE_MAT, SPORTING_GOODS], priority: must}
+      - {label: {vi: Dụng cụ tập, en: Training gear}, query: resistance band dumbbell, categories: [EXERCISE_BAND, BARBELL, MUSCLE_ROLLER, SPORTING_GOODS], priority: nice}
+      - {label: {vi: Bình nước, en: Water bottle}, query: water bottle, categories: [BOTTLE, DRINKING_CUP], priority: nice}

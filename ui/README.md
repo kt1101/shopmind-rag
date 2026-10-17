@@ -1,68 +1,133 @@
-# ShopMind A1 + A3 UI
+# shopmind-ui
 
-React + Vite interface for comparing retrieval modes, searching by image, and asking source-backed questions about a selected product, plus a shopper-facing storefront.
+React 19 + Vite 8 + react-router 7 frontend for ShopMind: the shopper storefront (multimodal
+search, product pages, compare, cart, the shopping planner), the RAG shopping assistant and the
+admin console (`/admin`) with the engineering tools (glass-box inspectors, Search Playground,
+embedding map). Plain JavaScript, no extra UI libraries: charts, drawers and scatter plots are
+React + SVG + CSS.
 
-## Storefront
+HTTP shapes follow [`docs/API_CONTRACT.md`](../docs/API_CONTRACT.md) (source of truth).
 
-The storefront provides shopper-facing catalog browsing, multimodal search, product details, and a floating RAG assistant:
+## Routes
 
-- `/` — Catalog browse with category & brand filters and pagination
-- `/search` — Multimodal search (Hybrid, BM25, Dense text, Cross-modal, or Image search) with filters
-- `/products/:productId` — Product detail with description, specifications, similar products, and an "Ask about this product" panel backed by the A3 `POST /api/v1/rag/ask` endpoint
-- `/lab` — Multimodal Retrieval Lab (the original comparison lab, unchanged)
+| Route | What it is |
+|---|---|
+| `/` | Catalog with category/brand facets (counts) and pagination |
+| `/search?q=` | Text search with facets incl. colour, "Hệ thống hiểu" banner, "Có phải bạn muốn tìm…", 👍/👎. No algorithm choice: the request has no `mode`/`pipeline`, the backend runs the admin default (`defaults.search`); old `?mode=` links are ignored |
+| `/search?type=image` | Image search (image attached from the search bar) |
+| `/search?type=compose&q=&alpha=` | F1 image + text search with a live α slider |
+| `/products/:id` | Gallery, synthetic price/stock, add to cart/compare/wishlist, "Sản phẩm tương tự về hình ảnh", Ask-about-this-product (RAG) |
+| `/compare?ids=a,b,c` | F3 attribute table + cited RAG summary |
+| `/cart` | Cart and wishlist (localStorage, no checkout) |
+| `/plan?q=&budget=` | F6 shopping planner (`POST /rag/plan`): occasion + optional USD budget → one product per need with cited reasons, budget bar, alternatives that swap the pick and recompute the total client-side, `skipped_budget` / `no_match` states, policy tips, "Thêm tất cả vào giỏ" |
+| `/admin/*` | Admin console (lazy loaded, JWT) |
+| `/lab`, `/lab/embeddings` | Redirect to `/admin/playground` and `/admin/embedding-map` (the Retrieval Lab was removed) |
 
-The floating assistant is scoped to the product you are viewing and answers through `POST /api/v1/rag/ask` with cited evidence. Outside a product page (or after removing the scope) it runs a hybrid catalog search, and **Ask about this** on any result scopes the chat to that product.
+Admin console groups: **Operate** (Dashboard, Pipeline & Config, Indexes & Jobs, Policies,
+Feedback) and **Glass-box & lab** (Traces, Search Playground, Embedding Map, Evaluation,
+Annotation).
 
-## In-memory mock mode (`VITE_MOCK_API=1`)
+- **Pipeline & Config** starts with the card "Thuật toán tìm kiếm của cửa hàng": the public
+  search pipelines from `/meta/pipelines` (name + description), bound to the hot-reloadable
+  key `defaults.search`. Saving uses `PUT /admin/config` with an auto-filled profile name
+  (`search-default-<pipeline>`); the card shows the active value, the `defaults.search` history
+  and a roll-back button (profile re-activation).
+- **Search Playground** (`/admin/playground?q=&a=&b=&k=&category=&brand=`): one query through
+  one or two pipelines from `/meta/pipelines?include_hidden=true` (evaluation-only ones
+  flagged) with `explain: true`, results side by side with rank cross-reference, overlap@10,
+  round-trip and server latency, and a button per side that opens the Search Inspector.
+- **Embedding Map** (`/admin/embedding-map`): text E5 / old SigLIP text / SigLIP image spaces
+  with query projection.
+- **Traces**: rows open in the same Inspector drawer (the console mounts `InspectorHost`).
 
-To run the frontend with the in-memory mock:
+## Shoppers vs. staff (glass-box)
 
-```bash
-VITE_MOCK_API=1 npm run dev
+Shoppers never see algorithms, traces or `explain`. **Staff mode** turns on while an
+admin-console session exists (`shared/lib/useStaffMode.js`, which reads
+`pages/admin/lib/authStorage.js`; the session lives in `localStorage` so a login or logout in
+another tab is picked up through the `storage` event, plus a same-tab event). Staff mode shows a
+"Chế độ quản trị" pill in the header and these affordances, each sending `explain: true`:
+"Vì sao có kết quả này?" on the results page (**Search Inspector**: Truy vấn · Xếp hạng · Từ
+khoá khớp · Hiệu năng · Truy vấn ES) and the pipeline name that ran; the chat "Minh bạch" toggle,
+the product Q&A explain toggle and the compare page "Xem quy trình" (**RAG Inspector**: step
+timeline, candidates per source, the context actually sent, generation, citation validation);
+the planner's `method` and "Xem quy trình" (**planner trace view**: timeline, decomposed needs,
+candidates per need, budget decisions, context, justification). Citation chips that open the
+exact evidence snippet are shopper features and always on.
+
+## Layout (feature-sliced, plain JS)
+
+```text
+src/
+  App.jsx, main.jsx          router + providers (i18n, toast, shopper lists)
+  shared/api/                http.js (request), storefront.js (public API), admin.js, sse.js, filters.js
+  shared/ui/                 Drawer, Tabs, Toast, Skeleton, I18nProvider, ui.css
+  shared/i18n.js             vi (default) / en dictionary; header toggle persisted in localStorage
+  shared/lib/                storage (never-throwing localStorage), inspectorBridge,
+                             staffMode (pure) + useStaffMode (hook)
+  entities/trace/            pure trace -> view-model logic (search, RAG and planner inspectors)
+  entities/citation/         [citation_id] parsing, AnswerText + EvidenceCard
+  entities/product/          attributes / gallery / stock helpers
+  features/                  search-bar (suggest), search (call mapping), compose, facets,
+                             feedback, compare, shop-lists (compare tray, wishlist, cart),
+                             embedding-map, planner (plan view model, swaps, totals)
+  widgets/inspector/         InspectorDrawer, SearchInspector, RagInspector, PlanInspector, InspectorHost
+  pages/                     compare, cart, plan, embedding-map (mounted in the admin), admin
+                             (incl. Search Playground, lib/pipelines + lib/playground)
+  shop/, chat/               storefront pages, assistant widget
+  mocks/                     in-memory backend for VITE_MOCK_API=1
 ```
 
-### Endpoints mocked
+Pure logic lives in `*.js` modules with a `*.test.js` next to them; components stay thin.
+`widgets/inspector/InspectorHost.jsx` answers the `shopmind:open-inspector` event used by the
+admin Trace Explorer; the admin layout mounts it with `getTrace`.
 
-- `GET /api/v1/products` — catalog listing with filtering and pagination
-- `GET /api/v1/products/{product_id}` — product detail with descriptions and attributes (or 404)
-- `POST /api/v1/rag/ask` — product-scoped answers built from the mock product's attributes and description (reviews and policies are reported as missing evidence)
+## Mock mode (`VITE_MOCK_API=1`)
 
-### Why use mock mode
+```bash
+VITE_MOCK_API=1 npm run dev        # or: VITE_MOCK_API=1 npx vite --port 5174
+```
 
-The storefront can be explored and tested independently without requiring the catalog-listing and product-detail backend endpoints to be deployed yet, while search and filter-options continue to hit the live backend.
+Every endpoint the UI calls is served in memory by `src/mocks/` (no backend needed):
+search (text with full traces, image, compose, suggest, facets, understand, filter-options),
+products (list, detail with synthetic price/stock/images, similar), RAG (ask, compare, plan),
+chat (`/chat`, `/chat/stream` as paced SSE-like events, `/chat/image`, `/chat/sessions/{id}`),
+feedback, click events, meta (pipelines incl. `include_hidden`, embedding map + projection) and
+the admin API (login `admin/admin` or `annotator/annotator`). A text search without
+`mode`/`pipeline` runs the admin mock's `defaults.search` (change it on the Config page, same
+page session). `/rag/plan` is a deterministic rules-mode planner over the fixture catalog
+(occasion templates, budget parsed from the text, greedy must-first optimizer, extractive
+reasons citing product/review evidence, policy tips, full trace); the chat routes occasion /
+budget requests to it as intent `shopping_plan`. The mock search engine is deterministic and
+records real query-understanding aliases (e.g. "giày bốt da màu nâu"), BM25 matched terms and
+ES DSL, dense vector dims/norm, RRF contributions/formula and rerank moves, so every Inspector
+view has data. Mock state (feedback, sessions) resets on reload, except chat sessions which are
+kept in localStorage to demo session restore.
 
-### Backend API contracts
-
-For full request and response schemas of the required endpoints, see:
-- Quick reference: [`docs/backend-api-requirements.md`](docs/backend-api-requirements.md)
-- Storefront design spec: [`docs/superpowers/specs/2026-10-15-shopmind-storefront-design.md#5-api-contracts-new`](docs/superpowers/specs/2026-10-15-shopmind-storefront-design.md#5-api-contracts-new)
+Demo inputs: an uploaded file named like a fixture id (e.g. `M-009.png`) is treated as that
+product's photo for image/compose search; `ba lô`, `giày bốt da màu nâu`, `áo khoác đen`
+exercise the aliases; in the chat try "Ba lô đen chống nước" then "Cái thứ hai có chống nước
+không?", "Đổi trả trong bao lâu?" and "Chuẩn bị đi biển 5 ngày, ngân sách 300$". On `/plan`
+the example chips cover every planner state (the beach trip under 300 USD has a need skipped
+for budget and one with no matching product). Log in to `/admin` to see the storefront in
+staff mode.
 
 ## Run with the backend
 
-From the repository root:
+From the repository root: `docker compose up --build`, then open <http://localhost:5173>.
+For local development start the FastAPI backend on port 8000 and run:
 
 ```bash
-docker compose up --build
-```
-
-Open <http://localhost:5173>.
-
-Search by text or image, choose **Ask about this product** on a result, then enter a question. Questions use product details by default; enable reviews or experimental policies after those indexes are loaded. Further questions stay scoped to that product until you choose another result. Each answer shows its cited sources and retrieval scores; curated ShopMind policy sources are marked experimental. The backend needs `OPENAI_API_KEY` for generated answers.
-
-## Frontend development
-
-Start the FastAPI backend on port 8000, then run:
-
-```bash
-npm install
+npm ci        # single lockfile: package-lock.json (yarn is not used)
 npm run dev
 ```
 
-Set `VITE_API_PROXY_TARGET` to use a backend other than `http://localhost:8000`.
+Set `VITE_API_PROXY_TARGET` to use a backend other than `http://localhost:8000`. The assistant
+falls back to the older `rag/ask` + `search/text` behaviour when `/chat` is not deployed (404).
 
 ## Checks
 
 ```bash
-npm test
+npm test        # node --test, pure-logic tests only (no DOM)
 npm run build
 ```

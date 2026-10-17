@@ -1,0 +1,28 @@
+# pre-commit hooks. Install once with: pip install pre-commit && pre-commit install
+# (pre-commit is part of the api dev extra: `make setup`).
+default_language_version:
+  python: python3
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        name: ruff (api)
+        # Lint only (pyflakes rules from api/pyproject.toml); no formatter.
+        args: [--config, api/pyproject.toml]
+        files: ^api/(shopmind|evaluation|scripts|tests)/
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+        # docker-compose.yml uses YAML anchors/merge keys, which check-yaml accepts.
+      - id: end-of-file-fixer
+        exclude: &generated ^api/(evaluation/benchmarks/.*\.jsonl|data/.*\.jsonl|reports/.*)$
+      - id: trailing-whitespace
+        exclude: *generated
+      - id: check-added-large-files
+        args: [--maxkb=500]
+        exclude: ^api/reports/a1/slides/
+      - id: detect-private-key

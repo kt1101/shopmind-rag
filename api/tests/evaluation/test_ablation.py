@@ -5,8 +5,8 @@ import json
 
 from evaluation.ablation import HybridNoRRFControlService, run_ablation
 from evaluation.datasets import EvaluationQuery
-from shopmind.app.domain.search_query import SearchMode, SearchRequest
-from shopmind.app.domain.search_result import SearchResult
+from shopmind.domain.search_query import SearchMode, SearchRequest
+from shopmind.domain.search_result import SearchResult
 
 
 class FakeService:

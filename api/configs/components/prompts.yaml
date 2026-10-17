@@ -1,0 +1,15 @@
+# Owner: prompts + vocabularies (search: vocab, rag: prompts)
+# Paths are relative to configs/. Prompts are versioned files: bump the file name
+# (answer.v2.md) instead of editing a version that published runs/traces refer to.
+prompts:
+  answer: prompts/answer.v1.md
+  rewrite: prompts/rewrite.v1.md
+  compare: prompts/compare.v1.md
+  query_understanding: prompts/query_understanding.v1.md
+  plan_decompose: prompts/plan_decompose.v1.md
+  plan_justify: prompts/plan_justify.v1.md
+
+vocabularies:
+  category_aliases: vocab/category_aliases.yaml
+  color_aliases: vocab/color_aliases.yaml
+  occasions: vocab/occasions.yaml          # shopping planner templates (F6)

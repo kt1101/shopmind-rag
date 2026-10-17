@@ -1,0 +1,18 @@
+# A-5: hybrid RRF + bge-reranker-v2-m3 cross-encoder on the top 50 (search.hybrid_rerank).
+experiment:
+  name: hybrid_rerank
+  dataset_version: abo_a1_1500_v1
+  index_version: products_a1_1500_v2
+retrieval:
+  mode: hybrid
+  top_k: 10
+  candidate_k: 100
+  pipeline: search.hybrid_rerank
+fusion:
+  method: rrf
+  rrf_k: 60
+embedding:
+  model: intfloat/multilingual-e5-base
+  version: default
+reranker:
+  enabled: true

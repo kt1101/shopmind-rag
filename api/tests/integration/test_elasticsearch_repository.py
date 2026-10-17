@@ -18,8 +18,8 @@ def _client_or_skip():
 
 
 def test_repository_bm25_vector_filter_and_alias_lifecycle():
-    from shopmind.app.infrastructure.elasticsearch.index import create_versioned_index,switch_alias,validate_product_index
-    from shopmind.app.infrastructure.elasticsearch.repository import ElasticsearchProductRepository
+    from shopmind.infrastructure.elasticsearch.index import create_versioned_index,switch_alias,validate_product_index
+    from shopmind.infrastructure.elasticsearch.repository import ElasticsearchProductRepository
     client=_client_or_skip(); index_name=f"test_products_{uuid.uuid4().hex}"; alias=f"test_products_alias_{uuid.uuid4().hex}"
     documents=[{"product_id":"P1","title":"Black Running Shoe","description":"lightweight runner","brand":"Acme","category":"Shoes","attributes":{"color":"black"},"attributes_text":"color: black","search_text":"Black Running Shoe","image_url":None,"text_vector":[1.0,0.0,0.0,0.0],"image_vector":[1.0,0.0,0.0,0.0],"embedding_model":"fake","embedding_version":"test","metadata":{}},{"product_id":"P2","title":"Oak Chair","description":"wood dining chair","brand":"WoodCo","category":"Furniture","attributes":{"material":"oak"},"attributes_text":"material: oak","search_text":"Oak Chair","image_url":None,"text_vector":[0.0,1.0,0.0,0.0],"image_vector":[0.0,1.0,0.0,0.0],"embedding_model":"fake","embedding_version":"test","metadata":{}},{"product_id":"P3","title":"Trail Boot","description":"outdoor boot","brand":"Acme","category":"Shoes","attributes":{},"attributes_text":"","search_text":"Trail Boot","image_url":None,"text_vector":[0.9,0.1,0.0,0.0],"image_vector":[0.9,0.1,0.0,0.0],"embedding_model":"fake","embedding_version":"test","metadata":{}}]
     try:
@@ -44,9 +44,9 @@ def test_repository_bm25_vector_filter_and_alias_lifecycle():
 
 def test_embedding_contract_pins_alias_and_rejects_wrong_identity_and_vectors():
     from types import SimpleNamespace
-    from shopmind.app.embedding.validation import index_embedding_metadata
-    from shopmind.app.infrastructure.elasticsearch.index import create_versioned_index, switch_alias
-    from shopmind.app.infrastructure.elasticsearch.repository import ElasticsearchProductRepository
+    from shopmind.infrastructure.embedding.validation import index_embedding_metadata
+    from shopmind.infrastructure.elasticsearch.index import create_versioned_index, switch_alias
+    from shopmind.infrastructure.elasticsearch.repository import ElasticsearchProductRepository
     client=_client_or_skip();a=f"test_contract_{uuid.uuid4().hex}";b=f"test_contract_{uuid.uuid4().hex}";alias=f"test_contract_alias_{uuid.uuid4().hex}"
     embedder=SimpleNamespace(model_name="fake",model_revision="rev",dimension=4,text_preprocessing={"padding":"fixed"})
     try:
@@ -73,8 +73,8 @@ def _catalog_documents():
 
 
 def test_list_products_and_get_product_against_real_index():
-    from shopmind.app.infrastructure.elasticsearch.index import create_versioned_index
-    from shopmind.app.infrastructure.elasticsearch.repository import ElasticsearchProductRepository
+    from shopmind.infrastructure.elasticsearch.index import create_versioned_index
+    from shopmind.infrastructure.elasticsearch.repository import ElasticsearchProductRepository
     client = _client_or_skip(); index_name = f"test_products_{uuid.uuid4().hex}"
     documents = _catalog_documents()
     try:
@@ -101,7 +101,7 @@ def test_list_products_and_get_product_against_real_index():
 
 
 def test_get_product_raises_product_index_missing_for_unknown_index():
-    from shopmind.app.infrastructure.elasticsearch.repository import ElasticsearchProductRepository, ProductIndexMissing
+    from shopmind.infrastructure.elasticsearch.repository import ElasticsearchProductRepository, ProductIndexMissing
     client = _client_or_skip()
     repo = ElasticsearchProductRepository(client, f"test_missing_{uuid.uuid4().hex}")
     with pytest.raises(ProductIndexMissing):

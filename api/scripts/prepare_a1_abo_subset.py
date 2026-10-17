@@ -253,7 +253,7 @@ def build_canonical_record(
     for key in sorted(attributes):
         search_lines.append(f"{key}: {attributes[key]}")
 
-    image_value = str(image_path)
+    image_value = Path(image_path).as_posix()
     return {
         "product_id": str(product["product_id"]),
         "title": str(product.get("title") or ""),
@@ -386,11 +386,12 @@ def main() -> int:
     products_path = output / "products.jsonl"
     manifest_path = output / "image_manifest.jsonl"
 
-    with products_path.open("w", encoding="utf-8") as handle:
+    # LF on every OS: the benchmark manifests pin this file's sha256.
+    with products_path.open("w", encoding="utf-8", newline="\n") as handle:
         for row in selected:
             handle.write(json.dumps(row, ensure_ascii=False) + "\n")
 
-    with manifest_path.open("w", encoding="utf-8") as handle:
+    with manifest_path.open("w", encoding="utf-8", newline="\n") as handle:
         for row in selected:
             metadata = row["metadata"]
             handle.write(

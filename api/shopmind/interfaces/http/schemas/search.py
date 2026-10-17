@@ -1,0 +1,248 @@
+from __future__ import annotations
+
+from typing import Any, Literal
+
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from shopmind.interfaces.http.errors import InvalidFilter, UnsupportedSearchMode
+from shopmind.domain.search_query import SearchMode, SearchRequest
+from shopmind.domain.search_result import SearchResult
+
+_ALLOWED_FILTERS = {"brand", "category", "product_id", "color"}
+
+
+class TextSearchRequest(BaseModel):
+    query: str | None = None
+    # None = the storefront default: the pipeline in config ``defaults.search`` (chosen by admins).
+    mode: str | None = None
+    top_k: int = Field(default=10, gt=0)
+    candidate_k: int | None = Field(default=None, gt=0)
+    offset: int = Field(default=0, ge=0)
+    filters: dict[str, str | list[str]] = Field(default_factory=dict)
+    sort: Literal["relevance", "title"] = "relevance"
+    explain: bool = False
+    # Run a named pipeline from config instead of the mode default (Lab comparisons).
+    pipeline: str | None = Field(default=None, max_length=64)
+
+    @field_validator("query", mode="before")
+    @classmethod
+    def normalize_query(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        if not isinstance(value, str):
+            raise ValueError("query must be a string")
+        cleaned = value.strip()
+        return cleaned or None
+
+    @field_validator("filters", mode="before")
+    @classmethod
+    def normalize_filter_values(cls, value: Any) -> dict[str, str | list[str]]:
+        return normalize_filters(value)
+
+    @model_validator(mode="after")
+    def candidate_window_must_cover_top_k(self) -> "TextSearchRequest":
+        if self.candidate_k is not None and self.candidate_k < self.top_k:
+            raise ValueError("candidate_k must be >= top_k")
+        if self.offset + self.top_k > self._effective_candidate_k():
+            raise ValueError("offset + top_k must be <= candidate_k")
+        if self.query is None and not self.filters:
+            raise ValueError("query or at least one filter is required")
+        return self
+
+    def _effective_candidate_k(self) -> int:
+        return self.candidate_k if self.candidate_k is not None else max(100, self.top_k)
+
+    def to_domain(self, default_pipeline: str | None = None) -> SearchRequest:
+        if self.mode is None:
+            # Filter-only listings stay on BM25; text queries run the admin-configured default pipeline.
+            mode = SearchMode.BM25 if self.query is None else SearchMode.HYBRID
+            pipeline = self.pipeline or (default_pipeline if self.query is not None else None)
+            return self._domain(mode, pipeline)
+        try:
+            mode = SearchMode(self.mode)
+        except ValueError as exc:
+            raise UnsupportedSearchMode(f"unsupported search mode: {self.mode}") from exc
+        return self._domain(mode, self.pipeline)
+
+    def _domain(self, mode: SearchMode, pipeline: str | None) -> SearchRequest:
+        if self.query is None and mode is not SearchMode.BM25:
+            raise UnsupportedSearchMode("filter-only search requires bm25 mode")
+        unknown = sorted(set(self.filters) - _ALLOWED_FILTERS)
+        if unknown:
+            raise InvalidFilter(f"unsupported filter field: {unknown[0]}")
+        return SearchRequest(query=self.query, mode=mode, top_k=self.offset + self.top_k, candidate_k=self._effective_candidate_k(), filters=dict(self.filters), pipeline=pipeline)
+
+
+class ProductSearchResult(BaseModel):
+    product_id: str
+    title: str
+    image_url: str | None = None
+    brand: str | None = None
+    category: str | None = None
+    score: float
+    rank: int
+
+    @classmethod
+    def from_domain(cls, result: SearchResult) -> "ProductSearchResult":
+        return cls(product_id=result.product_id, title=result.title, image_url=_optional_str(result.metadata.get("image_url")), brand=_optional_str(result.metadata.get("brand")), category=_optional_str(result.metadata.get("category")), score=result.score, rank=result.rank)
+
+
+class TextSearchResponse(BaseModel):
+    query: str | None
+    mode: str
+    filter_only: bool = False
+    results: list[ProductSearchResult]
+    pipeline: str | None = None
+    trace_id: str | None = None
+    trace: dict[str, Any] | None = None
+
+
+class DebugSearchResult(BaseModel):
+    product_id: str
+    title: str
+    rank: int
+    source: str
+    final_score: float
+    bm25_rank: int | None
+    dense_rank: int | None
+    bm25_rrf_contribution: float | None
+    dense_rrf_contribution: float | None
+    rrf_score: float | None
+    reranker_score: float | None
+    bm25_score: float | None
+    dense_score: float | None
+    ordering_policy: str | None = None
+
+    @classmethod
+    def from_domain(cls, result: SearchResult, *, rrf_k: int) -> "DebugSearchResult":
+        scores = result.retrieval_scores
+        fused = result.source == "hybrid" and scores.rrf_score is not None
+        lexical_only = result.source == "bm25" or (result.metadata.get("ordering_policy") == "lexical_preserving" and scores.rrf_score is None)
+        return cls(
+            product_id=result.product_id, title=result.title, rank=result.rank, source=result.source,
+            ordering_policy=result.metadata.get("ordering_policy"),
+            final_score=result.score, bm25_rank=scores.bm25_rank, dense_rank=scores.dense_rank,
+            bm25_rrf_contribution=1 / (rrf_k + scores.bm25_rank) if fused and scores.bm25_rank is not None else None,
+            dense_rrf_contribution=1 / (rrf_k + scores.dense_rank) if fused and scores.dense_rank is not None else None,
+            rrf_score=scores.rrf_score, reranker_score=scores.reranker_score,
+            bm25_score=result.score if lexical_only else None,
+            dense_score=result.score if result.source in {"dense", "cross_modal"} else None,
+        )
+
+
+class DebugSearchResponse(BaseModel):
+    query: str | None
+    mode: str
+    filter_only: bool
+    rrf_k: int
+    results: list[DebugSearchResult]
+    trace: dict[str, Any] | None = None
+
+
+class ImageSearchResponse(BaseModel):
+    mode: str = "image_dense"
+    results: list[ProductSearchResult]
+    trace_id: str | None = None
+    trace: dict[str, Any] | None = None
+
+
+class ComposeSearchResponse(BaseModel):
+    mode: str = "compose"
+    text: str
+    alpha: float
+    results: list[ProductSearchResult]
+    trace_id: str | None = None
+    trace: dict[str, Any] | None = None
+
+
+class Suggestion(BaseModel):
+    type: Literal["product", "brand", "category"]
+    value: str
+    label: str
+    count: int | None = None
+    product_id: str | None = None
+    image_url: str | None = None
+
+
+class SuggestResponse(BaseModel):
+    query: str
+    suggestions: list[Suggestion]
+
+
+class FacetsRequest(BaseModel):
+    query: str | None = Field(default=None, max_length=500)
+    filters: dict[str, str | list[str]] = Field(default_factory=dict)
+
+    @field_validator("filters", mode="before")
+    @classmethod
+    def normalize_filter_values(cls, value: Any) -> dict[str, str | list[str]]:
+        return normalize_filters(value)
+
+
+class FacetValue(BaseModel):
+    value: str
+    count: int
+
+
+class FacetsResponse(BaseModel):
+    facets: dict[str, list[FacetValue]]
+
+
+class UnderstandRequest(BaseModel):
+    query: str = Field(min_length=1, max_length=500)
+
+
+class UnderstandResponse(BaseModel):
+    query: str
+    intent: str
+    method: str
+    reason: str
+    rewritten_query: str
+    filters: dict[str, list[str]]
+    price: dict[str, float] = Field(default_factory=dict)
+    spans: list[dict[str, str]] = Field(default_factory=list)
+
+
+class FilterOption(BaseModel):
+    value: str
+    count: int
+
+
+class FilterOptionsResponse(BaseModel):
+    field: str
+    options: list[FilterOption]
+
+
+def normalize_filters(value: Any) -> dict[str, str | list[str]]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError("filters must be an object")
+    normalized: dict[str, str | list[str]] = {}
+    for key, raw in value.items():
+        if not isinstance(key, str):
+            raise ValueError("filter names must be strings")
+        if raw is None:
+            continue
+        if isinstance(raw, str):
+            cleaned = raw.strip()
+            if cleaned:
+                normalized[key] = cleaned
+            continue
+        if isinstance(raw, list):
+            values: list[str] = []
+            for item in raw:
+                if not isinstance(item, str):
+                    raise ValueError(f"filter {key} list must contain strings")
+                cleaned = item.strip()
+                if cleaned and cleaned not in values:
+                    values.append(cleaned)
+            if values:
+                normalized[key] = values
+            continue
+        raise ValueError(f"filter {key} must be a string or list of strings")
+    return normalized
+
+
+def _optional_str(value: Any) -> str | None:
+    return None if value is None else str(value)

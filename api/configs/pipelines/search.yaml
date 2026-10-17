@@ -1,0 +1,116 @@
+# Owner: search pipelines
+# Every A1 search mode is a pipeline of registered steps (shopmind/application/search/steps.py),
+# run by the traced engine. Changing retrieval = editing this file (or an admin override of
+# `pipelines.<name>.steps`), not code. `public: false` pipelines are evaluation-only.
+# mode.hybrid -> hybrid_linear: selected on the accuracy_v2 DEV split (best nDCG@10 of all hybrids),
+# then reported once on HOLDOUT; see api/reports/a1/RESULTS.md. search.hybrid (equal RRF) stays
+# available by name and in the ablation.
+defaults:
+  search: search.hybrid_linear
+  mode.bm25: search.bm25
+  mode.dense: search.dense
+  mode.hybrid: search.hybrid_linear
+  mode.cross_modal: search.cross_modal
+  mode.adaptive: search.adaptive
+  image_search: search.image
+  compose_search: search.compose
+
+pipelines:
+  search.bm25:
+    kind: search
+    description: BM25 over title/brand/category/description/attributes with alias normalization
+    steps:
+      - { step: query_understanding, impl: rules }
+      - { step: retrieve, id: lexical, impl: bm25 }
+
+  search.dense:
+    kind: search
+    description: Dense kNN with the multilingual text embedder (E5) on text_vector
+    steps:
+      - { step: query_understanding, impl: rules }
+      - { step: retrieve, id: semantic, impl: dense, params: { field: text_vector } }
+
+  search.cross_modal:
+    kind: search
+    description: SigLIP2 text query against product images (image_vector)
+    steps:
+      - { step: query_understanding, impl: rules }
+      - { step: retrieve, id: cross_modal, impl: dense, params: { field: image_vector, input: text } }
+
+  search.hybrid:
+    kind: search
+    description: BM25 + dense (E5) fused with weighted reciprocal rank fusion
+    steps:
+      - { step: query_understanding, impl: rules }
+      - { step: retrieve, id: lexical, impl: bm25 }
+      - { step: retrieve, id: semantic, impl: dense, params: { field: text_vector } }
+      - { step: fuse, impl: rrf, params: { k: 60, weights: [1.0, 1.0] } }
+      - { step: rerank, impl: noop }
+
+  search.adaptive:
+    kind: search
+    description: Rule router (identifier -> BM25, descriptive -> dense, mixed -> hybrid)
+    steps:
+      - { step: query_understanding, impl: rules, params: { adaptive: true } }
+      - { step: retrieve, id: lexical, impl: bm25, when: needs_lexical }
+      - { step: retrieve, id: semantic, impl: dense, when: needs_dense, params: { field: text_vector } }
+      - { step: fuse, impl: rrf, params: { k: 60 } }
+      - { step: rerank, impl: noop }
+
+  search.hybrid_linear:
+    kind: search
+    description: BM25 + dense (E5) with min-max linear score fusion (default hybrid, A-4)
+    steps:
+      - { step: query_understanding, impl: rules }
+      - { step: retrieve, id: lexical, impl: bm25 }
+      - { step: retrieve, id: semantic, impl: dense, params: { field: text_vector } }
+      - { step: fuse, impl: linear, params: { weights: [0.5, 0.5] } }
+
+  search.hybrid_rerank:
+    kind: search
+    public: false   # bge-reranker-v2-m3 on CPU takes > 100 s per query; playground/eval only
+    description: Hybrid RRF followed by a multilingual cross-encoder on the top 50 (A-5)
+    steps:
+      - { step: query_understanding, impl: rules }
+      - { step: retrieve, id: lexical, impl: bm25 }
+      - { step: retrieve, id: semantic, impl: dense, params: { field: text_vector } }
+      - { step: fuse, impl: rrf, params: { k: 60 } }
+      - { step: rerank, impl: cross_encoder, params: { model: BAAI/bge-reranker-v2-m3, depth: 50 } }
+
+  search.hybrid_lexical_preserving:
+    kind: search
+    public: false
+    description: Previous production setting (BM25 order kept, dense only appends), for ablation
+    steps:
+      - { step: query_understanding, impl: rules }
+      - { step: retrieve, id: lexical, impl: bm25 }
+      - { step: retrieve, id: semantic, impl: dense, params: { field: text_vector } }
+      - { step: fuse, impl: rrf, params: { k: 60, lexical_preserving: true } }
+
+  search.dense_siglip:
+    kind: search
+    public: false
+    description: Legacy dense retrieval with SigLIP2 text vectors (shows why A-1 was needed)
+    steps:
+      - { step: query_understanding, impl: rules }
+      - { step: retrieve, id: semantic, impl: dense, params: { field: siglip_text_vector } }
+
+  search.image:
+    kind: image_search
+    description: SigLIP2 image query against product images
+    steps:
+      - { step: retrieve, id: image, impl: dense, params: { field: image_vector, input: image } }
+
+  search.compose:
+    kind: compose_search
+    description: "F1: normalize(alpha*image + (1-alpha)*text) on image_vector, then boost matching colours"
+    steps:
+      - { step: compose_query, impl: weighted_sum, params: { image_weight: 0.5 } }
+      - { step: retrieve, id: composed, impl: dense, params: { field: image_vector, input: composed } }
+      - { step: rerank, impl: attribute_boost, params: { fields: [color], boost: 0.05 } }
+
+  search.similar:
+    kind: image_search
+    description: Visually similar products (image kNN around the product's own image vector)
+    steps:
+      - { step: retrieve, id: similar, impl: dense, params: { field: image_vector, input: composed } }

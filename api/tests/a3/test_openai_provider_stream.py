@@ -4,8 +4,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from shopmind.app.llm.base import InvalidLLMOutput, LLMProviderError, LLMRequest, LLMResponse
-from shopmind.app.llm.openai_provider import OpenAIProvider
+from shopmind.infrastructure.llm.base import InvalidLLMOutput, LLMProviderError, LLMRequest, LLMResponse
+from shopmind.infrastructure.llm.openai_provider import OpenAIProvider
 
 ANSWER_JSON = json.dumps({"answer": "Blue.", "citation_ids": ["product:P1"], "insufficient_evidence": False})
 

@@ -1,0 +1,11 @@
+# docker compose demo stack.
+# PostgreSQL comes from DATABASE_URL (set by docker-compose.yml); the entrypoint runs
+# `alembic upgrade head`. JWT_SECRET / ADMIN_USERNAME / ADMIN_PASSWORD also come from the env.
+database:
+  enabled: true
+  auto_create: false
+auth:
+  enabled: true
+jobs:
+  # ./api/data is mounted read-only in the api container: job artifacts go to a writable path.
+  work_dir: /tmp/shopmind-jobs

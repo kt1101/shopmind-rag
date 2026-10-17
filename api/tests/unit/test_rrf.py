@@ -1,5 +1,5 @@
-from shopmind.app.domain.search_result import RetrievalScores, SearchResult
-from shopmind.app.retrieval.fusion import rrf_fuse
+from shopmind.domain.search_result import RetrievalScores, SearchResult
+from shopmind.application.retrieval.fusion import rrf_fuse
 
 
 def r(pid,rank,source,metadata=None):

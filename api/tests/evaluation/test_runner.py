@@ -9,7 +9,7 @@ from PIL import Image
 
 from evaluation.datasets import EvaluationQuery
 from evaluation.runner import run_experiment
-from shopmind.app.domain.search_result import SearchResult
+from shopmind.domain.search_result import SearchResult
 
 
 class FakeSearchService:

@@ -2,3 +2,19 @@
 .DS_Store
 .worktrees/
 .superpowers/
+.claude/worktrees/
+
+# Python build / test artifacts (api/.gitignore adds the dataset and embedding outputs)
+*.egg-info/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.db
+
+# Generated evaluation runs
+api/runs/
+
+# UI
+node_modules/
+ui/dist/

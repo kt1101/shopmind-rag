@@ -1,7 +1,7 @@
 from __future__ import annotations
 import argparse,gzip,json
 from pathlib import Path
-from shopmind.pipeline.review_normalizer import build_overlap_report
+from shopmind.ingestion.review_normalizer import build_overlap_report
 def _iter(path):
     opener=gzip.open if path.suffix=='.gz' else open
     with opener(path,'rt',encoding='utf-8') as f:

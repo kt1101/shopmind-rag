@@ -8,9 +8,9 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from shopmind.app.core.config import load_app_config
-from shopmind.app.embedding.siglip2 import SigLIP2EmbeddingProvider
-from shopmind.app.embedding.validation import embedding_identity
+from shopmind.core.config import load_app_config
+from shopmind.infrastructure.embedding.siglip2 import SigLIP2EmbeddingProvider
+from shopmind.infrastructure.embedding.validation import embedding_identity
 
 PROBES = ["shoe", "black running shoes for walking outdoors with comfortable lightweight soles", "giày chạy bộ màu đen", "áo khoác đỏ", "B07PH3GSND", "shoe!? / black-blue (size 42)"]
 

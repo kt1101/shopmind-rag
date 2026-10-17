@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import numpy as np
 import pytest
-from shopmind.pipeline.embedding_artifacts import EmbeddingManifest, load_embedding_artifacts, validate_artifacts, write_embedding_artifacts
+from shopmind.ingestion.embedding_artifacts import EmbeddingManifest, load_embedding_artifacts, validate_artifacts, write_embedding_artifacts
 from scripts.generate_embeddings import generate_embeddings
 from scripts.index_products import build_index_documents, public_image_url
 
@@ -82,7 +82,7 @@ def test_index_documents_publish_media_url_instead_of_local_path():
 def test_identity_rejects_legacy_and_changed_preprocessing_or_revision():
     from dataclasses import replace
     from types import SimpleNamespace
-    from shopmind.app.embedding.validation import embedding_identity, validate_index_identity
+    from shopmind.infrastructure.embedding.validation import embedding_identity, validate_index_identity
     legacy = _manifest()
     with pytest.raises(ValueError): embedding_identity(legacy)
     manifest = replace(legacy, text_preprocessing={"padding":"max_length", "max_length":64})

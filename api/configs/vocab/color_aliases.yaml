@@ -1,0 +1,11 @@
+# Canonical catalog colour -> aliases (Vietnamese and common European metadata spellings).
+black: [đen, nero, noir, schwarz, negro]
+white: [trắng, bianco, blanc, weiß, weiss, blanco]
+red: [đỏ, rosso, rouge, rot, rojo]
+blue: [xanh dương, blu, bleu, blau, azul]
+gray: [xám, grey, grigio, gris, grau]
+green: [xanh lá, verde, vert, grün, gruen]
+pink: [hồng, rosa, rose, roze]
+beige: [be]
+navy blue: [xanh hải quân, navy]
+multicolor: [nhiều màu, multicolour, multicoloured, multicolored, mehrfarbig]

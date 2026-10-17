@@ -5,7 +5,7 @@ from io import BytesIO
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from shopmind.app.main import create_app
+from shopmind.main import create_app
 from tests.api.conftest import FakeEmbedder, FakeRepository, FakeSearchService
 
 

@@ -4,14 +4,14 @@ from dataclasses import dataclass
 
 import pytest
 
-from shopmind.app.domain.search_result import RetrievedDocument
-from shopmind.app.rag.citations import CitationResolver, CitationValidator
-from shopmind.app.rag.context import ContextBuilder
-from shopmind.app.rag.fusion import rrf_fuse_documents
-from shopmind.app.rag.models import RAGRequest
-from shopmind.app.rag.reranker import NoOpDocumentReranker
-from shopmind.app.rag.service import RAGGenerationError, RAGService
-from shopmind.app.llm.base import LLMProviderError
+from shopmind.domain.search_result import RetrievedDocument
+from shopmind.application.rag.citations import CitationResolver, CitationValidator
+from shopmind.application.rag.context import ContextBuilder
+from shopmind.application.rag.fusion import rrf_fuse_documents
+from shopmind.application.rag.models import RAGRequest
+from shopmind.application.rag.reranker import NoOpDocumentReranker
+from shopmind.application.rag.service import RAGGenerationError, RAGService
+from shopmind.infrastructure.llm.base import LLMProviderError
 
 
 @dataclass
@@ -38,7 +38,7 @@ class LLM:
 
 
 def _service(retrievers, llm):
-    from shopmind.app.knowledge.multi_source import MultiSourceRetriever
+    from shopmind.application.knowledge.multi_source import MultiSourceRetriever
 
     return RAGService(
         MultiSourceRetriever(retrievers, {name: 3 for name in retrievers}),
@@ -53,7 +53,7 @@ def _service(retrievers, llm):
 
 
 def test_product_id_reaches_each_source_and_citation_score_is_server_resolved():
-    from shopmind.app.llm.base import LLMResponse
+    from shopmind.infrastructure.llm.base import LLMResponse
 
     product = RetrievedDocument("product:P1", "Blue shoes", 99.0, "product", {"title": "Blue shoes", "product_id": "P1"})
     review = RetrievedDocument("review:R1", "Fits well", 0.4, "review", {"title": "Fits well", "product_id": "P1"})
@@ -74,7 +74,7 @@ def test_product_id_reaches_each_source_and_citation_score_is_server_resolved():
 
 
 def test_invalid_citation_is_repaired_once_and_never_exposed():
-    from shopmind.app.llm.base import LLMResponse
+    from shopmind.infrastructure.llm.base import LLMResponse
 
     product = RetrievedDocument("product:P1", "Blue shoes", 1.0, "product", {"title": "Blue shoes", "product_id": "P1"})
     llm = LLM([
@@ -90,7 +90,7 @@ def test_invalid_citation_is_repaired_once_and_never_exposed():
 
 
 def test_repeated_invalid_citations_fail_after_bounded_repair():
-    from shopmind.app.llm.base import LLMResponse
+    from shopmind.infrastructure.llm.base import LLMResponse
 
     product = RetrievedDocument("product:P1", "Blue shoes", 1.0, "product", {"title": "Blue shoes"})
     llm = LLM([LLMResponse("Blue.", ("product:fake",), False)] * 2)
@@ -116,7 +116,7 @@ def test_missing_llm_fails_even_when_retrieval_has_no_evidence():
 
 
 def test_retrieval_trace_runs_without_an_llm_for_ablation():
-    from shopmind.app.knowledge.base import KnowledgeMode
+    from shopmind.application.knowledge.base import KnowledgeMode
 
     product = RetrievedDocument("product:P1", "Blue shoes", 1.0, "product", {"title": "Blue shoes"})
     retriever = Retriever("product", [product])
@@ -163,7 +163,7 @@ def test_request_rejects_blank_question_or_product_id():
 
 
 def test_answer_text_cannot_smuggle_an_unknown_inline_citation():
-    from shopmind.app.rag.citations import CitationValidationError
+    from shopmind.application.rag.citations import CitationValidationError
 
     with pytest.raises(CitationValidationError):
         CitationValidator().validate(("product:P1",), {"product:P1"}, answer="See [review:fake].", insufficient_evidence=False)
@@ -173,8 +173,8 @@ def test_openai_provider_requests_structured_output_and_validates_response():
     import json
     from types import SimpleNamespace
 
-    from shopmind.app.llm.base import InvalidLLMOutput, LLMRequest
-    from shopmind.app.llm.openai_provider import OpenAIProvider
+    from shopmind.infrastructure.llm.base import InvalidLLMOutput, LLMRequest
+    from shopmind.infrastructure.llm.openai_provider import OpenAIProvider
 
     class Responses:
         def create(self, **kwargs):
@@ -195,3 +195,22 @@ def test_openai_provider_requests_structured_output_and_validates_response():
     client.responses.create = lambda **kwargs: SimpleNamespace(output_text='{"answer":"Blue.","citation_ids":[7],"insufficient_evidence":false}')
     with pytest.raises(InvalidLLMOutput):
         provider.generate(request)
+
+
+def test_rag_records_a_glass_box_trace_including_the_rejected_attempt():
+    from shopmind.core.tracing import start_trace
+    from shopmind.infrastructure.llm.base import LLMResponse
+
+    product = RetrievedDocument("product:P1", "Blue shoes", 1.0, "product", {"title": "Blue shoes", "product_id": "P1"})
+    llm = LLM([LLMResponse("Blue.", ("product:made-up",), False), LLMResponse("Blue.", ("product:P1",), False)])
+    with start_trace("rag.answer", kind="rag", trace_id="t", verbose=True) as trace:
+        _service({"product": Retriever("product", [product])}, llm).answer(RAGRequest("What color?", product_id="P1", sources=("product",)))
+    steps = [(step.id or step.step, step.status) for step in trace.steps]
+    assert steps == [("retrieve", "ok"), ("fuse", "ok"), ("rerank", "ok"), ("build_context", "ok"), ("generate_1", "ok"), ("validate_1", "rejected"), ("generate_2", "ok"), ("validate_2", "ok")]
+    build = trace.steps[3].details
+    assert build["documents"] == [{"id": "product:P1", "source": "product", "chars": 10, "included": True, "reason": "included"}]
+    assert trace.steps[5].details["attempts"][0]["valid"] is False
+    generate = trace.steps[6].details
+    assert generate["prompt_id"] == "answer" and generate["prompt_version"] == "v1" and generate["attempt"] == 2
+    assert generate["raw_output"]["citation_ids"] == ["product:P1"]
+    assert trace.steps[0].output["items"][0]["details"]["snippet"] == "Blue shoes"

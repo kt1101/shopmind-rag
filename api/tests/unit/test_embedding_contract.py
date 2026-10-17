@@ -1,5 +1,5 @@
 import numpy as np
-from shopmind.app.embedding.base import EmbeddingProvider
+from shopmind.infrastructure.embedding.base import EmbeddingProvider
 
 
 class FakeEmbeddingProvider:
@@ -15,7 +15,7 @@ def test_fake_provider_satisfies_protocol():
 
 
 import pytest
-from shopmind.app.retrieval.dense import _single_vector
+from shopmind.application.retrieval.dense import _single_vector
 @pytest.mark.parametrize("matrix", [np.zeros((1,4),dtype=np.float32),np.full((1,4),np.nan,dtype=np.float32),np.full((1,4),np.inf,dtype=np.float32),np.ones((2,4),dtype=np.float32)])
 def test_query_vectors_reject_invalid_values(matrix):
     with pytest.raises(ValueError): _single_vector(matrix,4,kind="text")

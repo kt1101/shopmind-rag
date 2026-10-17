@@ -1,73 +1,91 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { getProduct, resolveImageUrl, searchText } from '../api.js'
-import { formatPrice, humanizeCategory } from '../lib/format.js'
+import { getProduct, getSimilarProducts, resolveImageUrl } from '../api.js'
+import { formatPrice } from '../lib/format.js'
 import { buildCatalogUrl } from '../lib/urlState.js'
+import { galleryImages, isSyntheticPrice, normalizeAttributes, stockBadge } from '../entities/product/product.js'
+import { useShopLists } from '../features/shop-lists/ShopListsProvider.jsx'
+import { categoryLabel } from '../shared/i18n.js'
+import { useI18n } from '../shared/ui/I18nProvider.jsx'
 import { useChat } from '../chat/ChatProvider.jsx'
 import ProductAskPanel from './ProductAskPanel.jsx'
 import ProductCard from './ProductCard.jsx'
 import StatusBlock from './StatusBlock.jsx'
 
+function Gallery({ images, title }) {
+  const { t } = useI18n()
+  const [index, setIndex] = useState(0)
+  const [broken, setBroken] = useState({})
+  const usable = images.filter((src) => !broken[src])
+  const current = usable[Math.min(index, usable.length - 1)]
+
+  if (!current) {
+    return <div className="product-media"><span aria-hidden="true" className="product-media-placeholder">◇</span></div>
+  }
+  return (
+    <div className="product-gallery">
+      <div className="product-media">
+        <img src={current} alt={title || ''} className="product-media-image" onError={() => setBroken((b) => ({ ...b, [current]: true }))} />
+      </div>
+      {usable.length > 1 && (
+        <div className="product-thumbs" role="group" aria-label={t('product.gallery')}>
+          {usable.map((src, i) => (
+            <button
+              key={src}
+              type="button"
+              className={`product-thumb ${src === current ? 'is-active' : ''}`}
+              aria-label={t('product.showImage', { index: i + 1 })}
+              aria-pressed={src === current}
+              onClick={() => setIndex(i)}
+            >
+              <img src={src} alt="" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ProductPage() {
   const { productId } = useParams()
   const navigate = useNavigate()
   const { setScope } = useChat()
+  const { t, lang } = useI18n()
+  const lists = useShopLists()
 
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [reloadIndex, setReloadIndex] = useState(0)
-  const [imageBroken, setImageBroken] = useState(false)
-  const [similarItems, setSimilarItems] = useState([])
-
-  function reload() {
-    setReloadIndex((prev) => prev + 1)
-  }
+  const [similar, setSimilar] = useState({ items: [], loading: false })
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
-      window.scrollTo(0, 0)
-    }
-
-    setImageBroken(false)
-
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') window.scrollTo(0, 0)
     if (!productId) {
       setLoading(false)
       setProduct(null)
       setError(Object.assign(new Error('Product not found'), { status: 404 }))
-      return
+      return undefined
     }
-
     setProduct(null)
     setLoading(true)
     setError(null)
-
     const controller = new AbortController()
-
     getProduct({ productId, signal: controller.signal })
       .then((res) => {
-        if (!controller.signal.aborted) {
-          setProduct(res?.data || null)
-        }
+        if (!controller.signal.aborted) setProduct(res?.data || null)
       })
       .catch((err) => {
-        if (!controller.signal.aborted && err.name !== 'AbortError') {
-          setError(err)
-        }
+        if (!controller.signal.aborted && err.name !== 'AbortError') setError(err)
       })
       .finally(() => {
-        if (!controller.signal.aborted) {
-          setLoading(false)
-        }
+        if (!controller.signal.aborted) setLoading(false)
       })
-
-    return () => {
-      controller.abort()
-    }
+    return () => controller.abort()
   }, [productId, reloadIndex])
 
-  // Scope the chat to this product; switching products swaps the scope,
-  // leaving the page returns the chat to catalog search.
+  // Scope the chat to this product; leaving the page returns the chat to catalog search.
   useEffect(() => {
     if (product) setScope(product)
     else if (error) setScope(null)
@@ -75,161 +93,134 @@ export default function ProductPage() {
 
   useEffect(() => () => setScope(null), [setScope])
 
+  // "Sản phẩm tương tự về hình ảnh": image kNN (GET /products/{id}/similar).
   useEffect(() => {
-    if (!product?.title) {
-      setSimilarItems([])
-      return
+    if (!product?.product_id) {
+      setSimilar({ items: [], loading: false })
+      return undefined
     }
-
     const controller = new AbortController()
-
-    searchText({
-      query: product.title,
-      mode: 'hybrid',
-      topK: 9,
-      signal: controller.signal,
-    })
+    setSimilar({ items: [], loading: true })
+    getSimilarProducts({ productId: product.product_id, limit: 8, signal: controller.signal })
       .then((res) => {
-        if (!controller.signal.aborted) {
-          const results = res?.data?.results || []
-          const filtered = results
-            .filter((p) => p && p.product_id !== product.product_id)
-            .slice(0, 8)
-          setSimilarItems(filtered)
-        }
+        if (!controller.signal.aborted) setSimilar({ items: (res?.data?.items || []).filter((p) => p?.product_id !== product.product_id), loading: false })
       })
       .catch(() => {
-        if (!controller.signal.aborted) {
-          setSimilarItems([])
-        }
+        if (!controller.signal.aborted) setSimilar({ items: [], loading: false })
       })
-
-    return () => {
-      controller.abort()
-    }
-  }, [product?.product_id, product?.title])
+    return () => controller.abort()
+  }, [product?.product_id])
 
   if (loading) {
     return (
       <div className="product-page">
-        <StatusBlock tone="loading" title="Loading product..." />
+        <div className="product-layout product-layout-skeleton" aria-busy="true" role="status" aria-label={t('product.loading')}>
+          <div className="product-media skeleton-box" />
+          <div className="product-summary">
+            <div className="skeleton-line skeleton-eyebrow" />
+            <div className="skeleton-line skeleton-title" />
+            <div className="skeleton-line skeleton-title-short" />
+          </div>
+        </div>
       </div>
     )
   }
 
   if (error) {
-    if (error.status === 404) {
-      return (
-        <div className="product-page">
-          <StatusBlock
-            tone="empty"
-            title="Product not found"
-            message="The product you are looking for does not exist or has been removed."
-            action={{ label: 'Back to home', onClick: () => navigate('/') }}
-          />
-        </div>
-      )
-    }
     return (
       <div className="product-page">
-        <StatusBlock
-          tone="error"
-          title="Couldn't load product"
-          message={error.message}
-          action={{ label: 'Retry', onClick: reload }}
-        />
+        {error.status === 404 ? (
+          <StatusBlock tone="empty" title={t('product.notFound')} message={t('product.notFoundHint')} action={{ label: t('product.backHome'), onClick: () => navigate('/') }} />
+        ) : (
+          <StatusBlock tone="error" title={t('product.loadFailed')} message={error.message} action={{ label: t('state.retry'), onClick: () => setReloadIndex((i) => i + 1) }} />
+        )}
       </div>
     )
   }
 
-  if (!product) {
-    return null
-  }
+  if (!product) return null
 
-  const imageUrl = resolveImageUrl(product.image_url)
-  const categoryLabel = humanizeCategory(product.category)
+  const images = galleryImages(product, resolveImageUrl)
+  const category = categoryLabel(lang, product.category)
   const priceLabel = formatPrice(product.price)
-  const descriptionParagraphs = product.description
-    ? product.description
-        .split(/\n\s*\n/)
-        .map((p) => p.trim())
-        .filter(Boolean)
-    : []
-  const hasAttributes = Array.isArray(product.attributes) && product.attributes.length > 0
+  const stock = stockBadge(product.stock)
+  const synthetic = isSyntheticPrice(product.price) || stock?.synthetic
+  const paragraphs = product.description ? product.description.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean) : []
+  const attributes = normalizeAttributes(product.attributes)
+  const comparing = lists.isComparing(product.product_id)
+  const saved = lists.isWishlisted(product.product_id)
+  const inCart = lists.cartQuantity(product.product_id)
+  const cardProduct = { ...product, image_url: product.image_url || product.images?.[0] }
 
   return (
     <div className="product-page">
       <nav aria-label="Breadcrumb" className="product-breadcrumb">
-        <Link to="/" className="product-breadcrumb-link">
-          Home
-        </Link>
+        <Link to="/" className="product-breadcrumb-link">{t('product.home')}</Link>
         {product.category && (
           <>
-            <span className="product-breadcrumb-sep" aria-hidden="true">
-              ›
-            </span>
-            <Link
-              to={buildCatalogUrl({ category: [product.category] })}
-              className="product-breadcrumb-link"
-            >
-              {categoryLabel}
-            </Link>
+            <span className="product-breadcrumb-sep" aria-hidden="true">›</span>
+            <Link to={buildCatalogUrl({ category: [product.category] })} className="product-breadcrumb-link">{category}</Link>
           </>
         )}
       </nav>
 
       <div className="product-layout">
-        <div className="product-media">
-          {imageUrl && !imageBroken ? (
-            <img
-              src={imageUrl}
-              alt={product.title || ''}
-              className="product-media-image"
-              onError={() => setImageBroken(true)}
-            />
-          ) : (
-            <span aria-hidden="true" className="product-media-placeholder">
-              ◇
-            </span>
-          )}
-        </div>
+        <Gallery key={product.product_id} images={images} title={product.title} />
 
         <div className="product-summary">
-          {categoryLabel && <p className="product-eyebrow eyebrow">{categoryLabel}</p>}
+          {category && <p className="product-eyebrow eyebrow">{category}</p>}
           <h1 className="product-title">{product.title}</h1>
           {product.brand && <p className="product-brand">{product.brand}</p>}
-          {priceLabel && <p className="product-price">{priceLabel}</p>}
-          <p className="product-id">
-            ID: <code>{product.product_id}</code>
-          </p>
+
+          {(priceLabel || stock) && (
+            <div className="product-commerce">
+              {priceLabel && <p className="product-price">{priceLabel}</p>}
+              {stock && (
+                <span className={`sm-badge ${stock.inStock ? 'sm-badge--success' : 'sm-badge--danger'}`}>
+                  {stock.inStock ? t('product.inStock', { quantity: stock.quantity ?? '?' }) : t('product.outOfStock')}
+                </span>
+              )}
+              {synthetic && <span className="sm-badge sm-badge--warning" title={t('product.syntheticNote')}>{t('product.synthetic')}</span>}
+            </div>
+          )}
+          {synthetic && <p className="product-synthetic-note">{t('product.syntheticNote')}</p>}
+
+          <div className="product-actions">
+            <button type="button" className="sm-button sm-button--primary" onClick={() => lists.addToCart(cardProduct)} disabled={stock ? !stock.inStock : false}>
+              {inCart ? t('product.inCart', { count: inCart }) : t('product.addToCart')}
+            </button>
+            <button type="button" className="sm-button" aria-pressed={comparing} onClick={() => lists.toggleCompare(cardProduct)}>
+              <span aria-hidden="true">{comparing ? '✓' : '⇄'}</span> {comparing ? t('card.compareRemove') : t('card.compareAdd')}
+            </button>
+            <button type="button" className="sm-button" aria-pressed={saved} onClick={() => lists.toggleWishlist(cardProduct)}>
+              <span aria-hidden="true">{saved ? '♥' : '♡'}</span> {saved ? t('card.wishlistRemove') : t('card.wishlistAdd')}
+            </button>
+          </div>
+
+          <p className="product-id">ID: <code>{product.product_id}</code></p>
           <ProductAskPanel key={product.product_id} product={product} />
         </div>
       </div>
 
-      {descriptionParagraphs.length > 0 && (
+      {paragraphs.length > 0 && (
         <section className="product-section product-description">
-          <h2 className="product-section-title">Description</h2>
+          <h2 className="product-section-title">{t('product.description')}</h2>
           <div className="product-description-text">
-            {descriptionParagraphs.map((para, idx) => (
-              <p key={idx}>{para}</p>
-            ))}
+            {paragraphs.map((para, idx) => <p key={idx}>{para}</p>)}
           </div>
         </section>
       )}
 
-      {hasAttributes && (
+      {attributes.length > 0 && (
         <section className="product-section product-details">
-          <h2 className="product-section-title">Details</h2>
+          <h2 className="product-section-title">{t('product.details')}</h2>
           <table className="product-details-table">
             <thead>
-              <tr>
-                <th scope="col">Attribute</th>
-                <th scope="col">Value</th>
-              </tr>
+              <tr><th scope="col">{t('product.attribute')}</th><th scope="col">{t('product.value')}</th></tr>
             </thead>
             <tbody>
-              {product.attributes.map((attr, idx) => (
-                <tr key={idx}>
+              {attributes.map((attr) => (
+                <tr key={attr.name}>
                   <td className="product-attr-name">{attr.name}</td>
                   <td className="product-attr-value">{attr.value}</td>
                 </tr>
@@ -239,13 +230,14 @@ export default function ProductPage() {
         </section>
       )}
 
-      {similarItems.length > 0 && (
-        <section className="product-section product-similar">
-          <h2 className="product-section-title">Similar products</h2>
-          <div className="product-similar-grid">
-            {similarItems.map((item) => (
-              <ProductCard key={item.product_id} product={item} />
-            ))}
+      {(similar.loading || similar.items.length > 0) && (
+        <section className="product-section product-similar" aria-busy={similar.loading}>
+          <h2 className="product-section-title">{t('product.similarVisual')}</h2>
+          <p className="product-section-hint">{t('product.similarVisualHint')}</p>
+          <div className="product-similar-strip">
+            {similar.loading
+              ? Array.from({ length: 4 }, (_, i) => <div key={i} className="product-card product-card-skeleton"><div className="product-visual skeleton-box" /></div>)
+              : similar.items.map((item) => <ProductCard key={item.product_id} product={item} />)}
           </div>
         </section>
       )}

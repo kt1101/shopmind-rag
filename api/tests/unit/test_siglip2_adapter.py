@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import torch
 from PIL import Image
-from shopmind.app.embedding.siglip2 import SigLIP2EmbeddingProvider
+from shopmind.infrastructure.embedding.siglip2 import SigLIP2EmbeddingProvider
 
 
 class FakeBatch(dict): pass

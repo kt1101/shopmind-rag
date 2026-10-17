@@ -1,3 +1,12 @@
+# Base application config. Layering: this file (+ include files below) -> profiles/$SHOPMIND_PROFILE.yaml
+# -> legacy env vars -> SHOPMIND__SECTION__KEY env vars -> runtime admin overrides (database).
+# Each include file has one owning subsystem; values in this file win over includes.
+include:
+  - components/platform.yaml     # database, auth, tracing, features, hot_reloadable
+  - components/embedders.yaml    # embedders, indexes (alias + vector field -> embedder)
+  - components/prompts.yaml      # prompts, vocabularies
+  - pipelines/search.yaml        # search.* pipelines + defaults.search*
+  - pipelines/rag.yaml           # rag.* / chat / compare pipelines + defaults.rag*
 elasticsearch:
   url: http://localhost:9200
   index_alias: products
