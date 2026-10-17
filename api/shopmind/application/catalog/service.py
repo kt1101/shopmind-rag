@@ -22,6 +22,11 @@ def _clean(values: list[str]) -> list[str]:
     return [stripped for value in values if (stripped := value.strip())]
 
 
+def _price_of(overlay: dict[str, dict[str, Any]], item: dict[str, Any]) -> dict[str, Any]:
+    price = (overlay.get(str(item.get("product_id") or "")) or {}).get("price")
+    return {"price": price} if price else {}
+
+
 class CatalogService:
     """Catalog listing / detail. ``commerce`` (optional) adds synthetic price and stock, always
     flagged ``synthetic: true`` because ABO has no commerce data."""
@@ -51,7 +56,7 @@ class CatalogService:
         overlay = self._overlay([str(item.get("product_id") or "") for item in result.items])
         return {
             "items": [
-                {"product_id": str(item.get("product_id") or ""), "title": str(item.get("title") or ""), "image_url": _optional_str(item.get("image_url")), "brand": _optional_str(item.get("brand")), "category": _optional_str(item.get("category")), "price": (overlay.get(str(item.get("product_id") or "")) or {}).get("price")}
+                {"product_id": str(item.get("product_id") or ""), "title": str(item.get("title") or ""), "image_url": _optional_str(item.get("image_url")), "brand": _optional_str(item.get("brand")), "category": _optional_str(item.get("category")), **_price_of(overlay, item)}
                 for item in result.items
             ],
             "total": result.total,

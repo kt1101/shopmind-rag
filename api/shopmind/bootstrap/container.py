@@ -40,6 +40,16 @@ class Container:
         self.components[name] = component
         return component
 
+    def effective_config(self) -> AppConfig:
+        """Base config plus the active admin profile (when the config service is wired)."""
+        service = self.components.get("config_service")
+        if service is not None and hasattr(service, "effective"):
+            try:
+                self.config = service.effective()
+            except Exception:
+                logger.warning("config service unavailable; using the base config", exc_info=True)
+        return self.config
+
 
 def wiring_modules() -> list[Any]:
     from shopmind.bootstrap import wiring

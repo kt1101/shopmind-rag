@@ -22,4 +22,4 @@ def write_knowledge_embedding_artifacts(output_dir,document_ids,text_embeddings,
     if output_dir.exists():shutil.rmtree(output_dir)
     temp.replace(output_dir);return output_dir
 def load_knowledge_embedding_artifacts(directory):
-    directory=Path(directory);manifest=KnowledgeEmbeddingManifest(**json.loads((directory/'manifest.json').read_text()));ids=json.loads((directory/'document_ids.json').read_text());matrix=np.load(directory/'text_embeddings.npy',allow_pickle=False);_validate(ids,matrix,manifest);return manifest,ids,matrix
+    directory=Path(directory);manifest=KnowledgeEmbeddingManifest(**json.loads((directory/'manifest.json').read_text(encoding='utf-8')));ids=json.loads((directory/'document_ids.json').read_text(encoding='utf-8'));matrix=np.load(directory/'text_embeddings.npy',allow_pickle=False);_validate(ids,matrix,manifest);return manifest,ids,matrix

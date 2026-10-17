@@ -12,7 +12,7 @@ class NoOpDocumentReranker:
 
 
 class CrossEncoderDocumentReranker:
-    def __init__(self, model_name: str = "BAAI/bge-reranker-v2-m3", model=None) -> None:
+    def __init__(self, model_name: str, model=None) -> None:
         self.model_name = model_name
         self._model = model
 

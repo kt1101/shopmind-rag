@@ -32,7 +32,7 @@ def test_ask_scopes_selected_product_and_returns_server_sources_with_scores():
     assert service.requests[0].product_id == "P1"
     assert service.requests[0].sources == ("product", "review")
     assert response.json()["answer"] == "The review says it fits."
-    assert response.json()["sources"] == [{"document_id": "review:R1", "source": "review", "title": "Fit review", "score": 0.031, "product_id": "P1", "policy_version": None, "source_url": None, "metadata": {}}]
+    assert response.json()["sources"] == [{"citation_id": "review:R1", "document_id": "review:R1", "source": "review", "title": "Fit review", "score": 0.031, "product_id": "P1", "policy_version": None, "source_url": None, "url": None, "snippet": None, "image_url": None, "metadata": {}}]
 
 
 def test_ask_rejects_invalid_input_and_reports_missing_service():

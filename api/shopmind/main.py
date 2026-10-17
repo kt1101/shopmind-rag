@@ -108,13 +108,16 @@ def create_app(*, search_service: Any | None = None, repository: Any | None = No
     @app.middleware("http")
     async def request_id_middleware(request: Request, call_next):
         request.state.request_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex
+        container = getattr(request.app.state, "container", None)
+        if container is not None and container.get("config_service") is not None:
+            container.effective_config()  # cached; notifies hot-reload subscribers when a profile changed
         response = await call_next(request)
         response.headers["X-Request-ID"] = request.state.request_id
         return response
 
     origins = cors_origins if cors_origins is not None else parse_origins(os.getenv("CORS_ORIGINS", ""))
     if origins:
-        app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["GET", "POST"], allow_headers=["*"], expose_headers=["X-Request-ID"])
+        app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["*"], expose_headers=["X-Request-ID"])
 
     @app.exception_handler(RequestValidationError)
     async def validation_error_handler(request: Request, exc: RequestValidationError):

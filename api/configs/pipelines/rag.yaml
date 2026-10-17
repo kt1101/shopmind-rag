@@ -1,2 +1,51 @@
 # Owner: rag pipelines
-{}
+# A3 answer flows. Step params come from the `rag:` section (the same keys the s0-s5 experiment
+# overlays and the admin hot-reload edit), so these specs describe the steps and their
+# implementations for /meta/pipelines and the inspector; they are not a second source of values.
+defaults:
+  rag: rag.answer
+  chat: chat.assistant
+  compare: rag.compare
+
+rag:
+  enabled: true
+  retrieval: { product_mode: hybrid, review_mode: hybrid, policy_mode: hybrid }
+  fusion: { method: rrf, rrf_k: 60, top_k: 40 }
+  reranker: { enabled: false, model_name: BAAI/bge-reranker-v2-m3, top_k: 12 }
+  context: { max_documents: 12, max_product: 4, max_reviews: 5, max_policies: 3, max_characters: 24000 }
+  llm: { provider: openai, model: gpt-5.4-mini, timeout_seconds: 60, max_generation_attempts: 2 }
+  chat:
+    sources: [product, policy]
+    include_reviews_when_available: true
+
+pipelines:
+  rag.answer:
+    kind: rag
+    description: Multi-source retrieval -> RRF -> (cross-encoder) -> budgeted context -> LLM -> citation validation
+    steps:
+      - { step: multi_source_retrieve, impl: per_source, params: { sources: [product, review, policy] } }
+      - { step: fuse, impl: rrf }
+      - { step: rerank, impl: noop }
+      - { step: build_context, impl: budgeted }
+      - { step: generate, impl: openai }
+      - { step: validate_citations, impl: context_ids, params: { max_attempts: 2 } }
+
+  chat.assistant:
+    kind: chat
+    description: "F2: intent routing -> product search cards | rewrite + RAG answer | help text"
+    steps:
+      - { step: route_intent, impl: rules }
+      - { step: rewrite, impl: llm, when: has_history }
+      - { step: multi_source_retrieve, impl: per_source }
+      - { step: build_context, impl: budgeted }
+      - { step: generate, impl: openai }
+      - { step: validate_citations, impl: context_ids }
+
+  rag.compare:
+    kind: compare
+    description: "F3: catalog attribute table + cited RAG comparison of 2-3 products"
+    steps:
+      - { step: multi_source_retrieve, impl: catalog+knowledge }
+      - { step: build_context, impl: budgeted }
+      - { step: generate, impl: openai, params: { prompt: compare } }
+      - { step: validate_citations, impl: context_ids }

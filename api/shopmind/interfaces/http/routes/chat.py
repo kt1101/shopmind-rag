@@ -56,7 +56,7 @@ def _record(request: Request, trace_id: str, prepared: PreparedChat, latency_ms:
         logger.warning("chat event logging failed", exc_info=True)
 
 
-@router.post("", response_model=ChatResponse, response_model_exclude_none=True, dependencies=[Depends(rate_limit)])
+@router.post("", response_model=ChatResponse, dependencies=[Depends(rate_limit)])
 def chat(payload: ChatRequest, request: Request) -> ChatResponse:
     service = _chat_service(request)
     explain = wants_explain(request, payload.explain)

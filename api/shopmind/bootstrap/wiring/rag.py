@@ -27,7 +27,7 @@ class LazyComponent:
 
 
 def wire(container) -> None:
-    config = container.config
+    config = container.effective_config()
     from shopmind.application.chat.image_cache import ImageTokenCache
 
     if container.get("image_cache") is None:

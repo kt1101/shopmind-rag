@@ -18,7 +18,7 @@ def get_catalog_service(request: Request) -> CatalogService:
     return service
 
 
-@router.get("", response_model=ProductListResponse, response_model_exclude_none=True)
+@router.get("", response_model=ProductListResponse)
 def list_products(page: int = Query(1, ge=1), page_size: int = Query(24, ge=1, le=60), limit: int | None = Query(None, ge=1, le=60), offset: int | None = Query(None, ge=0), category: list[str] | None = Query(None), brand: list[str] | None = Query(None), service: CatalogService = Depends(get_catalog_service)) -> ProductListResponse:
     # Contract paging is limit/offset; page/page_size stays for the existing storefront.
     if limit is not None or offset is not None:
@@ -31,7 +31,7 @@ def list_products(page: int = Query(1, ge=1), page_size: int = Query(24, ge=1, l
     return ProductListResponse(**result, limit=page_size, offset=(page - 1) * page_size)
 
 
-@router.get("/{product_id}", response_model=ProductDetailResponse, response_model_exclude_none=True)
+@router.get("/{product_id}", response_model=ProductDetailResponse)
 def get_product(product_id: str = Path(max_length=128), service: CatalogService = Depends(get_catalog_service)) -> ProductDetailResponse:
     return ProductDetailResponse(**service.get_product(product_id))
 

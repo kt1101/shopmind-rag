@@ -226,10 +226,7 @@ class ChatService:
 
         try:
             try:
-                meta = {"standalone_question": prepared.standalone_question, "rewrite_fallback": prepared.rewrite_fallback}
-                if self.understanding is not None or prepared.session_id:
-                    meta.update(session_id=prepared.session_id, intent=prepared.intent, trace_id=trace_id)
-                yield ChatEvent("meta", meta)
+                yield ChatEvent("meta", {"standalone_question": prepared.standalone_question, "rewrite_fallback": prepared.rewrite_fallback, "session_id": prepared.session_id, "intent": prepared.intent, "trace_id": trace_id})
                 yield from new_steps()
                 if prepared.products:
                     yield ChatEvent("products", {"items": [product_payload(item) for item in prepared.products]})
@@ -253,10 +250,7 @@ class ChatService:
                 attempts, total_ms = final.metadata.get("generation_attempts"), final.metadata.get("total_ms")
                 self._remember(prepared, final)
                 extra = on_finish(prepared, final) if on_finish is not None else None
-                done = answer_payload(final, prepared.standalone_question, prepared if meta.get("session_id") else None)
-                if meta.get("session_id"):
-                    done["trace_id"] = trace_id
-                yield ChatEvent("done", {**done, **(extra or {})})
+                yield ChatEvent("done", {**answer_payload(final, prepared.standalone_question, prepared), "trace_id": trace_id, **(extra or {})})
             except (RAGGenerationError, InvalidLLMOutput) as exc:
                 outcome, error_type = "rag_generation_failed", type(exc).__name__
                 logger.warning("chat generation failed (%s): %s", outcome, error_type)

@@ -17,7 +17,9 @@ def test_ready_fails_when_elasticsearch_is_down(client_with_unready_repo):
 def test_ready_succeeds_when_repository_alias_and_embedding_are_ready(client):
     response = client.get("/ready")
     assert response.status_code == 200
-    assert response.json() == {"status": "ready"}
+    body = response.json()
+    assert body["status"] == "ready"
+    assert body["components"]["elasticsearch"] == "ok" and body["components"]["llm"] == "disabled"
 
 
 def _media_client(image_dir):

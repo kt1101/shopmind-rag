@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import BaseModel, Field
 
 from shopmind.interfaces.http.schemas.search import ProductSearchResult
@@ -62,7 +60,6 @@ class ProductDetailResponse(BaseModel):
     images: list[str] = Field(default_factory=list)
     price: Price | None = None
     stock: Stock | None = None
-    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class SimilarProductsResponse(BaseModel):

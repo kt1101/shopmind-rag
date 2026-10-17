@@ -75,7 +75,7 @@ def _inline(trace, explain: bool) -> dict[str, Any] | None:
     return trace.to_dict() if explain else None
 
 
-@router.post("/text", response_model=TextSearchResponse, response_model_exclude_none=True)
+@router.post("/text", response_model=TextSearchResponse)
 def search_text(payload: TextSearchRequest, request: Request, service: SearchService = Depends(get_search_service)) -> TextSearchResponse:
     started = perf_counter()
     domain_request = payload.to_domain()
@@ -101,7 +101,7 @@ def filter_options(field: str = Query(...), prefix: str = Query(default="", max_
     return FilterOptionsResponse(field=field, options=options)
 
 
-@router.post("/image", response_model=ImageSearchResponse, response_model_exclude_none=True)
+@router.post("/image", response_model=ImageSearchResponse)
 async def search_image(request: Request, image: UploadFile = File(...), top_k: int = Query(default=10, gt=0), candidate_k: int = Query(default=100, gt=0), offset: int = Query(default=0, ge=0), brand: list[str] | None = Query(default=None), category: list[str] | None = Query(default=None), product_id: str | None = Query(default=None), explain: bool = Query(default=False), service: SearchService = Depends(get_search_service)) -> ImageSearchResponse:
     if candidate_k < top_k:
         raise InvalidImage("candidate_k must be >= top_k")
@@ -120,7 +120,7 @@ async def search_image(request: Request, image: UploadFile = File(...), top_k: i
     return ImageSearchResponse(results=[ProductSearchResult.from_domain(result) for result in results], trace_id=trace.trace_id, trace=_inline(trace, explain))
 
 
-@router.post("/compose", response_model=ComposeSearchResponse, response_model_exclude_none=True)
+@router.post("/compose", response_model=ComposeSearchResponse)
 async def search_compose(request: Request, image: UploadFile = File(...), text: str = Form(..., min_length=1, max_length=500), alpha: float | None = Form(default=None, ge=0, le=1), top_k: int = Form(default=12, gt=0, le=100), candidate_k: int = Form(default=100, gt=0, le=500), explain: bool = Query(default=False), service: SearchService = Depends(get_search_service)) -> ComposeSearchResponse:
     """F1: "like this image, but <text>" — q = normalize(α·image + (1−α)·text) in SigLIP2 space."""
     if candidate_k < top_k:
@@ -138,7 +138,7 @@ async def search_compose(request: Request, image: UploadFile = File(...), text: 
     return ComposeSearchResponse(text=text, alpha=weight, results=[ProductSearchResult.from_domain(result) for result in results], trace_id=trace.trace_id, trace=_inline(trace, explain or wants_explain(request)))
 
 
-@router.get("/suggest", response_model=SuggestResponse, response_model_exclude_none=True)
+@router.get("/suggest", response_model=SuggestResponse)
 def suggest(q: str = Query(default="", max_length=100), limit: int = Query(default=8, ge=1, le=20), repository=Depends(get_repository)) -> SuggestResponse:
     suggestions = repository.suggest(q, limit) if hasattr(repository, "suggest") else []
     return SuggestResponse(query=q, suggestions=suggestions)

@@ -27,7 +27,7 @@ def wire(container) -> None:
     from shopmind.infrastructure.elasticsearch.repository import ElasticsearchProductRepository
     from shopmind.infrastructure.embedding.factory import build_embedders, field_embedder_ids
 
-    config = container.config
+    config = container.effective_config()
     if config.vocabularies:
         configure_vocabulary(config.vocabularies)
     client = container.get("es_client") or container.provide("es_client", create_elasticsearch_client(config.elasticsearch))

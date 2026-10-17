@@ -40,7 +40,7 @@ class FakeChatService:
     def _answer(self) -> RAGAnswer:
         return RAGAnswer(self.answer_text, (Citation("product:P1", "product", "Black Runner", 0.5, product_id="P1"),), False, {"generation_attempts": 1, "total_ms": 12.5})
 
-    def prepare(self, message, history, product_id):
+    def prepare(self, message, history, product_id, *, image_token=None, session_id=None):
         self.prepare_calls.append((message, list(history), product_id))
         if self.prepare_error is not None:
             raise self.prepare_error
@@ -49,7 +49,7 @@ class FakeChatService:
     def answer(self, prepared):
         return self._answer()
 
-    def stream(self, prepared, cancelled):
+    def stream(self, prepared, cancelled, *, trace_id=None, on_finish=None):
         self.cancelled = cancelled
         yield ChatEvent("meta", {"standalone_question": prepared.standalone_question, "rewrite_fallback": False})
         yield ChatEvent("delta", {"text": self.answer_text})
@@ -80,7 +80,7 @@ def test_chat_json_response(chat_client, chat_service):
     assert body["answer"] == "It fits well."
     assert body["standalone_question"] == "standalone: Hi"
     assert body["insufficient_evidence"] is False
-    assert body["sources"] == [{"document_id": "product:P1", "source": "product", "title": "Black Runner", "score": 0.5, "product_id": "P1", "policy_version": None, "source_url": None, "metadata": {}}]
+    assert body["sources"] == [{"citation_id": "product:P1", "document_id": "product:P1", "source": "product", "title": "Black Runner", "score": 0.5, "product_id": "P1", "policy_version": None, "source_url": None, "url": None, "snippet": None, "image_url": None, "metadata": {}}]
     message, history, product_id = chat_service.prepare_calls[0]
     assert (message, product_id) == ("Hi", "P1")
     assert [(turn.role, turn.content) for turn in history] == [("user", "Earlier")]
@@ -146,7 +146,7 @@ async def test_client_disconnect_sets_cancel_flag():
     class SlowChatService(FakeChatService):
         closed = False
 
-        def stream(self, prepared, cancelled):
+        def stream(self, prepared, cancelled, **_):
             self.cancelled = cancelled
             try:
                 yield ChatEvent("meta", {"standalone_question": "q", "rewrite_fallback": False})

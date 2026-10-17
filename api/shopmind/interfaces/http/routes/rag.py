@@ -39,7 +39,7 @@ def _record(request: Request, trace, *, kind: str, latency_ms: float, insufficie
         pass
 
 
-@router.post("/ask", response_model=RAGAskResponse, response_model_exclude_none=True)
+@router.post("/ask", response_model=RAGAskResponse)
 def ask(payload: RAGAskRequest, request: Request) -> RAGAskResponse:
     service = _rag_service(request)
     explain = wants_explain(request, payload.explain)
@@ -58,7 +58,7 @@ def ask(payload: RAGAskRequest, request: Request) -> RAGAskResponse:
     )
 
 
-@router.post("/compare", response_model=CompareResponse, response_model_exclude_none=True)
+@router.post("/compare", response_model=CompareResponse)
 def compare(payload: CompareRequest, request: Request) -> CompareResponse:
     """F3: attribute table from catalog data + a cited RAG comparison of 2-3 products."""
     service = component(request, "compare_service")
