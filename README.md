@@ -119,6 +119,8 @@ cd .. && make dev-api                        # http://127.0.0.1:8000
 cd ui && npm ci && cd .. && make dev-ui      # http://localhost:5173 (proxy tới 127.0.0.1:8000)
 ```
 
+Trên Windows không có `make`: chạy `apiun-api-local.cmd` và `uiun-ui-local.cmd` (cùng cấu hình như `make dev-api` / `make dev-ui`).
+
 Lưu ý Windows: dùng `127.0.0.1` thay vì `localhost` cho API (phân giải IPv6 `::1` trước làm mỗi request chậm ~2 giây).
 
 ## Cấu trúc dự án
