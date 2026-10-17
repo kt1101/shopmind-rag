@@ -1,3 +1,5 @@
+/* The lab keeps its original light palette (it hard-codes light surfaces), even in dark mode. */
+.lab-root { color-scheme: light; --ink: #172033; --muted: #68738a; --line: #d8dfeb; --accent: #4667e8; --surface: #fff; --cyan: #28b9d7; background: #edf1f7; color: #172033; min-height: 100vh; }
 .lab { width: min(1440px, 100%); min-height: 100vh; margin: auto; padding: 0 42px 70px; }
 .lab .site-header { height: 74px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .lab .brand { color: var(--ink); display: flex; align-items: center; gap: 10px; text-decoration: none; }
@@ -142,3 +144,5 @@
 @media (max-width: 980px) { .lab { padding-inline: 22px; } .lab .intro { grid-template-columns: 1fr; } .lab .intro .eyebrow { margin-bottom: -2px; } .lab .control-grid { grid-template-columns: repeat(3, 1fr); } .lab .image-console { grid-template-columns: 1fr; } .lab .drop-zone { min-height: 260px; } }
 @media (max-width: 720px) { .lab { padding-inline: 14px; } .lab .brand small { display: none; } .lab .intro { padding: 38px 0 30px; } .lab .intro h1 { font-size: 43px; } .lab .query-row, .lab .comparison-grid, .lab .image-results .result-list, .lab .answer-sources ol { grid-template-columns: 1fr; } .lab .control-grid, .lab .image-filter-grid { grid-template-columns: 1fr 1fr; } .lab .query-row button, .lab .image-submit { width: 100%; } .lab .ask-intro, .lab .ask-content { padding-inline: 18px; } .lab .ask-form > div { align-items: stretch; flex-direction: column; } }
 @media (max-width: 440px) { .lab .control-grid { grid-template-columns: 1fr; } .lab .readiness { font-size: 10px; } .lab .product-card { grid-template-columns: 96px 1fr; } }
+.lab .lab-map-link { margin-left: auto; margin-right: 20px; color: var(--accent); font: 600 13px/1 var(--font-sans); text-decoration: none; }
+.lab .lab-map-link:hover { text-decoration: underline; }
