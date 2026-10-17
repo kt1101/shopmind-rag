@@ -38,7 +38,7 @@ export function AuthProvider({ children }) {
 
   // Any admin call answering 401 logs out and sends the user to the login page.
   useEffect(() => onUnauthorized(() => {
-    logout('Your session expired. Please sign in again.')
+    logout('adm.session.expired')
     const here = location.pathname + location.search
     navigate(`/admin/login?next=${encodeURIComponent(here)}`, { replace: true })
   }), [logout, navigate, location.pathname, location.search])
@@ -48,10 +48,10 @@ export function AuthProvider({ children }) {
     if (!session?.expiresAt) return undefined
     const ms = session.expiresAt - Date.now()
     if (ms <= 0) {
-      logout('Your session expired. Please sign in again.')
+      logout('adm.session.expired')
       return undefined
     }
-    const timer = setTimeout(() => logout('Your session expired. Please sign in again.'), Math.min(ms, 2 ** 31 - 1))
+    const timer = setTimeout(() => logout('adm.session.expired'), Math.min(ms, 2 ** 31 - 1))
     return () => clearTimeout(timer)
   }, [session, logout])
 

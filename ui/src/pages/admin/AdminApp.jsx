@@ -18,6 +18,12 @@ import SearchPlaygroundPage from './pages/SearchPlaygroundPage.jsx'
 import EmbeddingMapPage from '../embedding-map/EmbeddingMapPage.jsx'
 import '../../shared/ui/ui.css'
 import { EmptyState } from './components/ui.jsx'
+import { useI18n } from '../../shared/ui/I18nProvider.jsx'
+
+function NotFound() {
+  const { t } = useI18n()
+  return <EmptyState title={t('adm.notFound.title')} message={t('adm.notFound.text')} />
+}
 
 export default function AdminApp() {
   return (
@@ -38,7 +44,7 @@ export default function AdminApp() {
             <Route path="annotate" element={<AnnotationPage />} />
             <Route path="playground" element={<SearchPlaygroundPage />} />
             <Route path="embedding-map" element={<EmbeddingMapPage />} />
-            <Route path="*" element={<EmptyState title="Page not found" message="This admin page does not exist." />} />
+            <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
       </AuthProvider>

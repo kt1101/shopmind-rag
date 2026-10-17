@@ -8,6 +8,18 @@ import {
 import { formatDateTime } from '../lib/format.js'
 import { Banner, Card, EmptyState, ErrorState, PageHeader, Pill, Skeleton, TableSkeleton } from '../components/ui.jsx'
 import StorefrontSearchCard from '../components/StorefrontSearchCard.jsx'
+import { useI18n } from '../../../shared/ui/I18nProvider.jsx'
+
+// Client-side validation messages from configTree.coerceInput -> i18n keys (server messages
+// pass through as sent).
+const FIELD_ERRORS = {
+  Required: 'adm.cfg.err.required',
+  'Must be a number': 'adm.cfg.err.number',
+  'Must be an integer': 'adm.cfg.err.integer',
+  'Not an allowed value': 'adm.cfg.err.option',
+  'Invalid JSON': 'adm.cfg.err.json',
+  'Invalid value': 'adm.cfg.err.invalid',
+}
 
 function TreeNode({ node, hotKeys, depth }) {
   if (node.children) {
@@ -30,12 +42,13 @@ function TreeNode({ node, hotKeys, depth }) {
 }
 
 function ConfigInput({ id, spec, input, raw, onChange, error }) {
+  const { t } = useI18n()
   const describedBy = error ? `${id}-err` : undefined
   if (input.type === 'boolean') {
     return (
       <label className="adm-switch">
         <input id={id} type="checkbox" checked={raw === true || raw === 'true'} onChange={(e) => onChange(e.target.checked)} aria-describedby={describedBy} />
-        <span>{raw === true || raw === 'true' ? 'enabled' : 'disabled'}</span>
+        <span>{raw === true || raw === 'true' ? t('adm.cfg.enabled') : t('adm.cfg.disabled')}</span>
       </label>
     )
   }
@@ -62,6 +75,7 @@ function toRaw(input, value) {
 }
 
 export default function ConfigPage() {
+  const { t } = useI18n()
   const config = useAsync((signal) => getConfig({ signal }), [])
   const profiles = useAsync((signal) => listConfigProfiles({ signal }), [])
   const [raw, setRaw] = useState({})
@@ -119,12 +133,12 @@ export default function ConfigPage() {
       profiles.reload()
       setServerErrors({})
       setName('')
-      setMessage(`Saved and activated profile “${data.profile?.name}”.`)
+      setMessage(t('adm.cfg.saved', { name: data.profile?.name }))
     } catch (error) {
       if (error.status === 422) {
         const fieldErrors = fieldErrorsFrom(error)
         setServerErrors(fieldErrors)
-        setSaveError(Object.keys(fieldErrors).length ? 'Validation failed: fix the highlighted fields.' : error.message)
+        setSaveError(Object.keys(fieldErrors).length ? t('adm.cfg.validation') : error.message)
       } else {
         setSaveError(error.message)
       }
@@ -133,7 +147,8 @@ export default function ConfigPage() {
     }
   }
 
-  async function activate(profile, verb = 'Activated') {
+  // `verb` is 'activated' or 'rolledBack' (message key).
+  async function activate(profile, verb = 'activated') {
     setMessage(null)
     setSaveError(null)
     try {
@@ -141,7 +156,7 @@ export default function ConfigPage() {
       config.setData((d) => ({ ...d, effective: data.effective ?? d.effective, active_profile: data.profile ?? profile }))
       if (!data.effective) config.reload()
       profiles.reload()
-      setMessage(`${verb} profile “${profile.name}”.`)
+      setMessage(t(verb === 'rolledBack' ? 'adm.cfg.rolledBack' : 'adm.cfg.activated', { name: profile.name }))
     } catch (error) {
       setSaveError(error.message)
     }
@@ -161,20 +176,20 @@ export default function ConfigPage() {
 
   return (
     <>
-      <PageHeader title="Pipeline & Config" description="Effective config (all layers merged). Hot-reloadable keys can be changed and saved as a named profile." />
+      <PageHeader title={t('adm.cfg.title')} description={t('adm.cfg.intro')} />
       {message && <Banner tone="good">{message}</Banner>}
       {!(config.error && !config.data) && <StorefrontSearchCard config={config.data} profiles={items} rollbackTarget={rollbackTarget} onSaved={onStorefrontSaved} onActivate={activate} />}
       {config.error && !config.data && <ErrorState error={config.error} onRetry={config.reload} />}
       {config.loading && !config.data && <div className="adm-grid-2"><Card><Skeleton lines={12} /></Card><Card><Skeleton lines={12} /></Card></div>}
       {config.data && (
         <div className="adm-grid-2 adm-grid-config">
-          <Card title="Effective config" actions={config.data.active_profile && <span className="adm-muted adm-small">Active: <strong>{config.data.active_profile.name}</strong></span>}>
+          <Card title={t('adm.cfg.effective')} actions={config.data.active_profile && <span className="adm-muted adm-small">{t('adm.cfg.active')} <strong>{config.data.active_profile.name}</strong></span>}>
             <ul className="adm-tree">
               {toTree(effective).map((n) => <TreeNode key={n.path} node={n} hotKeys={hotKeys} depth={0} />)}
             </ul>
           </Card>
-          <Card title="Edit hot-reloadable keys">
-            {fields.length === 0 ? <EmptyState title="No hot-reloadable keys" message="The backend did not declare any keys as hot-reloadable." /> : (
+          <Card title={t('adm.cfg.edit')}>
+            {fields.length === 0 ? <EmptyState title={t('adm.cfg.noHot')} message={t('adm.cfg.noHotText')} /> : (
               <form onSubmit={onSave} className="adm-config-form" noValidate>
                 {fields.map(({ spec, input }) => {
                   const id = `cfg-${spec.key.replace(/\W/g, '-')}`
@@ -184,15 +199,15 @@ export default function ConfigPage() {
                     <div key={spec.key} className={`adm-config-row ${changed ? 'changed' : ''} ${error ? 'invalid' : ''}`}>
                       <label htmlFor={id}><code>{spec.key}</code> <span className="adm-muted adm-small">{input.type}</span></label>
                       <ConfigInput id={id} spec={spec} input={input} raw={raw[spec.key]} onChange={(v) => update(spec.key, v)} error={error} />
-                      {error && <p id={`${id}-err`} className="adm-field-error">{error}</p>}
+                      {error && <p id={`${id}-err`} className="adm-field-error">{FIELD_ERRORS[error] ? t(FIELD_ERRORS[error]) : error}</p>}
                     </div>
                   )
                 })}
                 <div className="adm-diff" aria-live="polite">
-                  <h3>Diff vs active</h3>
-                  {diff.length === 0 ? <p className="adm-muted">No changes.</p> : (
+                  <h3>{t('adm.cfg.diff')}</h3>
+                  {diff.length === 0 ? <p className="adm-muted">{t('adm.cfg.noChanges')}</p> : (
                     <table className="adm-table adm-table-compact">
-                      <thead><tr><th scope="col">Key</th><th scope="col">Active</th><th scope="col">New</th></tr></thead>
+                      <thead><tr><th scope="col">{t('adm.cfg.key')}</th><th scope="col">{t('adm.cfg.current')}</th><th scope="col">{t('adm.cfg.new')}</th></tr></thead>
                       <tbody>
                         {diff.map((d) => (
                           <tr key={d.key}>
@@ -208,13 +223,13 @@ export default function ConfigPage() {
                 {saveError && <Banner tone="bad">{saveError}</Banner>}
                 <div className="adm-form-actions">
                   <label className="adm-field adm-field-inline">
-                    <span>Profile name</span>
-                    <input value={name} onChange={(e) => { setName(e.target.value); setServerErrors((s) => ({ ...s, name: undefined })) }} placeholder="e.g. rrf-k30-rerank" aria-invalid={!!serverErrors.name} />
+                    <span>{t('adm.cfg.profileName')}</span>
+                    <input value={name} onChange={(e) => { setName(e.target.value); setServerErrors((s) => ({ ...s, name: undefined })) }} placeholder={t('adm.cfg.profilePlaceholder')} aria-invalid={!!serverErrors.name} />
                     {serverErrors.name && <span className="adm-field-error">{serverErrors.name}</span>}
                   </label>
-                  <button type="button" className="adm-btn adm-btn-ghost" disabled={diff.length === 0} onClick={() => setRaw(Object.fromEntries(fields.map(({ spec, input }) => [spec.key, toRaw(input, activeFlat[spec.key])])))}>Reset</button>
+                  <button type="button" className="adm-btn adm-btn-ghost" disabled={diff.length === 0} onClick={() => setRaw(Object.fromEntries(fields.map(({ spec, input }) => [spec.key, toRaw(input, activeFlat[spec.key])])))}>{t('adm.cfg.reset')}</button>
                   <button type="submit" className="adm-btn adm-btn-primary" disabled={busy || diff.length === 0 || hasClientErrors || !name.trim()}>
-                    {busy ? 'Saving…' : 'Save as profile'}
+                    {busy ? t('adm.saving') : t('adm.cfg.save')}
                   </button>
                 </div>
               </form>
@@ -223,13 +238,13 @@ export default function ConfigPage() {
         </div>
       )}
       <Card
-        title="Profiles"
-        actions={rollbackTarget && <button type="button" className="adm-btn" onClick={() => activate(rollbackTarget, 'Rolled back to')}>Rollback to “{rollbackTarget.name}”</button>}
+        title={t('adm.cfg.profiles')}
+        actions={rollbackTarget && <button type="button" className="adm-btn" onClick={() => activate(rollbackTarget, 'rolledBack')}>{t('adm.cfg.rollbackTo', { name: rollbackTarget.name })}</button>}
       >
-        {profiles.loading && !profiles.data ? <TableSkeleton cols={5} rows={3} /> : profiles.error && !profiles.data ? <ErrorState error={profiles.error} onRetry={profiles.reload} /> : items.length === 0 ? <EmptyState title="No profiles saved yet" /> : (
+        {profiles.loading && !profiles.data ? <TableSkeleton cols={5} rows={3} /> : profiles.error && !profiles.data ? <ErrorState error={profiles.error} onRetry={profiles.reload} /> : items.length === 0 ? <EmptyState title={t('adm.cfg.noProfiles')} /> : (
           <div className="adm-table-wrap">
             <table className="adm-table">
-              <thead><tr><th scope="col">Name</th><th scope="col">Created</th><th scope="col">By</th><th scope="col">Overrides</th><th scope="col">Status</th></tr></thead>
+              <thead><tr><th scope="col">{t('adm.name')}</th><th scope="col">{t('adm.created')}</th><th scope="col">{t('adm.by')}</th><th scope="col">{t('adm.cfg.overrides')}</th><th scope="col">{t('adm.status')}</th></tr></thead>
               <tbody>
                 {items.map((p) => (
                   <tr key={p.id}>
@@ -237,13 +252,13 @@ export default function ConfigPage() {
                     <td>{formatDateTime(p.created_at)}</td>
                     <td>{p.created_by}</td>
                     <td>
-                      {Object.keys(p.overrides || {}).length === 0 ? <span className="adm-muted">defaults</span> : (
+                      {Object.keys(p.overrides || {}).length === 0 ? <span className="adm-muted">{t('adm.cfg.defaults')}</span> : (
                         <ul className="adm-inline-list">
                           {Object.entries(p.overrides).map(([k, v]) => <li key={k}><code>{k}={formatConfigValue(v)}</code></li>)}
                         </ul>
                       )}
                     </td>
-                    <td>{p.active ? <Pill value="active" /> : <button type="button" className="adm-btn adm-btn-small" onClick={() => activate(p)}>Activate</button>}</td>
+                    <td>{p.active ? <Pill value="active" /> : <button type="button" className="adm-btn adm-btn-small" onClick={() => activate(p)}>{t('adm.cfg.activate')}</button>}</td>
                   </tr>
                 ))}
               </tbody>

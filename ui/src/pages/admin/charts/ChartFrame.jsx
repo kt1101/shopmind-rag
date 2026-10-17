@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { SERIES_COLORS } from './scale.js'
+import { useI18n } from '../../../shared/ui/I18nProvider.jsx'
 
 export function useElementWidth(fallback = 600) {
   const ref = useRef(null)
@@ -34,6 +35,7 @@ export function Legend({ series }) {
 // Accessible wrapper: <svg role="img"> labelled by title/desc + a data table fallback.
 export function ChartFrame({ title, description, series, table, children, tooltip }) {
   const id = useId()
+  const { t } = useI18n()
   return (
     <figure className="adm-chart">
       <Legend series={series} />
@@ -43,7 +45,7 @@ export function ChartFrame({ title, description, series, table, children, toolti
       </div>
       {table && (
         <details className="adm-chart-table">
-          <summary>Show data table</summary>
+          <summary>{t('adm.showTable')}</summary>
           <div className="adm-table-wrap">
             <table className="adm-table">
               <caption className="adm-sr-only">{title}</caption>

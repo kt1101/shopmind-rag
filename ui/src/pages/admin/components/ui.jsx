@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useI18n } from '../../../shared/ui/I18nProvider.jsx'
 
 export function PageHeader({ title, description, actions }) {
   return (
@@ -27,8 +28,9 @@ export function Card({ title, actions, children, className = '' }) {
 }
 
 export function Skeleton({ lines = 5, height = 18 }) {
+  const { t } = useI18n()
   return (
-    <div className="adm-skeleton" role="status" aria-label="Loading">
+    <div className="adm-skeleton" role="status" aria-label={t('adm.loading')}>
       {Array.from({ length: lines }, (_, i) => (
         <span key={i} className="adm-skeleton-line" style={{ height, width: `${92 - (i % 3) * 14}%` }} />
       ))}
@@ -37,8 +39,9 @@ export function Skeleton({ lines = 5, height = 18 }) {
 }
 
 export function TableSkeleton({ rows = 6, cols = 4 }) {
+  const { t } = useI18n()
   return (
-    <div className="adm-table-wrap" role="status" aria-label="Loading">
+    <div className="adm-table-wrap" role="status" aria-label={t('adm.loading')}>
       <table className="adm-table">
         <tbody>
           {Array.from({ length: rows }, (_, r) => (
@@ -54,22 +57,24 @@ export function TableSkeleton({ rows = 6, cols = 4 }) {
   )
 }
 
-export function EmptyState({ title = 'Nothing here yet', message, action }) {
+export function EmptyState({ title, message, action }) {
+  const { t } = useI18n()
   return (
     <div className="adm-state adm-state-empty">
-      <p className="adm-state-title">{title}</p>
+      <p className="adm-state-title">{title ?? t('adm.empty')}</p>
       {message && <p className="adm-muted">{message}</p>}
       {action}
     </div>
   )
 }
 
-export function ErrorState({ error, onRetry, title = 'Could not load data' }) {
+export function ErrorState({ error, onRetry, title }) {
+  const { t } = useI18n()
   return (
     <div className="adm-state adm-state-error" role="alert">
-      <p className="adm-state-title">{title}</p>
-      <p className="adm-muted">{error?.message || String(error || 'Unknown error')}{error?.status ? ` (HTTP ${error.status})` : ''}</p>
-      {onRetry && <button type="button" className="adm-btn" onClick={onRetry}>Retry</button>}
+      <p className="adm-state-title">{title ?? t('adm.loadFailed')}</p>
+      <p className="adm-muted">{error?.message || String(error || t('adm.unknownError'))}{error?.status ? ` (HTTP ${error.status})` : ''}</p>
+      {onRetry && <button type="button" className="adm-btn" onClick={onRetry}>{t('adm.retry')}</button>}
     </div>
   )
 }
@@ -89,30 +94,36 @@ const PILL_TONES = {
   a1: 'info', a3: 'accent', answer: 'accent',
 }
 
+// Status words are translated; technical kinds (search, rag, chat, a1, ...) stay as they are.
 export function Pill({ value, tone, children }) {
-  const t = tone || PILL_TONES[value] || 'neutral'
+  const { t } = useI18n()
+  const toneName = tone || PILL_TONES[value] || 'neutral'
+  const key = `adm.pill.${value}`
+  const label = children ?? (value != null && t(key) !== key ? t(key) : value)
   return (
-    <span className={`adm-pill adm-pill-${t}`}>
+    <span className={`adm-pill adm-pill-${toneName}`}>
       {value === 'running' && <span className="adm-pill-dot" aria-hidden="true" />}
-      {children ?? value}
+      {label}
     </span>
   )
 }
 
 export function Pagination({ total, limit, offset, onChange }) {
-  if (!total || total <= limit) return total ? <p className="adm-muted adm-pager-info">{total} item{total === 1 ? '' : 's'}</p> : null
+  const { t } = useI18n()
+  if (!total || total <= limit) return total ? <p className="adm-muted adm-pager-info">{t('adm.items', { count: total })}</p> : null
   const page = Math.floor(offset / limit) + 1
   const pages = Math.ceil(total / limit)
   return (
-    <nav className="adm-pager" aria-label="Pagination">
-      <button type="button" className="adm-btn adm-btn-ghost" disabled={page <= 1} onClick={() => onChange(Math.max(0, offset - limit))}>Previous</button>
-      <span className="adm-muted">Page {page} of {pages} · {total} items</span>
-      <button type="button" className="adm-btn adm-btn-ghost" disabled={page >= pages} onClick={() => onChange(offset + limit)}>Next</button>
+    <nav className="adm-pager" aria-label={t('adm.pager')}>
+      <button type="button" className="adm-btn adm-btn-ghost" disabled={page <= 1} onClick={() => onChange(Math.max(0, offset - limit))}>{t('adm.prev')}</button>
+      <span className="adm-muted">{t('adm.page', { page, pages, total })}</span>
+      <button type="button" className="adm-btn adm-btn-ghost" disabled={page >= pages} onClick={() => onChange(offset + limit)}>{t('adm.next')}</button>
     </nav>
   )
 }
 
 export function Modal({ open, title, onClose, children, wide = false }) {
+  const { t } = useI18n()
   const ref = useRef(null)
   useEffect(() => {
     const dialog = ref.current
@@ -137,7 +148,7 @@ export function Modal({ open, title, onClose, children, wide = false }) {
         <div className="adm-modal-body">
           <div className="adm-modal-head">
             <h2>{title}</h2>
-            <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose} aria-label="Close">✕</button>
+            <button type="button" className="adm-btn adm-btn-ghost" onClick={onClose} aria-label={t('adm.close')}>✕</button>
           </div>
           {children}
         </div>

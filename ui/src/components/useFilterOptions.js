@@ -1,3 +1,4 @@
+import { normalizeOptions } from '../shared/api/filters.js'
 import { useCallback, useEffect, useState } from 'react'
 import { getFilterOptions } from '../api.js'
 
@@ -24,7 +25,7 @@ export function useFilterOptions(field, prefix = '', enabled = true, limit = 20)
       getFilterOptions({ field, prefix, limit, signal: abortController.signal })
         .then((response) => {
           if (!abortController.signal.aborted) {
-            setOptions(response?.data?.options ?? [])
+            setOptions(normalizeOptions(response?.data?.options))
           }
         })
         .catch((err) => {
