@@ -158,3 +158,54 @@ Intents: `product_search | product_question | policy_question | compare | chitch
 - `GET /admin/eval-runs` → `{items:[{id, name, kind: a1|a3, created_at, metrics:{}, config:{}}]}`; `GET /admin/eval-runs/{id}`
 - `GET /admin/feedback?limit=&offset=` → `{total, items:[{id,target,trace_id,rating,query,product_id,comment,created_at}]}`
 - `GET /admin/judgments?query=` / `POST /admin/judgments` body `{query, product_id, grade:0|1|2}` / `GET /admin/judgments/export` → qrels JSONL; `GET /admin/judgments/agreement` → `{kappa, pairs}`
+
+## Storefront vs. staff (2026-10-17 revision)
+
+- The storefront never chooses an algorithm. `POST /search/text` without `mode` (and without `pipeline`)
+  runs the pipeline in config `defaults.search`, which admins change at runtime
+  (`PUT /admin/config {"overrides": {"defaults.search": "<pipeline>"}}`, hot-reloadable). Filter-only
+  requests still use `search.bm25`. The response `mode` is then `"default"` and `pipeline` names what ran.
+- Glass-box views (inspector, `explain`) are staff tools: the UI shows them only when an admin JWT is
+  present. The API keeps accepting `explain` from anyone (traces contain no secrets, vectors or images).
+- `GET /meta/pipelines?include_hidden=true` also lists evaluation-only pipelines (`public: false`), with a
+  `public` flag on every item; used by the admin Search Playground.
+
+## Shopping planner (RAG, F6)
+
+`POST /rag/plan` body `{request: str(3..800), budget?: number>0, language?: vi|en (default: detected), max_needs?: 2..8 (default 6), explain?: bool}` →
+
+```json
+{
+  "request": "Mình mới chuyển vào căn hộ studio, ngân sách 800 đô",
+  "language": "vi",
+  "method": "llm | rules",
+  "occasion": {"id": "new_apartment", "label": "Dọn vào nhà mới"},
+  "budget": 800.0, "currency": "USD", "total": 742.5, "within_budget": true,
+  "summary": "…",
+  "needs": [
+    {
+      "id": "n1", "label": "Ghế sofa", "query": "sofa", "categories": ["SOFA"], "priority": "must | nice",
+      "status": "chosen | skipped_budget | no_match",
+      "chosen": PlanItem | null,
+      "alternatives": [PlanItem],
+      "reason": "…", "citation_ids": ["product:B07…"]
+    }
+  ],
+  "tips": [{"text": "Đổi trả trong 30 ngày (chính sách thử nghiệm)…", "citation_ids": ["policy:returns.window"]}],
+  "sources": [Citation],
+  "insufficient_evidence": false,
+  "notes": ["prices are synthetic"],
+  "trace_id": "…", "trace": {…}
+}
+```
+
+`PlanItem = {product_id, title, brand, category, image_url, price: {amount, currency, synthetic: true} | null, in_stock: bool | null, score, rank}`.
+Steps in the trace: `decompose` (impl `llm` or `rules`), one `retrieve` per need (id = need id),
+`optimize_budget`, `build_context`, `generate` + `validate_citations` (LLM mode) or `justify` (rules mode).
+Without an LLM the planner still works (occasion templates from `configs/vocab/occasions.yaml`, extractive
+reasons that cite product/policy evidence). Prices are the synthetic overlay; `budget` may also be parsed
+from the request text ("ngân sách 800 đô", "under $500").
+
+Chat: intent `shopping_plan` (e.g. "chuẩn bị đi biển 5 ngày, ngân sách 300$") answers with the chosen
+items as `products`, a short summary, and `plan: {needs:[{label, product_id|null, status}], total, budget}`
+so the widget can link to `/plan?q=<message>`.
