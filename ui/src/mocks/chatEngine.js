@@ -4,13 +4,17 @@
 // and the SSE event sequence meta -> step* -> products? -> delta* -> done.
 
 import { PRODUCTS } from './fixtures.js'
+import { planEngine } from './planEngine.js'
 import { compareEngine, runRag } from './ragEngine.js'
 import { hash, newTraceId, searchComposeEngine, searchImageEngine, searchTextEngine } from './searchEngine.js'
 import { readJSON, writeJSON } from '../shared/lib/storage.js'
 
 const round = (value, digits = 1) => Math.round(value * 10 ** digits) / 10 ** digits
 
-export const CHITCHAT_TEXT = 'Mình là trợ lý mua sắm ShopMind. Bạn có thể: tìm sản phẩm ("ba lô đen chống nước"), gửi ảnh để tìm sản phẩm giống, hỏi về một sản phẩm ("cái thứ hai có chống nước không?"), hỏi chính sách đổi trả/giao hàng, hoặc so sánh 2–3 sản phẩm.'
+export const CHITCHAT_TEXT = 'Mình là trợ lý mua sắm ShopMind. Bạn có thể: tìm sản phẩm ("ba lô đen chống nước"), gửi ảnh để tìm sản phẩm giống, hỏi về một sản phẩm ("cái thứ hai có chống nước không?"), hỏi chính sách đổi trả/giao hàng, so sánh 2–3 sản phẩm, hoặc nhờ lên kế hoạch mua sắm ("chuẩn bị đi biển 5 ngày, ngân sách 300$").'
+
+// Occasion / budget phrasing -> intent shopping_plan (docs/API_CONTRACT.md "Shopping planner").
+const PLAN_PATTERN = /(chuẩn bị|lên kế hoạch|kế hoạch mua|ngân sách|\bbudget\b|shopping (plan|list)|\bplan\b|getting ready|chuyển (vào|nhà)|nhà mới|cần mua (gì|những gì)|quà sinh nhật|birthday gift|đi biển|beach trip|cún con|chó con|new puppy)/
 
 // Sessions survive a page reload in the browser (localStorage) so GET /chat/sessions/{id}
 // can be demoed in mock mode; in Node tests storage is absent and they live in memory only.
@@ -51,6 +55,7 @@ export function routeIntent(message, { hasImage = false, scoped = false } = {}) 
   const text = String(message || '').toLowerCase().trim()
   if (hasImage) return { intent: 'product_search', reason: 'image attached' }
   if (/^(hi|hello|hey|xin chào|chào|cảm ơn|thanks|thank you|help|giúp)/.test(text) || !text) return { intent: 'chitchat', reason: 'greeting/help phrase' }
+  if (PLAN_PATTERN.test(text)) return { intent: 'shopping_plan', reason: 'occasion / budget request' }
   if (/(so sánh|compare|\bvs\b|khác nhau)/.test(text)) return { intent: 'compare', reason: 'comparison keyword' }
   if (/(đổi trả|trả hàng|trả lại|hoàn tiền|giao hàng|vận chuyển|bảo hành|chính sách|return|refund|shipping|warranty|policy)/.test(text)) {
     return { intent: 'policy_question', reason: 'policy keyword' }
@@ -107,6 +112,7 @@ export function chatReply({ message = '', history = [], product_id: productId, s
   let answer = ''
   let sources = []
   let products
+  let plan
   let insufficient = false
 
   if (routed.intent === 'chitchat') {
@@ -124,6 +130,16 @@ export function chatReply({ message = '', history = [], product_id: productId, s
     answer = products.length
       ? `Mình tìm được ${products.length} sản phẩm phù hợp${image ? (text ? ' với ảnh và mô tả của bạn' : ' với ảnh của bạn') : ''}. Hỏi "cái thứ hai có chống nước không?" để xem chi tiết.`
       : 'Mình chưa tìm thấy sản phẩm phù hợp. Bạn thử mô tả khác nhé.'
+  } else if (routed.intent === 'shopping_plan') {
+    const planned = planEngine({ request: message, explain: true })
+    steps.push(...shift(planned.trace.steps, clock))
+    clock += planned.trace.duration_ms
+    const chosen = planned.needs.filter((n) => n.status === 'chosen')
+    products = chosen.map((n, i) => ({ product_id: n.chosen.product_id, title: n.chosen.title, image_url: n.chosen.image_url, brand: n.chosen.brand, category: n.chosen.category, score: n.chosen.score, rank: i + 1 }))
+    session.lastProducts = products.map((r) => PRODUCTS.find((p) => p.product_id === r.product_id)).filter(Boolean)
+    plan = { needs: planned.needs.map((n) => ({ label: n.label, product_id: n.chosen?.product_id ?? null, status: n.status })), total: planned.total, budget: planned.budget }
+    answer = planned.summary
+    insufficient = planned.insufficient_evidence
   } else if (routed.intent === 'compare') {
     const candidates = session.lastProducts.slice(0, 2)
     if (candidates.length < 2) {
@@ -162,6 +178,7 @@ export function chatReply({ message = '', history = [], product_id: productId, s
     session_id: sessionId,
     intent: routed.intent,
     ...(products ? { products } : {}),
+    ...(plan ? { plan } : {}),
     trace_id: traceId,
   }
   if (explain) {

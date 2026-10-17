@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { useChat } from './ChatProvider.jsx'
-import { progressItems, sourceCount } from './chatReply.js'
+import { planHref, progressItems, sourceCount } from './chatReply.js'
 import { resolveImageUrl, uploadChatImage } from '../api.js'
+import { formatPrice } from '../lib/format.js'
 import { productPath } from '../lib/urlState.js'
 import AnswerText from '../entities/citation/AnswerText.jsx'
 import FeedbackWidget from '../features/feedback/FeedbackWidget.jsx'
@@ -13,8 +14,8 @@ import '../entities/citation/citation.css'
 import './chat.css'
 
 const SUGGESTIONS = {
-  vi: { catalog: ['Ba lô đen chống nước', 'Giày bốt da màu nâu', 'Chính sách đổi trả thế nào?'], product: ['Chất liệu là gì?', 'Có chống nước không?', 'Nặng bao nhiêu?'] },
-  en: { catalog: ['Black waterproof backpack', 'Brown leather boots', 'What is the return policy?'], product: ['What material is it made of?', 'Is it waterproof?', 'How much does it weigh?'] },
+  vi: { catalog: ['Ba lô đen chống nước', 'Giày bốt da màu nâu', 'Chuẩn bị đi biển 5 ngày, ngân sách 300$', 'Chính sách đổi trả thế nào?'], product: ['Chất liệu là gì?', 'Có chống nước không?', 'Nặng bao nhiêu?'] },
+  en: { catalog: ['Black waterproof backpack', 'Brown leather boots', 'Beach trip for 5 days, budget $300', 'What is the return policy?'], product: ['What material is it made of?', 'Is it waterproof?', 'How much does it weigh?'] },
 }
 
 function isImageFile(file) {
@@ -56,6 +57,32 @@ function ProductCards({ products, onAsk }) {
   return (
     <div className="chat-sources">
       {products.map((p, i) => <ChatProductCard key={p.product_id || i} product={p} onAsk={onAsk} />)}
+    </div>
+  )
+}
+
+// intent=shopping_plan: what each need got, the total vs budget and a link to the full planner.
+function PlanSummary({ plan, message }) {
+  const { t } = useI18n()
+  if (!plan) return null
+  const money = (n) => formatPrice({ amount: n, currency: 'USD' }) ?? `${n} USD`
+  return (
+    <div className="chat-plan">
+      <ul className="chat-plan-needs">
+        {plan.needs.map((need, i) => (
+          <li key={`${need.label}-${i}`} className={`is-${need.status}`}>
+            <span className="chat-plan-mark" aria-hidden="true">{need.status === 'chosen' ? '✓' : need.status === 'skipped_budget' ? '–' : '×'}</span>
+            <span className="chat-plan-label">{need.label}</span>
+            {need.status !== 'chosen' && <span className="chat-plan-status">{t(`plan.status.${need.status}`)}</span>}
+          </li>
+        ))}
+      </ul>
+      {plan.total != null && (
+        <p className={`chat-plan-total ${plan.withinBudget ? '' : 'is-over'}`}>
+          {t('plan.total')}: <strong>{money(plan.total)}</strong>{plan.budget != null ? ` / ${t('plan.budget')} ${money(plan.budget)}` : ''}
+        </p>
+      )}
+      {message && <Link to={planHref(message)} className="chat-plan-link">{t('chat.openPlan')} →</Link>}
     </div>
   )
 }
@@ -103,7 +130,8 @@ function AssistantMessage({ msg, onAsk, onInspect, staff }) {
           </div>
         )}
         {citations.length ? <AnswerText answer={msg.content} sources={citations} className="chat-bubble-text" /> : <p className="chat-bubble-text">{msg.content}</p>}
-        {msg.kind !== 'search' && msg.evidence && <ChatEvidence evidence={msg.evidence} />}
+        {msg.kind !== 'search' && msg.evidence && msg.intent !== 'shopping_plan' && <ChatEvidence evidence={msg.evidence} />}
+        {msg.intent === 'shopping_plan' && <PlanSummary plan={msg.plan} message={msg.question} />}
         <ProductCards products={products} onAsk={onAsk} />
         {((staff && msg.trace) || msg.traceId) && (
           <div className="chat-tools">

@@ -160,6 +160,18 @@ test('chat: product search, then a follow-up resolved from the session, then the
   await assert.rejects(getChatSession({ sessionId: 'missing' }), { status: 404 })
 })
 
+test('chat: occasion + budget requests get intent shopping_plan with products and a plan', async () => {
+  const res = await chat({ message: 'Chuẩn bị đi biển 5 ngày, ngân sách 300$', explain: true })
+  assert.equal(res.data.intent, 'shopping_plan')
+  assert.ok(res.data.products.length >= 1)
+  assert.equal(res.data.plan.budget, 300)
+  assert.ok(res.data.plan.total <= 300)
+  assert.deepEqual(res.data.products.map((p) => p.product_id), res.data.plan.needs.filter((n) => n.status === 'chosen').map((n) => n.product_id))
+  assert.ok(res.data.plan.needs.every((n) => ['chosen', 'skipped_budget', 'no_match'].includes(n.status) && n.label))
+  assert.ok(res.data.trace.steps.some((s) => s.step === 'optimize_budget'))
+  assert.equal((await chat({ message: 'ba lô đen chống nước' })).data.intent, 'product_search', 'plain product requests are not plans')
+})
+
 test('chatStream emits meta, steps, products, deltas and done in order', async () => {
   const events = []
   const res = await chatStream({ message: 'giày chạy bộ xanh', explain: true, eventDelayMs: 0, onEvent: (e) => events.push(e) })
