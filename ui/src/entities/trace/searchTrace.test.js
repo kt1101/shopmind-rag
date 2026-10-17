@@ -122,3 +122,16 @@ test('compose view reads alpha and formula; queryView tolerates missing understa
   assert.equal(empty.present, false)
   assert.deepEqual(empty.aliases, [])
 })
+
+test('rank table falls back to fusion contributions when a retrieve list is capped', () => {
+  const trace = {
+    steps: [
+      { id: 'lexical', step: 'retrieve', impl: 'bm25', output: { items: [{ id: 'A', rank: 7 }], total: 100 } },
+      { id: 'semantic', step: 'retrieve', impl: 'dense', output: { items: [{ id: 'B', rank: 1 }], total: 100 } },
+      { id: 'fuse', step: 'fuse', impl: 'rrf', output: { items: [{ id: 'A', rank: 1, details: { contributions: { lexical: { rank: 7, score: 0.0149 }, semantic: { rank: 25, score: 0.0118 } } } }] } },
+    ],
+  }
+  const row = rankingTable(trace).rows.find((r) => r.id === 'A')
+  assert.equal(row.ranks.lexical, 7)
+  assert.equal(row.ranks.semantic, 25)
+})

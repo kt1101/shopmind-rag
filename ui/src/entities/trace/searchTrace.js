@@ -115,6 +115,14 @@ export function rankingTable(trace, { limit = 20, titles = {} } = {}) {
         rerank = { before: d.before_rank ?? null, after: d.after_rank ?? entry.rank, score: d.reranker_score ?? entry.score }
       }
     })
+    // Retrieve-step item lists are capped for display; the fused item's contributions carry the
+    // true per-ranking rank even when that candidate is below the cap.
+    columns.forEach((column) => {
+      const fromFusion = contributions?.[column.id]
+      if (ranks[column.id] == null && column.kind === 'retrieve' && fromFusion && Number.isFinite(Number(fromFusion.rank))) {
+        ranks[column.id] = Number(fromFusion.rank)
+      }
+    })
     return { id, title: title || id, ranks, scores, contributions, formula, rerank }
   })
   return { columns: columns.map(({ id, kind, impl }) => ({ id, kind, impl })), rows }

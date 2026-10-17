@@ -123,7 +123,7 @@ export default function ComparePage() {
             <h2 id="compare-summary" className="compare-h2">{t('compare.summary')}</h2>
             {data.insufficient_evidence ? (
               <div className="compare-insufficient" role="note">
-                <strong>{t('compare.insufficient')}</strong>
+                <strong>{t(data.llm_available === false ? 'compare.noLlm' : 'compare.insufficient')}</strong>
                 {data.summary && <p>{data.summary}</p>}
               </div>
             ) : (
