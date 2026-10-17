@@ -32,7 +32,7 @@ RAG_CASES    ?= data/evaluation/rag_cases.jsonl
 # s0-s3 do not call the LLM; s4-s5 need OPENAI_API_KEY (override RAG_CONFIGS to include them).
 RAG_CONFIGS  ?= configs/experiments/rag/s[0-3]_*.yaml
 
-API_FAST_TESTS := tests/unit tests/api tests/evaluation tests/a3
+API_FAST_TESTS := tests/unit tests/api tests/evaluation tests/a3 tests/platform
 TOOLS := $(COMPOSE) --profile tools run --rm -T tools
 
 .PHONY: help setup up down logs ps test test-api test-ui test-integration lint build-ui \
