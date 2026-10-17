@@ -1,0 +1,29 @@
+.compare-page { padding-top: 28px; display: grid; gap: 18px; }
+.compare-page h1 { margin: 0; font-size: 26px; letter-spacing: -.02em; }
+.compare-body { display: grid; gap: 28px; }
+.compare-body.is-refreshing { opacity: .6; }
+.compare-h2 { margin: 0 0 4px; font-size: 18px; }
+.compare-table-wrap { margin-top: 10px; overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
+.compare-table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 14px; }
+.compare-table th, .compare-table td { padding: 10px 12px; border-bottom: 1px solid var(--color-border); text-align: left; vertical-align: top; }
+.compare-table tbody th { position: sticky; left: 0; z-index: 1; background: var(--color-surface-2); width: 160px; font-weight: 600; color: var(--color-text-muted); }
+.compare-table tbody tr:last-child > * { border-bottom: 0; }
+.compare-table tr.is-different td { background: color-mix(in srgb, var(--color-accent-soft) 60%, transparent); }
+.compare-table td.is-missing { color: var(--color-text-muted); font-style: italic; }
+.compare-product { position: relative; min-width: 180px; }
+.compare-product > * { display: block; }
+.compare-product a { margin-top: 6px; color: var(--color-text); font-weight: 700; text-decoration: none; }
+.compare-product a:hover { color: var(--color-accent); }
+.compare-product button { position: absolute; top: 6px; right: 6px; }
+.compare-product-thumb { width: 96px; height: 80px; border-radius: var(--radius-sm); background: var(--color-surface-3); overflow: hidden; display: grid !important; place-items: center; }
+.compare-product-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.compare-summary { padding: 16px 18px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); display: grid; gap: 12px; }
+.compare-summary > p { margin: 0; }
+.compare-points { margin: 0; padding-left: 20px; display: grid; gap: 10px; }
+.compare-insufficient { padding: 12px 14px; border: 1px solid var(--color-warning); border-radius: var(--radius-sm); background: var(--color-warning-soft); color: var(--color-text); }
+.compare-insufficient p { margin: 6px 0 0; color: var(--color-text-muted); }
+.compare-question { display: grid; gap: 6px; font-size: 13px; }
+.compare-question label { font-weight: 600; }
+.compare-question-row { display: flex; gap: 8px; }
+.compare-question-row input { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); }
+.compare-page .answer-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }

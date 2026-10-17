@@ -1756,3 +1756,39 @@
 .shop .search-feedback { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--color-border); }
 .shop .search-results.is-refreshing { opacity: .55; transition: opacity .15s; }
 .shop .search-meta { flex-wrap: wrap; }
+
+/* --- Product page: gallery, commerce badges, actions, visual-similar strip ---------- */
+.shop .product-gallery { display: grid; gap: 10px; min-width: 0; }
+.shop .product-thumbs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+.shop .product-thumb {
+  flex: 0 0 72px;
+  height: 64px;
+  padding: 0;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-3);
+  overflow: hidden;
+}
+.shop .product-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.shop .product-thumb.is-active { border-color: var(--color-accent); }
+.shop .product-commerce { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.shop .product-commerce .product-price { margin: 0; }
+.shop .product-synthetic-note { margin: -4px 0 0; font-size: 12px; color: var(--color-warning); }
+.shop .product-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.shop .product-section-hint { margin: -8px 0 12px; color: var(--color-text-muted); font-size: 13px; }
+.shop .product-similar-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(180px, 220px);
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scroll-snap-type: x proximity;
+}
+.shop .product-similar-strip > * { scroll-snap-align: start; }
+.shop .product-layout-skeleton .product-summary { gap: 14px; }
+.shop .product-ask-explain { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 14px; font-size: 13px; font-weight: 600; color: var(--color-text); cursor: pointer; }
+.shop .product-ask-suggested { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.shop .answer-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+.shop .product-ask .answer-sources summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--color-text-muted); }
+.shop .product-ask .insp-rag { margin-top: 10px; }
