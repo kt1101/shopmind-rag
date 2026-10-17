@@ -15,9 +15,9 @@ export default function ShopLayout() {
     <ImageSearchProvider>
       <ChatProvider>
         <div className="shop">
-          <a href="#main" className="skip-link">Skip to content</a>
+          <a href="#main" className="skip-link">{t('a11y.skip')}</a>
           <SiteHeader />
-          <main id="main">
+          <main id="main" tabIndex={-1}>
             <Outlet />
           </main>
           <footer className="site-footer">

@@ -9,6 +9,11 @@ export default function Drawer({ open, onClose, title, subtitle, children, width
   const panelRef = useRef(null)
   const openerRef = useRef(null)
   const titleId = useId()
+  // Callers usually pass an inline onClose. Reading it through a ref keeps the effect below
+  // tied to `open` only, so a parent re-render (a trace arriving, a streamed chat token) does
+  // not re-run it and yank focus back to the close button.
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
 
   useEffect(() => {
     if (!open) return undefined
@@ -20,7 +25,7 @@ export default function Drawer({ open, onClose, title, subtitle, children, width
     function onKeyDown(event) {
       if (event.key === 'Escape') {
         event.stopPropagation()
-        onClose?.()
+        onCloseRef.current?.()
         return
       }
       if (event.key !== 'Tab' || !panel) return
@@ -42,9 +47,10 @@ export default function Drawer({ open, onClose, title, subtitle, children, width
     return () => {
       document.removeEventListener('keydown', onKeyDown, true)
       document.body.style.overflow = overflow
-      openerRef.current?.focus?.()
+      const opener = openerRef.current
+      if (opener?.isConnected) opener.focus?.()
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
 
