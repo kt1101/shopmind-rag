@@ -121,7 +121,7 @@ async def search_image(request: Request, image: UploadFile = File(...), top_k: i
 
 
 @router.post("/compose", response_model=ComposeSearchResponse)
-async def search_compose(request: Request, image: UploadFile = File(...), text: str = Form(..., min_length=1, max_length=500), alpha: float | None = Form(default=None, ge=0, le=1), top_k: int = Form(default=12, gt=0, le=100), candidate_k: int = Form(default=100, gt=0, le=500), explain: bool = Query(default=False), service: SearchService = Depends(get_search_service)) -> ComposeSearchResponse:
+async def search_compose(request: Request, image: UploadFile = File(...), text: str = Form(..., min_length=1, max_length=500), alpha: float | None = Form(default=None, ge=0, le=1), top_k: int = Form(default=12, gt=0, le=100), candidate_k: int = Form(default=100, gt=0, le=500), brand: list[str] | None = Form(default=None), category: list[str] | None = Form(default=None), explain: bool = Query(default=False), service: SearchService = Depends(get_search_service)) -> ComposeSearchResponse:
     """F1: "like this image, but <text>" — q = normalize(α·image + (1−α)·text) in SigLIP2 space."""
     if candidate_k < top_k:
         raise InvalidPagination("candidate_k must be >= top_k")
@@ -131,7 +131,8 @@ async def search_compose(request: Request, image: UploadFile = File(...), text: 
     started = perf_counter()
     pipeline = _pipeline_name(service, "compose")
     with traced(request, pipeline, kind="compose_search", input={"text": text, "alpha": weight, "image": {"size": list(rgb.size)}, "top_k": top_k}, verbose=explain or wants_explain(request)) as trace:
-        results = service.search_compose(rgb, text, alpha=weight, top_k=top_k, candidate_k=candidate_k)
+        filters = _collapse_singleton_filters(normalize_filters({"brand": brand, "category": category}))
+        results = service.search_compose(rgb, text, alpha=weight, top_k=top_k, candidate_k=candidate_k, filters=filters)
         trace.set_output(result_ids=[result.product_id for result in results])
     latency_ms = round((perf_counter() - started) * 1000, 3)
     _record(request, trace_id=trace.trace_id, query=text, mode="compose", pipeline=pipeline, latency_ms=latency_ms, result_count=len(results))

@@ -221,7 +221,12 @@ class ChatService:
             nonlocal emitted_steps
             steps = getattr(prepared.pipeline_trace, "steps", None) or []
             for step in steps[emitted_steps:]:
-                yield ChatEvent("step", {"id": step.id or step.step, "step": step.step, "status": "done" if step.status in {"ok", "rejected"} else step.status, "summary": step.summary, "duration_ms": round(step.duration_ms, 3)})
+                event = {"id": step.id or step.step, "step": step.step, "status": "done" if step.status in {"ok", "rejected"} else step.status, "summary": step.summary, "duration_ms": round(step.duration_ms, 3)}
+                if step.output.get("total") is not None:
+                    event["count"] = step.output["total"]
+                if isinstance(step.details.get("per_source"), dict):
+                    event["sources"] = {source: info.get("candidates") for source, info in step.details["per_source"].items()}
+                yield ChatEvent("step", event)
             emitted_steps = len(steps)
 
         try:
@@ -287,8 +292,9 @@ class ChatService:
         if self.store is None or not prepared.session_id:
             return
         try:
-            self.store.append(prepared.session_id, "user", prepared.message or prepared.standalone_question, {"intent": prepared.intent})
-            self.store.append(prepared.session_id, "assistant", answer.answer, {"sources": [citation_payload(citation) for citation in answer.sources], "products": [product_payload(item) for item in prepared.products], "intent": prepared.intent})
+            trace_id = getattr(prepared.pipeline_trace, "trace_id", None)
+            self.store.append(prepared.session_id, "user", prepared.message or prepared.standalone_question, {"intent": prepared.intent, "trace_id": trace_id})
+            self.store.append(prepared.session_id, "assistant", answer.answer, {"sources": [citation_payload(citation) for citation in answer.sources], "products": [product_payload(item) for item in prepared.products], "intent": prepared.intent, "trace_id": trace_id, "insufficient_evidence": answer.insufficient_evidence})
         except Exception:
             logger.warning("chat history persistence failed", exc_info=True)
 

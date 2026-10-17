@@ -1,7 +1,8 @@
+# Evaluation-only control: BM25-first union of BM25 and dense candidates, no fusion.
 experiment:
   name: hybrid_no_rrf
   dataset_version: abo_a1_1500_v1
-  index_version: products_a1_1500_v1
+  index_version: products_a1_1500_v2
 retrieval:
   mode: hybrid
   top_k: 10
@@ -10,7 +11,7 @@ fusion:
   method: none
   rrf_k: 60
 embedding:
-  model: google/siglip2-base-patch16-224
+  model: intfloat/multilingual-e5-base
   version: default
 reranker:
   enabled: false

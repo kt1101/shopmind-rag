@@ -37,7 +37,7 @@ class RAGGenerationError(RAGApplicationError):
 
 
 def _doc_items(documents) -> list[dict[str, Any]]:
-    return [{"id": document.id, "rank": rank, "score": round(float(document.score), 6), "title": document.metadata.get("title", document.id), "details": {"source": document.source, **({"pre_rerank_score": document.metadata["pre_rerank_score"]} if "pre_rerank_score" in document.metadata else {})}} for rank, document in enumerate(documents, start=1)]
+    return [{"id": document.id, "rank": rank, "score": round(float(document.score), 6), "title": document.metadata.get("title", document.id), "details": {"source": document.source, "snippet": " ".join(str(document.content or "").split())[:200], **({"pre_rerank_score": document.metadata["pre_rerank_score"]} if "pre_rerank_score" in document.metadata else {})}} for rank, document in enumerate(documents, start=1)]
 
 
 class RAGService:

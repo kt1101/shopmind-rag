@@ -1,16 +1,17 @@
+# Dense text retrieval with the dedicated E5 embedder on text_vector (A-1).
 experiment:
   name: dense
   dataset_version: abo_a1_1500_v1
-  index_version: products_a1_1500_v1
+  index_version: products_a1_1500_v2
 retrieval:
   mode: dense
   top_k: 10
   candidate_k: 100
 fusion:
-  method: rrf
+  method: none
   rrf_k: 60
 embedding:
-  model: google/siglip2-base-patch16-224
+  model: intfloat/multilingual-e5-base
   version: default
 reranker:
   enabled: false

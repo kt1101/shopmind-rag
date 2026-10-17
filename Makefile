@@ -14,11 +14,11 @@ COMPOSE ?= docker compose
 # --- A1 dataset / embedding / index versions --------------------------------
 DATASET_DIR     ?= data/a1_abo_1500
 DATASET_VERSION ?= abo_a1_1500_v1
-INDEX_VERSION   ?= v1
+INDEX_VERSION   ?= v2
 INDEX_NAME      ?= products_a1_1500_$(INDEX_VERSION)
 EMBEDDINGS_DIR  ?= data/embeddings/$(DATASET_VERSION)
 APP_CONFIG      ?= configs/app.yaml
-# Text embedder id from config (embedders.<id>); used by embed-text once supported.
+# Dedicated text embedder id from config (embedders.<id>, ADR 0001); fills text_vector.
 TEXT_EMBEDDER   ?= text_e5
 TEXT_EMBEDDINGS_DIR ?= data/embeddings/$(DATASET_VERSION)_$(TEXT_EMBEDDER)
 
@@ -36,7 +36,8 @@ API_FAST_TESTS := tests/unit tests/api tests/evaluation tests/a3 tests/platform
 TOOLS := $(COMPOSE) --profile tools run --rm -T tools
 
 .PHONY: help setup up down logs ps test test-api test-ui test-integration lint build-ui \
-        seed index embed embed-siglip embed-text index-policies eval-a1 eval-rag clean
+        seed index embed embed-siglip embed-text index-policies embedding-map eval-a1 eval-compose eval-rag \
+        dev-api dev-ui clean
 
 help: ## Show this help
 	@echo "Usage: make <target> [VAR=value]"
@@ -99,31 +100,33 @@ embed-siglip: ## SigLIP2 text/image embeddings -> data/embeddings/<DATASET_VERSI
 	  --device cpu \
 	  --force
 
-embed-text: ## Dedicated text-embedder artifacts (TEXT_EMBEDDER; skipped until supported)
-	$(TOOLS) sh -c ' \
-	  if python -m scripts.generate_embeddings --help | grep -q -- "--embedder"; then \
-	    python -u -m scripts.generate_embeddings \
-	      --input /app/$(DATASET_DIR)/products.jsonl \
-	      --output-dir /app/$(TEXT_EMBEDDINGS_DIR) \
-	      --config /app/$(APP_CONFIG) \
-	      --dataset-version $(DATASET_VERSION)_$(TEXT_EMBEDDER) \
-	      --embedder $(TEXT_EMBEDDER) \
-	      --device cpu \
-	      --force; \
-	  else echo "skip embed-text: scripts.generate_embeddings has no --embedder option yet"; fi'
+embed-text: ## Dedicated text-embedder (E5) artifacts -> data/embeddings/<DATASET_VERSION>_<TEXT_EMBEDDER> (docker, CPU)
+	$(TOOLS) python -u -m scripts.generate_embeddings \
+	  --input /app/$(DATASET_DIR)/products.jsonl \
+	  --output-dir /app/$(TEXT_EMBEDDINGS_DIR) \
+	  --config /app/$(APP_CONFIG) \
+	  --dataset-version $(DATASET_VERSION)_$(TEXT_EMBEDDER) \
+	  --embedder $(TEXT_EMBEDDER) \
+	  --device cpu \
+	  --force
 
-index: ## Create INDEX_NAME from artifacts and switch the products alias (needs ES on :9200)
+index: ## Create INDEX_NAME (E5 text_vector + SigLIP2 image/siglip_text vectors) and switch the products alias
 	cd api && $(PYTHON) -m scripts.create_index \
 	  --manifest $(EMBEDDINGS_DIR)/manifest.json \
+	  --text-manifest $(TEXT_EMBEDDINGS_DIR)/manifest.json \
 	  --index-name $(INDEX_NAME) \
 	  --recreate
 	cd api && $(PYTHON) -m scripts.index_products \
 	  --products $(DATASET_DIR)/products.jsonl \
 	  --embeddings $(EMBEDDINGS_DIR) \
+	  --text-embeddings $(TEXT_EMBEDDINGS_DIR) \
 	  --index-name $(INDEX_NAME) \
 	  --switch-alias products
 
-index-policies: ## Embed (docker) and index the experimental policies, switch the policies alias
+embedding-map: ## 2D PCA maps of the text (E5), SigLIP2-text and image spaces -> api/data/embedding_map
+	cd api && $(PYTHON) -m scripts.build_embedding_map --output data/embedding_map
+
+index-policies: ## Embed (docker, configured text embedder) and index the experimental policies, switch the policies alias
 	$(TOOLS) python -u -m scripts.generate_knowledge_embeddings --source policy \
 	  --input $(POLICY_INPUT) --dataset-version $(POLICY_VERSION) \
 	  --output-dir data/embeddings/$(POLICY_VERSION) --force
@@ -131,25 +134,36 @@ index-policies: ## Embed (docker) and index the experimental policies, switch th
 	  --embeddings data/embeddings/$(POLICY_VERSION) --index-name $(POLICY_VERSION) \
 	  --switch-alias
 
-eval-a1: ## A1 text ablation + image run on the seed-42 benchmark (docker, writes runs/a1)
+A1_TEXT_CONFIGS ?= bm25 dense dense_siglip cross_modal hybrid_no_rrf hybrid_rrf hybrid_rrf_weighted hybrid_linear hybrid_lexical_preserving adaptive
+
+eval-a1: ## A1 text ablation (A1_TEXT_CONFIGS; add hybrid_rerank for A-5) + image run on the seed-42 benchmark (docker, runs/a1)
 	$(TOOLS) sh -c ' \
-	  python -m evaluation.ablation \
-	    --configs configs/experiments/bm25.yaml configs/experiments/dense.yaml \
-	      configs/experiments/cross_modal.yaml configs/experiments/hybrid_no_rrf.yaml \
-	      configs/experiments/hybrid_rrf.yaml \
+	  SHOPMIND_PROFILE=eval python -m evaluation.ablation \
+	    --configs $(foreach name,$(A1_TEXT_CONFIGS),configs/experiments/$(name).yaml) \
 	    --queries $(A1_BENCHMARK)/queries.jsonl \
 	    --qrels $(A1_BENCHMARK)/qrels.jsonl \
 	    --query-type text \
 	    --runs-root runs/a1 && \
-	  python -m evaluation.runner \
+	  SHOPMIND_PROFILE=eval python -m evaluation.runner \
 	    --config configs/experiments/image_dense.yaml \
 	    --queries $(A1_BENCHMARK)/queries.jsonl \
 	    --qrels $(A1_BENCHMARK)/qrels.jsonl \
 	    --query-type image \
 	    --runs-root runs/a1'
 
+eval-compose: ## F1 composed image+text benchmark: image-only vs text-only vs composed (docker, runs/compose)
+	$(TOOLS) sh -c 'SHOPMIND_PROFILE=eval python -m evaluation.compose --runs-root runs/compose'
+
 eval-rag: ## A3 s0-s3 progression (override RAG_CONFIGS for s4-s5; docker, writes runs/a3)
 	$(TOOLS) sh -c 'python -m scripts.run_rag_experiment --configs $(RAG_CONFIGS) --cases $(RAG_CASES)'
+
+## ---- Local development without Docker (Elasticsearch on :9200 from a local install) ----
+
+dev-api: ## Run the API on the host (dev profile: SQLite, admin/admin; needs ES + a built index)
+	cd api && SHOPMIND_PROFILE=dev PRODUCT_IMAGE_DIR=$(DATASET_DIR)/images $(PYTHON) -m uvicorn shopmind.main:app --host 127.0.0.1 --port 8000
+
+dev-ui: ## Run the Vite dev server against the host API (http://localhost:5173)
+	cd ui && VITE_API_PROXY_TARGET=http://127.0.0.1:8000 $(NPM) run dev
 
 ## ---- Housekeeping ----
 

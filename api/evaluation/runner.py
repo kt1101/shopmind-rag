@@ -72,9 +72,25 @@ def _resolve_config(config_path: Path, service: Any) -> dict[str, Any]:
     reranker = _require_mapping(root.get("reranker") or {}, "reranker")
     reranker.setdefault("enabled", False)
 
+    # Optional pipeline (runtime engine): a configured name, or an inline `pipeline: {steps: [...]}`
+    # overlay registered for this run only. Without it the mode's default pipeline runs.
+    pipeline = retrieval.get("pipeline")
+    inline = root.get("pipeline")
+    if inline is not None:
+        from shopmind.core.config import PipelineSpec
+
+        spec = PipelineSpec.model_validate({"kind": "search", "public": False, **_require_mapping(inline, "pipeline")})
+        pipelines = getattr(service, "pipelines", None)
+        if pipelines is None:
+            raise ValueError("inline pipelines require the pipeline engine")
+        pipeline = f"experiment.{name}"
+        pipelines.specs[pipeline] = spec
+        pipelines.invalidate()
+
     return {
         "experiment": {"name": name, "dataset_version": dataset_version, "index_version": index_version},
-        "retrieval": {"mode": mode_text, "top_k": top_k, "candidate_k": candidate_k},
+        "retrieval": {"mode": mode_text, "top_k": top_k, "candidate_k": candidate_k, **({"pipeline": str(pipeline)} if pipeline else {})},
+        **({"pipeline": {"steps": [step.model_dump(exclude_defaults=True) for step in spec.steps]}} if inline is not None else {}),
         "fusion": {"method": str(fusion["method"]), "rrf_k": int(fusion["rrf_k"])},
         "embedding": {"model": str(embedding.get("model") or "unknown"), "version": str(embedding.get("version") or "unknown")},
         "reranker": {"enabled": bool(reranker.get("enabled", False))},
@@ -154,7 +170,7 @@ def run_experiment(config_path: str | Path, service: Any, queries: list[Evaluati
         started = perf_counter()
         try:
             if query.query_type == "text":
-                request = SearchRequest(query=query.query or "", mode=mode, top_k=int(config["retrieval"]["top_k"]), candidate_k=int(config["retrieval"]["candidate_k"]))
+                request = SearchRequest(query=query.query or "", mode=mode, top_k=int(config["retrieval"]["top_k"]), candidate_k=int(config["retrieval"]["candidate_k"]), pipeline=config["retrieval"].get("pipeline"))
                 results = service.search_text(request)
                 result_mode = mode_text
             else:

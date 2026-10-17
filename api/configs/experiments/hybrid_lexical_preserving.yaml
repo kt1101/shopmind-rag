@@ -1,0 +1,18 @@
+# Previous production setting: BM25 order kept, dense candidates only appended.
+experiment:
+  name: hybrid_lexical_preserving
+  dataset_version: abo_a1_1500_v1
+  index_version: products_a1_1500_v2
+retrieval:
+  mode: hybrid
+  top_k: 10
+  candidate_k: 100
+  pipeline: search.hybrid_lexical_preserving
+fusion:
+  method: rrf
+  rrf_k: 60
+embedding:
+  model: intfloat/multilingual-e5-base
+  version: default
+reranker:
+  enabled: false

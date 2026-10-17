@@ -194,7 +194,8 @@ def trace_step(step: str, *, impl: str | None = None, id: str | None = None, par
     try:
         yield record
     except Exception as exc:
-        record.status, record.error = "error", type(exc).__name__
+        # A step may mark itself "rejected" (e.g. a citation retry) before re-raising.
+        record.status, record.error = ("error" if record.status == "ok" else record.status), type(exc).__name__
         raise
     finally:
         record.duration_ms = (perf_counter() - started) * 1000

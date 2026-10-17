@@ -1,0 +1,36 @@
+# A-4: weighted RRF, lexical weight 1.0, dense weight 0.5 (inline pipeline overlay).
+experiment:
+  name: hybrid_rrf_weighted
+  dataset_version: abo_a1_1500_v1
+  index_version: products_a1_1500_v2
+retrieval:
+  mode: hybrid
+  top_k: 10
+  candidate_k: 100
+fusion:
+  method: rrf
+  rrf_k: 60
+embedding:
+  model: intfloat/multilingual-e5-base
+  version: default
+reranker:
+  enabled: false
+pipeline:
+  steps:
+  - step: query_understanding
+    impl: rules
+  - step: retrieve
+    id: lexical
+    impl: bm25
+  - step: retrieve
+    id: semantic
+    impl: dense
+    params:
+      field: text_vector
+  - step: fuse
+    impl: rrf
+    params:
+      k: 60
+      weights:
+      - 1.0
+      - 0.5

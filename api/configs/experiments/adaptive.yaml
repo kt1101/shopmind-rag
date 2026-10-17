@@ -1,0 +1,17 @@
+# Rule router: identifier -> BM25, descriptive -> dense, mixed -> hybrid (search.adaptive).
+experiment:
+  name: adaptive
+  dataset_version: abo_a1_1500_v1
+  index_version: products_a1_1500_v2
+retrieval:
+  mode: adaptive
+  top_k: 10
+  candidate_k: 100
+fusion:
+  method: rrf
+  rrf_k: 60
+embedding:
+  model: intfloat/multilingual-e5-base
+  version: default
+reranker:
+  enabled: false
