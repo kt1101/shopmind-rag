@@ -3,7 +3,7 @@ import { readJSON, writeJSON } from '../../shared/lib/storage.js'
 import { useI18n } from '../../shared/ui/I18nProvider.jsx'
 import { useToast } from '../../shared/ui/Toast.jsx'
 import {
-  COMPARE_MAX, STORAGE_KEYS, addToCart as addToCartList, cartCount, includesId, removeItem, sanitizeList, setCartQuantity, toggleItem,
+  COMPARE_MAX, STORAGE_KEYS, addAllToCart, addToCart as addToCartList, cartCount, includesId, removeItem, sanitizeList, setCartQuantity, toggleItem,
 } from './shopLists.js'
 
 const ShopListsContext = createContext(null)
@@ -56,6 +56,13 @@ export function ShopListsProvider({ children }) {
     toast(t('cart.added'), { tone: 'success' })
   }, [setCart, toast, t])
 
+  const addManyToCart = useCallback((products) => {
+    const list = (products || []).filter(Boolean)
+    if (!list.length) return
+    setCart((current) => addAllToCart(current, list))
+    toast(t('cart.addedMany', { count: list.length }), { tone: 'success' })
+  }, [setCart, toast, t])
+
   const value = useMemo(() => ({
     compare,
     wishlist,
@@ -69,10 +76,11 @@ export function ShopListsProvider({ children }) {
     isWishlisted: (id) => includesId(wishlist, id),
     removeFromWishlist: (id) => setWishlist((current) => removeItem(current, id)),
     addToCart,
+    addManyToCart,
     removeFromCart: (id) => setCart((current) => removeItem(current, id)),
     setQuantity: (id, quantity) => setCart((current) => setCartQuantity(current, id, quantity)),
     cartQuantity: (id) => cart.find((x) => x.product_id === String(id))?.quantity ?? 0,
-  }), [compare, wishlist, cart, toggleCompare, toggleWishlist, addToCart, setCompare, setWishlist, setCart])
+  }), [compare, wishlist, cart, toggleCompare, toggleWishlist, addToCart, addManyToCart, setCompare, setWishlist, setCart])
 
   return <ShopListsContext.Provider value={value}>{children}</ShopListsContext.Provider>
 }

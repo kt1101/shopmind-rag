@@ -7,6 +7,7 @@ import { PRODUCTS } from './fixtures.js'
 import { chatReply, getSession, storeChatImage } from './chatEngine.js'
 import { embeddingMap, projectQuery } from './embeddingEngine.js'
 import { compareEngine, ragAskEngine } from './ragEngine.js'
+import { planEngine } from './planEngine.js'
 import {
   CATALOG, facetsEngine, searchComposeEngine, searchImageEngine, searchTextEngine, similarEngine, suggestEngine, understandEngine,
 } from './searchEngine.js'
@@ -197,6 +198,11 @@ export function ragCompare({ productIds = [], question = '', explain = false, si
     if (productIds.length < 2 || productIds.length > 3) throw httpError(422, 'validation_error', 'product_ids must contain 2 or 3 ids')
     return compareEngine({ product_ids: productIds, question, explain })
   }, mockDelayMs + 500)
+}
+
+// F6 shopping planner: works without an LLM (method "rules"), like the backend.
+export function ragPlan({ request = '', budget, language, maxNeeds, explain = false, signal } = {}) {
+  return respond(signal, () => planEngine({ request, budget, language, max_needs: maxNeeds, explain }), mockDelayMs + 450)
 }
 
 // --- chat ---------------------------------------------------------------------------------

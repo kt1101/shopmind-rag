@@ -58,6 +58,11 @@ export function addToCart(cart, product, quantity = 1) {
   return [...cart, { ...item, quantity: clampQuantity(quantity) }]
 }
 
+// Adds several products at once (e.g. a whole shopping plan), one each.
+export function addAllToCart(cart, products = []) {
+  return (Array.isArray(products) ? products : []).reduce((current, product) => addToCart(current, product, 1), cart)
+}
+
 export function setCartQuantity(cart, productId, quantity) {
   return cart.map((x) => (x.product_id === String(productId) ? { ...x, quantity: clampQuantity(quantity) } : x))
 }

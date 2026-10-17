@@ -4,6 +4,9 @@ import { useI18n } from '../../shared/ui/I18nProvider.jsx'
 
 const STEP_COLORS = {
   query_understanding: 'var(--viz-series-8)',
+  decompose: 'var(--viz-series-5)',
+  optimize_budget: 'var(--viz-series-2)',
+  justify: 'var(--viz-series-4)',
   rewrite: 'var(--viz-series-8)',
   route_intent: 'var(--viz-series-8)',
   retrieve: 'var(--viz-series-1)',

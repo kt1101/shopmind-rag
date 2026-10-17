@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
-  askProduct, chatRequestBody, chatStream, getEmbeddingMap, getPipelines, getFacets, getSimilarProducts, projectEmbedding, ragCompare,
+  askProduct, chatRequestBody, chatStream, getEmbeddingMap, getPipelines, planBody, ragPlan, getFacets, getSimilarProducts, projectEmbedding, ragCompare,
   resolveImageUrl, searchCompose, searchImage, searchSuggest, searchText, sendClick, sendFeedback, uploadChatImage,
 } from './storefront.js'
 
@@ -29,6 +29,16 @@ test('storefront text search sends no mode or pipeline; staff tools may name a p
   assert.deepEqual(JSON.parse(calls[0].options.body), { query: 'boots', top_k: 20, filters: {} })
   await searchText({ query: 'boots', pipeline: 'search.bm25', topK: 10, filters: {}, explain: true, fetchImpl })
   assert.deepEqual(JSON.parse(calls[1].options.body), { query: 'boots', pipeline: 'search.bm25', top_k: 10, filters: {}, explain: true })
+})
+
+test('ragPlan posts the planner body; budget/language/max_needs/explain only when valid', async () => {
+  const { calls, fetchImpl } = capture({ needs: [] })
+  await ragPlan({ request: '  đi biển 5 ngày ', budget: '300', language: 'vi', maxNeeds: 12, explain: true, fetchImpl })
+  assert.equal(calls[0].url, '/api/v1/rag/plan')
+  assert.deepEqual(JSON.parse(calls[0].options.body), { request: 'đi biển 5 ngày', budget: 300, language: 'vi', max_needs: 8, explain: true })
+  assert.deepEqual(planBody({ request: 'x', budget: '', language: 'fr' }), { request: 'x' })
+  assert.deepEqual(planBody({ request: 'x', budget: -5 }), { request: 'x' })
+  assert.deepEqual(planBody({ request: 'x', budget: 'abc', maxNeeds: 1 }), { request: 'x', max_needs: 2 })
 })
 
 test('getPipelines asks for hidden pipelines only when requested', async () => {

@@ -12,6 +12,7 @@ import { ShopListsProvider } from './features/shop-lists/ShopListsProvider.jsx'
 const AdminApp = lazy(() => import('./pages/admin/AdminApp.jsx'))
 const ComparePage = lazy(() => import('./pages/compare/ComparePage.jsx'))
 const CartPage = lazy(() => import('./pages/cart/CartPage.jsx'))
+const PlanPage = lazy(() => import('./pages/plan/PlanPage.jsx'))
 
 // Old engineering URLs now live in the admin console (query string kept).
 function Moved({ to }) {
@@ -38,6 +39,7 @@ export default function App() {
               <Route path="/products/:productId" element={<ProductPage />} />
               <Route path="/compare" element={<Lazy><ComparePage /></Lazy>} />
               <Route path="/cart" element={<Lazy><CartPage /></Lazy>} />
+              <Route path="/plan" element={<Lazy><PlanPage /></Lazy>} />
               <Route path="*" element={<NotFoundPage />} />
             </Route>
           </Routes>

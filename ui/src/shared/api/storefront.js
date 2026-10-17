@@ -145,6 +145,23 @@ export function ragCompare(args = {}) {
   return request(`${API}/rag/compare`, { ...jsonBody(body), signal }, fetchImpl)
 }
 
+// F6 shopping planner. `budget` (USD) is optional; the backend may also parse it from the text.
+export function planBody({ request: text, budget, language, maxNeeds, explain } = {}) {
+  const body = { request: String(text || '').trim() }
+  const amount = Number(budget)
+  if (budget !== null && budget !== undefined && budget !== '' && Number.isFinite(amount) && amount > 0) body.budget = amount
+  if (language === 'vi' || language === 'en') body.language = language
+  if (Number.isInteger(maxNeeds)) body.max_needs = Math.min(8, Math.max(2, maxNeeds))
+  if (explain) body.explain = true
+  return body
+}
+
+export function ragPlan(args = {}) {
+  if (useMock(args)) return mock('ragPlan', args)
+  const { signal, fetchImpl = fetch } = args
+  return request(`${API}/rag/plan`, { ...jsonBody(planBody(args)), signal }, fetchImpl)
+}
+
 // --- chat -------------------------------------------------------------------------------
 
 export function chatRequestBody({ message, history = [], productId, sessionId, imageToken, explain } = {}) {
