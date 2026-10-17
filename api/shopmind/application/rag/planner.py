@@ -38,7 +38,8 @@ PRIORITY_WEIGHT = {"must": 10.0, "nice": 3.0}
 _BUDGET = re.compile(r"(?:ngân\s*sách|budget|dưới|không\s*quá|tối\s*đa|khoảng|tầm|under|below|max(?:imum)?|around|about|up\s*to)\s*(?:là|of|is)?\s*\$?\s*(\d[\d.,]*)\s*(k|nghìn|ngàn|đô|usd|\$|dollars?)?", re.IGNORECASE)
 _AMOUNT = re.compile(r"\$\s*(\d[\d.,]*)|(\d[\d.,]*)\s*(?:đô|usd|\$|dollars?)\b", re.IGNORECASE)
 _SITUATION = re.compile(r"(chuyển|chuẩn bị|dọn|đi |sắm|tặng|đón|mới|cho (bé|con|vợ|chồng|mẹ|bố|bạn)|moving|prepare|going|planning|set(ting)? up|new |for my)", re.IGNORECASE)
-_POLICY_QUERIES = {"vi": ("chính sách đổi trả hàng hoàn tiền", "giao hàng vận chuyển thời gian"), "en": ("return policy refund window", "shipping delivery time")}
+# Policy evidence for plan tips: returns first, then shipping (queries match the policy corpus wording).
+_POLICY_QUERIES = ("returns return window days eligible", "shipping delivery estimate")
 _SPLIT = re.compile(r"\s*(?:,|;|\bvà\b|\band\b|\bcùng\b|\bplus\b|\+)\s*", re.IGNORECASE)
 _FILLER = re.compile(r"^(?:tôi|mình|em|anh|chị|i|we)?\s*(?:cần|muốn|đang tìm|tìm|need|want|looking for)?\s*(?:mua)?\s*", re.IGNORECASE)
 
@@ -333,7 +334,7 @@ class ShoppingPlanner:
         retrievers = getattr(getattr(self.rag, "multi_source", None), "retrievers", {}) or {}
         policy = retrievers.get("policy")
         if policy is not None:
-            for query in _POLICY_QUERIES.get(language, _POLICY_QUERIES["en"]):
+            for query in _POLICY_QUERIES:
                 try:
                     hits = [doc for doc in policy.retrieve(query, 3) if doc.id not in {p.id for p in policies}]
                 except Exception:
