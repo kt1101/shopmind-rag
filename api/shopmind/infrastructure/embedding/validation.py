@@ -37,6 +37,11 @@ def index_embedding_metadata(manifest: Any, *, image: bool = False) -> dict[str,
     return {"embedding_identity": result}
 
 
+def field_embedding_metadata(fields: dict[str, tuple[Any, str]]) -> dict[str, Any]:
+    """Index ``_meta`` for several embedders: ``{field: (manifest_or_embedder, modality)}``."""
+    return {"embedding_identity": {field: embedding_identity(source, modality) for field, (source, modality) in fields.items()}}
+
+
 def validate_index_identity(client: Any, index: str, expected: dict[str, Any], field: str) -> str:
     """Resolve exactly one physical index, validate it, then query that same index."""
     mappings = client.indices.get_mapping(index=index)

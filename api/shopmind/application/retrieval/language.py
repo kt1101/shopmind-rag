@@ -1,57 +1,125 @@
 """Small catalog vocabulary for lexical search, independent of evaluation labels.
 
-Aliases translate everyday Vietnamese product/color terms and common European
-color metadata. Unknown words and literal identifiers pass through unchanged.
+Aliases translate everyday Vietnamese product/color terms and common European color metadata.
+Unknown words and literal identifiers pass through unchanged. The vocabulary is data, not code:
+it is read from the YAML files named in config ``vocabularies`` (``category_aliases``,
+``color_aliases``; defaults under ``configs/vocab/``) and can be swapped at runtime with
+``configure_vocabulary``.
 """
 from __future__ import annotations
 
 import re
+import threading
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
-CATEGORY_ALIASES = {
-    "đồ dùng phòng ngủ và phòng tắm": "home_bed_and_bath", "bed and bath products": "home_bed_and_bath",
-    "vỏ bọc nội thất": "furniture_cover", "furniture covers": "furniture_cover",
-    "tranh trang trí tường": "wall_art", "wall art": "wall_art",
-    "đồ dùng thú cưng": "pet_supplies", "pet supplies": "pet_supplies",
-    "đồ dùng thể thao": "sporting_goods", "sporting goods": "sporting_goods",
-    "dụng cụ viết": "writing_instrument", "writing instruments": "writing_instrument",
-    "cốc uống nước": "drinking_cup", "drinking cups": "drinking_cup",
-    "đồ dùng nhà bếp": "kitchen", "kitchen products": "kitchen",
-    "hàng tạp hóa": "grocery", "groceries": "grocery",
-    "ga trải giường": "flat_sheet", "flat sheets": "flat_sheet",
-    "dép xăng đan": "sandal", "sandals": "sandal",
-    "túi tote": "tote_bag", "tote bags": "tote_bag", "túi xách": "handbag", "handbags": "handbag",
-    "giày bốt": "boot", "boots": "boot", "đầu giường": "headboard", "headboards": "headboard",
-    "ghế đôn": "ottoman", "ottomans": "ottoman", "ghế sofa": "sofa", "sofas": "sofa",
-    "giường": "bed", "beds": "bed", "gối": "pillow", "pillows": "pillow",
-    "kệ": "shelf", "shelves": "shelf", "lọ": "jar", "jars": "jar",
-    "thảm": "rug", "rugs": "rug", "dụng cụ": "tools", "hành lý": "luggage",
-    "va li": "suitcase", "suitcases": "suitcase", "giày": "shoes",
-}
-COLOR_ALIASES = {
-    "black": ("đen", "nero", "noir", "schwarz", "negro"),
-    "white": ("trắng", "bianco", "blanc", "weiß", "weiss", "blanco"),
-    "red": ("đỏ", "rosso", "rouge", "rot", "rojo"),
-    "blue": ("xanh dương", "blu", "bleu", "blau", "azul"),
-    "gray": ("xám", "grey", "grigio", "gris", "grau"),
-    "green": ("xanh lá", "verde", "vert", "grün", "gruen"),
-    "pink": ("hồng", "rosa", "rose", "roze"),
-    "beige": ("be",), "navy blue": ("xanh hải quân", "navy",),
-    "multicolor": ("nhiều màu", "multicolour", "multicoloured", "multicolored", "mehrfarbig"),
-}
-_TRANSLATIONS = {**CATEGORY_ALIASES, **{alias: color for color, aliases in COLOR_ALIASES.items() for alias in aliases}}
-_PATTERN = re.compile(r"(?<!\w)(" + "|".join(re.escape(word) for word in sorted(_TRANSLATIONS,key=len,reverse=True)) + r")(?!\w)", re.IGNORECASE)
+import yaml
+
+DEFAULT_VOCAB_DIR = Path(__file__).resolve().parents[3] / "configs" / "vocab"
+DEFAULT_PATHS = {"category_aliases": DEFAULT_VOCAB_DIR / "category_aliases.yaml", "color_aliases": DEFAULT_VOCAB_DIR / "color_aliases.yaml"}
+_VIETNAMESE = re.compile(r"[ăâđêôơưàảãáạằẳẵắặầẩẫấậèẻẽéẹềểễếệìỉĩíịòỏõóọồổỗốộờởỡớợùủũúụừửữứựỳỷỹýỵ]", re.IGNORECASE)
+_VIETNAMESE_WORDS = re.compile(r"(?<!\w)(tìm|của|màu|cho|giá|dưới|trên|và|có|không)(?!\w)", re.IGNORECASE)
+
+
+@dataclass(frozen=True)
+class Vocabulary:
+    categories: dict[str, str]
+    colors: dict[str, tuple[str, ...]]
+
+    def __post_init__(self) -> None:
+        translations = {**{key.casefold(): value for key, value in self.categories.items()}, **{alias.casefold(): color for color, aliases in self.colors.items() for alias in aliases}}
+        pattern = re.compile(r"(?<!\w)(" + "|".join(re.escape(word) for word in sorted(translations, key=len, reverse=True)) + r")(?!\w)", re.IGNORECASE) if translations else None
+        object.__setattr__(self, "_translations", translations)
+        object.__setattr__(self, "_pattern", pattern)
+
+    def kind(self, phrase: str) -> str:
+        return "category" if phrase.casefold() in {key.casefold() for key in self.categories} else "color"
+
+
+def _read(path: str | Path) -> dict[str, Any]:
+    loaded = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+    if not isinstance(loaded, dict):
+        raise ValueError(f"vocabulary file must be a mapping: {path}")
+    return loaded
+
+
+def load_vocabulary(paths: dict[str, str | Path] | None = None, *, base_dir: str | Path | None = None) -> Vocabulary:
+    resolved = dict(DEFAULT_PATHS)
+    for name, value in (paths or {}).items():
+        path = Path(value)
+        if not path.is_absolute() and base_dir is not None:
+            path = Path(base_dir) / path
+        resolved[name] = path
+    categories = {str(key): str(value) for key, value in _read(resolved["category_aliases"]).items()}
+    colors = {str(key): tuple(str(alias) for alias in (value or [])) for key, value in _read(resolved["color_aliases"]).items()}
+    return Vocabulary(categories, colors)
+
+
+_lock = threading.Lock()
+_vocabulary: Vocabulary | None = None
+
+
+def vocabulary() -> Vocabulary:
+    global _vocabulary
+    if _vocabulary is None:
+        with _lock:
+            if _vocabulary is None:
+                _vocabulary = load_vocabulary()
+    return _vocabulary
+
+
+def configure_vocabulary(paths: dict[str, str | Path] | None = None, *, base_dir: str | Path | None = None) -> Vocabulary:
+    """Load (or reload) the active vocabulary from config paths."""
+    global _vocabulary
+    loaded = load_vocabulary(paths, base_dir=base_dir)
+    with _lock:
+        _vocabulary = loaded
+    return loaded
+
+
+def __getattr__(name: str) -> Any:  # backwards-compatible read access to the old constants
+    if name == "CATEGORY_ALIASES":
+        return dict(vocabulary().categories)
+    if name == "COLOR_ALIASES":
+        return dict(vocabulary().colors)
+    raise AttributeError(name)
+
+
+def explain_lexical_query(query: str) -> tuple[str, list[dict[str, str]]]:
+    """Normalized lexical query plus the aliases that were applied (for the glass-box trace)."""
+    vocab = vocabulary()
+    applied: list[dict[str, str]] = []
+    # Identifiers and brand punctuation stay literal; only the leading request verb is removed.
+    result = re.sub(r"^(find|tìm)\s+", "", query, flags=re.IGNORECASE)
+
+    def translate(match: re.Match[str]) -> str:
+        target = vocab._translations[match.group().casefold()]
+        applied.append({"from": match.group(), "to": target, "kind": vocab.kind(match.group())})
+        return target
+
+    if vocab._pattern is not None:
+        result = vocab._pattern.sub(translate, result)
+    return re.sub(r"(?<!\w)(from|in|của|màu)(?!\w)", " ", result, flags=re.IGNORECASE).strip(), applied
 
 
 def normalize_lexical_query(query: str) -> str:
-    # Identifiers and brand punctuation stay literal; only the leading request verb is removed.
-    result = re.sub(r"^(find|tìm)\s+", "", query, flags=re.IGNORECASE)
-    result = _PATTERN.sub(lambda match: _TRANSLATIONS[match.group().casefold()], result)
-    return re.sub(r"(?<!\w)(from|in|của|màu)(?!\w)", " ", result, flags=re.IGNORECASE).strip()
+    return explain_lexical_query(query)[0]
 
 
 def catalog_color_terms(color: str) -> str:
     value = color.strip().casefold()
-    for canonical, aliases in COLOR_ALIASES.items():
+    for canonical, aliases in vocabulary().colors.items():
         if value in (canonical, *aliases):
             return canonical
     return ""
+
+
+def detect_language(query: str) -> str:
+    """``vi`` when the query has Vietnamese diacritics or function words, else ``en``."""
+    return "vi" if _VIETNAMESE.search(query) or _VIETNAMESE_WORDS.search(query) else "en"
+
+
+def known_colors() -> dict[str, str]:
+    """Every color spelling (canonical + aliases, casefolded) → canonical color."""
+    return {alias.casefold(): canonical for canonical, aliases in vocabulary().colors.items() for alias in (canonical, *aliases)}

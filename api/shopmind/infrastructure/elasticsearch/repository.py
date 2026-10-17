@@ -8,9 +8,10 @@ from shopmind.application.retrieval.language import normalize_lexical_query
 from shopmind.infrastructure.embedding.validation import embedding_identity, validate_index_identity, validate_vectors
 
 _FILTER_FIELDS = {"brand": "brand.keyword", "category": "category.keyword", "product_id": "product_id"}
-_VECTOR_FIELDS = {"text_vector", "image_vector"}
+_VECTOR_FIELDS = {"text_vector", "image_vector", "siglip_text_vector"}
 _FACET_FIELDS = set(_FILTER_FIELDS)
-_CATALOG_SOURCE_EXCLUDES = ["text_vector", "image_vector", "search_text"]
+_SOURCE_EXCLUDES = ["text_vector", "image_vector", "siglip_text_vector", "embedding_identities"]
+_CATALOG_SOURCE_EXCLUDES = [*_SOURCE_EXCLUDES, "search_text"]
 _CATEGORY_FACET_SIZE = 300
 
 
@@ -70,7 +71,7 @@ def build_partial_filter_clauses(filters: dict[str, str | list[str]]) -> list[di
 
 
 def _source_without_vectors(source: dict[str, Any]) -> dict[str, Any]:
-    return {key: value for key, value in source.items() if key not in {"text_vector", "image_vector"}}
+    return {key: value for key, value in source.items() if key not in _SOURCE_EXCLUDES}
 
 
 def _to_raw_hit(hit: dict[str, Any]) -> RawSearchHit:
@@ -88,7 +89,7 @@ class ElasticsearchProductRepository:
 
     def exact_id_search(self, query: str, filters: dict[str, str | list[str]]) -> list[RawSearchHit]:
         clauses = self._resolved_filter_clauses(filters)
-        response = self.client.search(index=self.index_alias, query={"bool": {"filter": clauses + [{"term": {"product_id": {"value": query.strip(), "case_insensitive": True}}}]}}, size=1, source_excludes=["text_vector", "image_vector"])
+        response = self.client.search(index=self.index_alias, query={"bool": {"filter": clauses + [{"term": {"product_id": {"value": query.strip(), "case_insensitive": True}}}]}}, size=1, source_excludes=list(_SOURCE_EXCLUDES))
         return [_to_raw_hit(hit) for hit in response.get("hits", {}).get("hits", [])]
 
     def ping(self) -> bool:
@@ -157,7 +158,7 @@ class ElasticsearchProductRepository:
                 {"match_phrase": {"title": {"query": query, "boost": 4}}},
                 {"term": {"product_id": {"value": query.strip(), "case_insensitive": True, "boost": 100}}},
             ]}}
-        kwargs: dict[str, Any] = {"index": self.index_alias, "query": search_query, "size": size, "source_excludes": ["text_vector", "image_vector"]}
+        kwargs: dict[str, Any] = {"index": self.index_alias, "query": search_query, "size": size, "source_excludes": list(_SOURCE_EXCLUDES)}
         if query is None:
             kwargs["sort"] = [{"product_id": "asc"}]
         response = self.client.search(**kwargs)
@@ -184,7 +185,7 @@ class ElasticsearchProductRepository:
             knn: dict[str, Any] = {"field": field, "query_vector": vector, "k": size, "num_candidates": num_candidates}
             if filter_clauses:
                 knn["filter"] = filter_clauses[0] if len(filter_clauses) == 1 else {"bool": {"filter": filter_clauses}}
-            response = self.client.search(index=self.index_alias, knn=knn, size=size, source_excludes=["text_vector", "image_vector"])
+            response = self.client.search(index=self.index_alias, knn=knn, size=size, source_excludes=list(_SOURCE_EXCLUDES))
             return [_to_raw_hit(hit) for hit in response.get("hits", {}).get("hits", [])]
 
         return search_with(clauses)
@@ -216,12 +217,14 @@ class ElasticsearchProductRepository:
             raise ValueError("bulk writes require a physical index")
         mapping = mappings[index_name]["mappings"]
         for document in documents:
-            for field in ("text_vector", "image_vector"):
+            for field in sorted(_VECTOR_FIELDS):
                 if field not in document:
                     continue
                 validate_vectors([document[field]], int(mapping["properties"][field]["dims"]))
                 identity = mapping.get("_meta", {}).get("embedding_identity", {}).get(field)
-                if identity and (document.get("embedding_model") != identity["model"] or document.get("embedding_version") != identity["model_revision"]):
+                # Per-field identity when vectors come from several embedders, else the legacy pair.
+                declared = (document.get("embedding_identities") or {}).get(field) or {"model": document.get("embedding_model"), "model_revision": document.get("embedding_version")}
+                if identity and (declared.get("model") != identity["model"] or declared.get("model_revision") != identity["model_revision"]):
                     raise ValueError("document model/revision does not match index identity")
 
     def bulk_index(self, index_name: str, documents: list[dict[str, Any]]) -> tuple[int, list[dict[str, Any]]]:

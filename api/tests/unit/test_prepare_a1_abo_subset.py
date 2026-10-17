@@ -69,8 +69,8 @@ def test_build_canonical_record_matches_a1_processed_schema(tmp_path: Path):
         "search_text",
         "metadata",
     }
-    assert record["main_image_path"] == str(image_path)
-    assert record["image_paths"] == [str(image_path)]
+    assert record["main_image_path"] == image_path.as_posix()
+    assert record["image_paths"] == [image_path.as_posix()]
     assert record["attributes"] == {
         "color": "Black",
         "material": "Mesh",

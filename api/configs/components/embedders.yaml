@@ -1,2 +1,39 @@
 # Owner: retrieval-ML: embedders + indexes
-{}
+# Embedders are chosen by id from pipelines and index vector fields; `impl` is a registry name
+# (shopmind/infrastructure/embedding/factory.py). Physical index names never appear here or in
+# app code: the app addresses only aliases.
+embedders:
+  siglip2:                       # image + cross-modal (text -> image space)
+    impl: siglip2
+    model_name: google/siglip2-base-patch16-224
+    revision: 75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2
+    modalities: [text, image]
+  text_e5:                       # text <-> text, multilingual (vi/en), ADR 0001
+    impl: sentence_transformer
+    model_name: intfloat/multilingual-e5-base
+    modalities: [text]
+    params:
+      query_prefix: "query: "
+      passage_prefix: "passage: "
+      max_seq_length: 256
+      batch_size: 32
+      # A-2: the product text that is embedded (str.format fields: title, brand, category,
+      # color, material, attributes, description). Changing it requires re-embedding.
+      document_template: "{title}\nBrand: {brand}\nCategory: {category}\nColor: {color}\nMaterial: {material}\n{attributes}\n{description}"
+      description_chars: 600
+
+indexes:
+  products:
+    alias: products
+    vectors:
+      text_vector: text_e5
+      image_vector: siglip2
+      siglip_text_vector: siglip2   # legacy SigLIP2 text space, kept for ablation + embedding map
+  reviews:                         # knowledge sources embed with the configured text embedder
+    alias: reviews
+    vectors:
+      text_vector: text_e5
+  policies:
+    alias: policies
+    vectors:
+      text_vector: text_e5

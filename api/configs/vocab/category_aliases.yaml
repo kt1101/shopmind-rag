@@ -1,0 +1,51 @@
+# Everyday Vietnamese/English phrases -> catalog category value used by lexical search.
+# Edited here (or via an admin config override of `vocabularies`); no code change needed.
+đồ dùng phòng ngủ và phòng tắm: home_bed_and_bath
+bed and bath products: home_bed_and_bath
+vỏ bọc nội thất: furniture_cover
+furniture covers: furniture_cover
+tranh trang trí tường: wall_art
+wall art: wall_art
+đồ dùng thú cưng: pet_supplies
+pet supplies: pet_supplies
+đồ dùng thể thao: sporting_goods
+sporting goods: sporting_goods
+dụng cụ viết: writing_instrument
+writing instruments: writing_instrument
+cốc uống nước: drinking_cup
+drinking cups: drinking_cup
+đồ dùng nhà bếp: kitchen
+kitchen products: kitchen
+hàng tạp hóa: grocery
+groceries: grocery
+ga trải giường: flat_sheet
+flat sheets: flat_sheet
+dép xăng đan: sandal
+sandals: sandal
+túi tote: tote_bag
+tote bags: tote_bag
+túi xách: handbag
+handbags: handbag
+giày bốt: boot
+boots: boot
+đầu giường: headboard
+headboards: headboard
+ghế đôn: ottoman
+ottomans: ottoman
+ghế sofa: sofa
+sofas: sofa
+giường: bed
+beds: bed
+gối: pillow
+pillows: pillow
+kệ: shelf
+shelves: shelf
+lọ: jar
+jars: jar
+thảm: rug
+rugs: rug
+dụng cụ: tools
+hành lý: luggage
+va li: suitcase
+suitcases: suitcase
+giày: shoes

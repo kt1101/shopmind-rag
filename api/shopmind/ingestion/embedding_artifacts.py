@@ -22,6 +22,13 @@ class EmbeddingManifest:
     created_at: str
     text_preprocessing: dict[str, Any] | None = None
     image_preprocessing: dict[str, Any] | None = None
+    # Config id of the embedder (``embedders.<id>``). Text-only embedders (E5/BGE) write no
+    # image_embeddings.npy and leave image_preprocessing empty.
+    embedder_id: str | None = None
+
+    @property
+    def has_images(self) -> bool:
+        return self.image_preprocessing is not None
 
     def __post_init__(self) -> None:
         if self.dimension <= 0:
@@ -71,7 +78,11 @@ def validate_artifacts(directory: str | Path, manifest: EmbeddingManifest) -> No
     directory = Path(directory)
     product_ids = _load_product_ids(directory)
     text = _load_matrix(directory / "text_embeddings.npy")
-    image = _load_matrix(directory / "image_embeddings.npy")
+    image_path = directory / "image_embeddings.npy"
+    if not image_path.exists() and not manifest.has_images:
+        image = np.zeros((manifest.product_count, manifest.dimension), dtype=np.float32)
+    else:
+        image = _load_matrix(image_path)
     if len(set(product_ids)) != len(product_ids):
         raise ValueError("product IDs must be unique")
     if len(product_ids) != manifest.product_count:
@@ -92,7 +103,7 @@ def validate_artifacts(directory: str | Path, manifest: EmbeddingManifest) -> No
         _validate_normalized(image, allow_zero_rows=True, name="image_embeddings")
 
 
-def write_embedding_artifacts(output_dir: str | Path, product_ids: list[str], text_embeddings: np.ndarray, image_embeddings: np.ndarray, manifest: EmbeddingManifest, *, force: bool = False) -> Path:
+def write_embedding_artifacts(output_dir: str | Path, product_ids: list[str], text_embeddings: np.ndarray, image_embeddings: np.ndarray | None, manifest: EmbeddingManifest, *, force: bool = False) -> Path:
     output_dir = Path(output_dir)
     output_dir.parent.mkdir(parents=True, exist_ok=True)
     if output_dir.exists() and not force:
@@ -102,7 +113,8 @@ def write_embedding_artifacts(output_dir: str | Path, product_ids: list[str], te
     try:
         (temp_dir / "product_ids.json").write_text(json.dumps(product_ids, ensure_ascii=False), encoding="utf-8")
         np.save(temp_dir / "text_embeddings.npy", np.asarray(text_embeddings, dtype=np.float32))
-        np.save(temp_dir / "image_embeddings.npy", np.asarray(image_embeddings, dtype=np.float32))
+        if image_embeddings is not None:
+            np.save(temp_dir / "image_embeddings.npy", np.asarray(image_embeddings, dtype=np.float32))
         validate_artifacts(temp_dir, manifest)
         (temp_dir / "manifest.json").write_text(json.dumps(manifest.to_dict(), ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         if output_dir.exists():
@@ -123,7 +135,8 @@ def write_embedding_artifacts(output_dir: str | Path, product_ids: list[str], te
     return output_dir
 
 
-def load_embedding_artifacts(directory: str | Path) -> tuple[EmbeddingManifest, list[str], np.ndarray, np.ndarray]:
+def load_embedding_artifacts(directory: str | Path) -> tuple[EmbeddingManifest, list[str], np.ndarray, np.ndarray | None]:
+    """Manifest, product ids, text matrix and image matrix (``None`` for text-only embedders)."""
     directory = Path(directory)
     manifest_path = directory / "manifest.json"
     if not manifest_path.exists():
@@ -133,4 +146,6 @@ def load_embedding_artifacts(directory: str | Path) -> tuple[EmbeddingManifest, 
         raise ValueError("manifest.json must contain a JSON object")
     manifest = EmbeddingManifest.from_dict(raw_manifest)
     validate_artifacts(directory, manifest)
-    return manifest, _load_product_ids(directory), _load_matrix(directory / "text_embeddings.npy"), _load_matrix(directory / "image_embeddings.npy")
+    image_path = directory / "image_embeddings.npy"
+    image = _load_matrix(image_path) if image_path.exists() else None
+    return manifest, _load_product_ids(directory), _load_matrix(directory / "text_embeddings.npy"), image
