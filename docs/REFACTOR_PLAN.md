@@ -520,6 +520,15 @@ Qrels A1/accuracy_v2 vẫn là nhãn seed/metadata chưa được người duy�
 | Bảo mật | Rate limit `/rag`, `/chat`; `/admin`, `/debug`, `/traces` cần JWT; secret chỉ từ env; trace không chứa vector/ảnh; test prompt-injection (`tests/a3/test_prompt_injection.py`) |
 | LLM | Provider theo registry (`openai`, `ollama`), không có key thì search/trợ lý tìm sản phẩm/so sánh dạng bảng vẫn chạy |
 
+### Bổ sung sau phản hồi (2026-10-17)
+
+| Hạng mục | Kết quả |
+|---|---|
+| Tách vai **khách hàng / quản trị** | Storefront không còn chọn thuật toán: tìm kiếm không gửi `mode` chạy pipeline `defaults.search` do admin chọn (hot-reload, có rollback). Inspector, "Minh bạch", trace chỉ hiện khi đăng nhập admin. Embedding Map và Search Playground (so sánh 2 pipeline, overlap@10) chuyển vào `/admin`; Retrieval Lab (bài tập 1–2) bỏ khỏi đồ án |
+| **F6. Lên kế hoạch mua sắm theo nhu cầu** (RAG) | `POST /rag/plan`, trang `/plan`, ý định chat `shopping_plan`. Khách mô tả tình huống + ngân sách → tách nhu cầu (LLM có ràng buộc danh mục, hoặc template `configs/vocab/occasions.yaml`) → truy hồi theo từng nhu cầu qua pipeline mặc định → chọn tổ hợp tối ưu trong ngân sách bằng quy hoạch động (đúng tuyệt đối, kiểm tra bằng vét cạn trong test) → lý do có trích dẫn sản phẩm + mẹo chính sách có trích dẫn; LLM bị từ chối nếu trích ngoài context, khi đó dùng lý do trích xuất. Chạy được cả khi không có LLM. Mọi bước có trace |
+| Giá tổng hợp theo loại hàng | Dải giá hợp lý theo danh mục (sofa đắt hơn ốp điện thoại), vẫn gắn nhãn `synthetic` (`seed_demo --refresh-prices`) |
+| Sửa lỗi | Script embed policy đọc nhầm khoá index nên index policy được dựng bằng SigLIP2 thay vì E5 → truy hồi policy của RAG lỗi (bị che vì thiếu API key). Đã sửa, index lại `policies_a3_v2`, `/ready` báo thêm `policies`/`reviews` để lỗi này không bị che nữa |
+
 ### Chưa làm / giới hạn còn lại
 
 - **Frontend TypeScript, TanStack Query, client sinh từ OpenAPI** (§3.3): chưa chuyển; UI vẫn là JS + `fetch` qua `shared/api`, có mock đầy đủ. Không có test component (chỉ test logic thuần).

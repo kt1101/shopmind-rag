@@ -30,9 +30,9 @@ ShopMind là một "cửa hàng thu nhỏ" dùng để nghiên cứu và trình 
 | Nhóm | Tính năng |
 |---|---|
 | Tìm kiếm | Text search (`bm25`, `dense`, `cross_modal`, `hybrid`, `adaptive`), image search, **compose search** ("giống ảnh này nhưng màu đen"), autocomplete, facet có đếm, bộ lọc brand/category (OR trong một trường, AND giữa các trường), sản phẩm tương tự theo ảnh |
-| Trợ lý RAG | Chat streaming (SSE) có lịch sử, viết lại câu hỏi độc lập, hiểu ý định và tự trích bộ lọc, chat nhận ảnh, hỏi đáp trên trang sản phẩm, **so sánh 2–3 sản phẩm có trích dẫn** |
-| Glass-box inspector | Search Inspector (truy vấn đã hiểu, rank BM25/dense/RRF, từ khoá khớp, waterfall thời gian, ES query DSL), RAG Inspector (ứng viên theo nguồn, context thật sự gửi đi, prompt, kiểm tra citation), bản đồ embedding 2D |
-| Admin console | Đăng nhập JWT, dashboard (latency, zero-result, abstain, phản hồi), sửa config hot-reload + rollback, Trace Explorer, quản lý index/alias, Policy CMS, Evaluation Center, gán nhãn relevance |
+| Trợ lý RAG | Chat streaming (SSE) có lịch sử, viết lại câu hỏi độc lập, hiểu ý định và tự trích bộ lọc, chat nhận ảnh, hỏi đáp trên trang sản phẩm, **so sánh 2–3 sản phẩm có trích dẫn**, **lên kế hoạch mua sắm theo tình huống + ngân sách** (tách nhu cầu → truy hồi từng nhu cầu → tối ưu ngân sách → lý do có trích dẫn) |
+| Glass-box (cho admin) | Search Inspector (truy vấn đã hiểu, rank BM25/dense/RRF, từ khoá khớp, waterfall thời gian, ES query DSL), RAG Inspector (ứng viên theo nguồn, context thật sự gửi đi, prompt, kiểm tra citation), bản đồ embedding 2D |
+| Admin console | Chọn thuật toán tìm kiếm cho cửa hàng, Search Playground, Embedding Map, đăng nhập JWT, dashboard (latency, zero-result, abstain, phản hồi), sửa config hot-reload + rollback, Trace Explorer, quản lý index/alias, Policy CMS, Evaluation Center, gán nhãn relevance |
 | Đánh giá | Benchmark A1 seed 42 (Recall@10, nDCG@10, MRR@10), ablation, lộ trình RAG `s0`–`s5`, mọi run ghi vào `runs/<timestamp>_<name>/` |
 
 Lộ trình, phạm vi (MoSCoW) và **trạng thái thực hiện** (mục 15) nằm trong
@@ -89,7 +89,7 @@ Quy trình dựng lại từ đầu nằm ở [`api/README.md`](api/README.md#ap
 |---|---|
 | <http://localhost:5173> | Storefront |
 | <http://localhost:5173/admin> | Admin console (tài khoản `ADMIN_USERNAME` / `ADMIN_PASSWORD` trong `.env`) |
-| <http://localhost:5173/lab> | Retrieval lab |
+| <http://localhost:5173/plan> | Lên kế hoạch mua sắm (F6) |
 | <http://localhost:8000/docs> | API docs (OpenAPI / Swagger) |
 | <http://localhost:8000/health>, `/ready` | Liveness, readiness |
 | <http://localhost:9200> | Elasticsearch |
@@ -119,7 +119,9 @@ cd .. && make dev-api                        # http://127.0.0.1:8000
 cd ui && npm ci && cd .. && make dev-ui      # http://localhost:5173 (proxy tới 127.0.0.1:8000)
 ```
 
-Trên Windows không có `make`: chạy `apiun-api-local.cmd` và `uiun-ui-local.cmd` (cùng cấu hình như `make dev-api` / `make dev-ui`).
+Trên Windows không có `make`: chạy `api
+un-api-local.cmd` và `ui
+un-ui-local.cmd` (cùng cấu hình như `make dev-api` / `make dev-ui`).
 
 Lưu ý Windows: dùng `127.0.0.1` thay vì `localhost` cho API (phân giải IPv6 `::1` trước làm mỗi request chậm ~2 giây).
 
