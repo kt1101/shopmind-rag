@@ -118,7 +118,7 @@ export default function FilterSidebar({ filters = {}, onChange, query = null, sh
           <label key={opt.value} className={`filter-checkbox-label ${opt.count === 0 ? 'is-zero' : ''}`}>
             <input type="checkbox" checked={selected[field].includes(opt.value)} onChange={() => toggle(field, opt.value)} />
             {field === 'color' && <span className="filter-swatch" style={{ background: COLOR_SWATCHES[catalogKey(opt.value)] || 'var(--color-surface-3)' }} aria-hidden="true" />}
-            <span className="filter-checkbox-name">{labelFor(opt.value)}</span>
+            <span className="filter-checkbox-name" title={labelFor(opt.value)}>{labelFor(opt.value)}</span>
             {opt.count != null && <span className="filter-count">{opt.count}</span>}
           </label>
         ))}

@@ -9,7 +9,7 @@ export const CATEGORY_LABELS = {
     // real catalog (ABO product types), most frequent first
     shoes: 'Giày', cellular_phone_case: 'Ốp điện thoại', grocery: 'Thực phẩm', home: 'Đồ gia dụng',
     home_bed_and_bath: 'Chăn ga & phòng tắm', home_furniture_and_decor: 'Nội thất & trang trí', chair: 'Ghế',
-    boot: 'Giày bốt', sandal: 'Dép xăng đan', health_personal_care: 'Sức khoẻ & chăm sóc cá nhân',
+    boot: 'Giày bốt', sandal: 'Dép xăng đan', health_personal_care: 'Chăm sóc cá nhân',
     finering: 'Nhẫn cao cấp', accessory: 'Phụ kiện', office_products: 'Văn phòng phẩm', fineearring: 'Bông tai cao cấp',
     table: 'Bàn', sporting_goods: 'Đồ thể thao', pet_supplies: 'Đồ cho thú cưng',
     finenecklacebraceletanklet: 'Dây chuyền, vòng tay cao cấp', outdoor_living: 'Đồ ngoài trời', rug: 'Thảm',

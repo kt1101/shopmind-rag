@@ -1809,3 +1809,61 @@
 .shop .answer-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
 .shop .product-ask .answer-sources summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--color-text-muted); }
 .shop .product-ask .insp-rag { margin-top: 10px; }
+
+/* --- 2026-10 polish ------------------------------------------------------------------ */
+/* Catalog photos are packshots on white: show the whole product instead of cropping it. */
+.shop .product-card .product-visual { background: #fff; }
+.shop .product-card .product-visual img { object-fit: contain; padding: 10px; }
+.shop .product-media { background: #fff; }
+
+/* Small caps labels: the sans font keeps Vietnamese diacritics legible (monospace crowded them). */
+.shop .product-card .eyebrow,
+.shop .product-summary .eyebrow,
+.shop .product-ask-kicker {
+  font-family: var(--font-sans);
+  letter-spacing: .06em;
+}
+
+/* Keep the footer note and the last row of content clear of the floating chat button. */
+.shop > .site-footer { padding-right: 104px; }
+@media (max-width: 980px) {
+  .shop > .site-footer { padding-right: 88px; }
+}
+
+/* Facet hint sits under the lists it describes. */
+.shop .filter-facets-hint { order: 99; margin: 0; }
+.shop .filter-empty {
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+/* Error states: plain explanation first, technical detail folded away. */
+.shop .status-block .status-detail { margin-top: 10px; font-size: 12px; color: var(--color-text-muted); }
+.shop .status-block .status-detail summary { cursor: pointer; }
+.shop .status-block .status-detail code { display: block; margin-top: 4px; word-break: break-word; }
+.shop .product-ask .ask-error { flex-wrap: wrap; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--color-danger-border); border-radius: var(--radius-sm); background: var(--color-danger-soft); }
+.shop .product-ask .ask-error p { margin: 0; flex: 1 1 260px; line-height: 1.45; }
+.shop .product-ask .ask-error--llm_unavailable { border-color: var(--color-border); background: var(--color-warning-soft); color: var(--color-text); }
+
+.shop .product-details-table th[scope="row"] { text-align: left; font-weight: 500; }
+
+/* Visible keyboard focus on every interactive control. */
+.shop a:focus-visible,
+.shop button:focus-visible,
+.shop input:focus-visible,
+.shop select:focus-visible,
+.shop textarea:focus-visible,
+.shop summary:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+.shop main:focus { outline: none; }
+
+/* Category labels: one line, so card titles line up across a row. */
+.shop .product-card .eyebrow { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shop .filter-section-title { font-family: var(--font-sans); letter-spacing: .06em; }
+.shop .filter-checkbox-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
