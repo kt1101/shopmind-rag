@@ -6,6 +6,7 @@ defaults:
   rag: rag.answer
   chat: chat.assistant
   compare: rag.compare
+  plan: rag.plan
 
 rag:
   enabled: true
@@ -48,4 +49,15 @@ pipelines:
       - { step: multi_source_retrieve, impl: catalog+knowledge }
       - { step: build_context, impl: budgeted }
       - { step: generate, impl: openai, params: { prompt: compare } }
+      - { step: validate_citations, impl: context_ids }
+
+  rag.plan:
+    kind: plan
+    description: "F6 shopping planner: situation -> needs -> per-need retrieval -> budget DP -> cited reasons + policy tips"
+    steps:
+      - { step: decompose, impl: llm_or_rules, params: { templates: vocab/occasions.yaml } }
+      - { step: retrieve, impl: search, params: { per_need: true, pipeline: defaults.search } }
+      - { step: optimize_budget, impl: dp }
+      - { step: build_context, impl: budgeted }
+      - { step: generate, impl: openai, params: { prompt: plan_justify, fallback: extractive } }
       - { step: validate_citations, impl: context_ids }

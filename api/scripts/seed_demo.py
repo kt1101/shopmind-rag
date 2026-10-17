@@ -22,16 +22,20 @@ from shopmind.core.config import AppConfig, load_app_config
 
 
 def _product_ids(path: Path) -> list[str]:
-    ids = []
+    return list(_product_categories(path))
+
+
+def _product_categories(path: Path) -> dict[str, str | None]:
+    categories: dict[str, str | None] = {}
     for line in path.read_text(encoding="utf-8").splitlines():
         if line.strip():
-            product_id = json.loads(line).get("product_id")
-            if product_id:
-                ids.append(str(product_id))
-    return ids
+            row = json.loads(line)
+            if row.get("product_id"):
+                categories[str(row["product_id"])] = row.get("category")
+    return categories
 
 
-def seed(config: AppConfig, *, products: Path, policies: Path, runs: Path, annotator: str = "annotator", annotator_password: str | None = None, seed_value: int = 42, log=print) -> dict[str, Any]:
+def seed(config: AppConfig, *, products: Path, policies: Path, runs: Path, annotator: str = "annotator", annotator_password: str | None = None, seed_value: int = 42, refresh_prices: bool = False, log=print) -> dict[str, Any]:
     from shopmind.infrastructure.auth import AuthService
     from shopmind.infrastructure.db.commerce import ProductOverlayService
     from shopmind.infrastructure.db.engine import Database, redact_url
@@ -53,7 +57,8 @@ def seed(config: AppConfig, *, products: Path, policies: Path, runs: Path, annot
 
     summary["policies_added"] = PolicyRepository(db).seed_from(policies)
     if products.exists():
-        summary["overlay_added"] = ProductOverlayService(db).upsert_synthetic(_product_ids(products), seed=seed_value)
+        categories = _product_categories(products)
+        summary["overlay_added"] = ProductOverlayService(db).upsert_synthetic(list(categories), seed=seed_value, categories=categories, refresh=refresh_prices)
     else:
         log(f"{products} not found: skipping synthetic price/stock")
         summary["overlay_added"] = 0
@@ -66,13 +71,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Seed ShopMind demo data (users, policies, synthetic commerce, eval runs).")
     parser.add_argument("--config", type=Path, default=Path(os.getenv("SHOPMIND_CONFIG", "configs/app.yaml")))
     parser.add_argument("--products", type=Path, default=Path("data/a1_abo_1500/products.jsonl"))
+    parser.add_argument("--refresh-prices", action="store_true", help="regenerate existing synthetic price/stock rows (category-aware)")
     parser.add_argument("--policies", type=Path, default=None, help="default: jobs.policies_source")
     parser.add_argument("--runs", type=Path, default=None, help="default: jobs.runs_dir")
     parser.add_argument("--annotator", default="annotator")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     config = load_app_config(args.config)
-    summary = seed(config, products=args.products, policies=args.policies or Path(config.jobs.policies_source), runs=args.runs or Path(config.jobs.runs_dir), annotator=args.annotator, annotator_password=os.getenv("ANNOTATOR_PASSWORD"), seed_value=args.seed)
+    summary = seed(config, products=args.products, policies=args.policies or Path(config.jobs.policies_source), runs=args.runs or Path(config.jobs.runs_dir), annotator=args.annotator, annotator_password=os.getenv("ANNOTATOR_PASSWORD"), seed_value=args.seed, refresh_prices=args.refresh_prices)
     print(json.dumps(summary, sort_keys=True))
 
 

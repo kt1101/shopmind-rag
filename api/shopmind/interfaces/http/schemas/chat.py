@@ -39,6 +39,7 @@ class ChatResponse(BaseModel):
     session_id: str | None = None
     intent: str | None = None
     products: list[ChatProduct] | None = None
+    plan: dict[str, Any] | None = None
     trace_id: str | None = None
     trace: dict[str, Any] | None = None
 

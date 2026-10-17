@@ -13,7 +13,8 @@ _ALLOWED_FILTERS = {"brand", "category", "product_id", "color"}
 
 class TextSearchRequest(BaseModel):
     query: str | None = None
-    mode: str = SearchMode.HYBRID.value
+    # None = the storefront default: the pipeline in config ``defaults.search`` (chosen by admins).
+    mode: str | None = None
     top_k: int = Field(default=10, gt=0)
     candidate_k: int | None = Field(default=None, gt=0)
     offset: int = Field(default=0, ge=0)
@@ -51,17 +52,25 @@ class TextSearchRequest(BaseModel):
     def _effective_candidate_k(self) -> int:
         return self.candidate_k if self.candidate_k is not None else max(100, self.top_k)
 
-    def to_domain(self) -> SearchRequest:
+    def to_domain(self, default_pipeline: str | None = None) -> SearchRequest:
+        if self.mode is None:
+            # Filter-only listings stay on BM25; text queries run the admin-configured default pipeline.
+            mode = SearchMode.BM25 if self.query is None else SearchMode.HYBRID
+            pipeline = self.pipeline or (default_pipeline if self.query is not None else None)
+            return self._domain(mode, pipeline)
         try:
             mode = SearchMode(self.mode)
         except ValueError as exc:
             raise UnsupportedSearchMode(f"unsupported search mode: {self.mode}") from exc
+        return self._domain(mode, self.pipeline)
+
+    def _domain(self, mode: SearchMode, pipeline: str | None) -> SearchRequest:
         if self.query is None and mode is not SearchMode.BM25:
             raise UnsupportedSearchMode("filter-only search requires bm25 mode")
         unknown = sorted(set(self.filters) - _ALLOWED_FILTERS)
         if unknown:
             raise InvalidFilter(f"unsupported filter field: {unknown[0]}")
-        return SearchRequest(query=self.query, mode=mode, top_k=self.offset + self.top_k, candidate_k=self._effective_candidate_k(), filters=dict(self.filters), pipeline=self.pipeline)
+        return SearchRequest(query=self.query, mode=mode, top_k=self.offset + self.top_k, candidate_k=self._effective_candidate_k(), filters=dict(self.filters), pipeline=pipeline)
 
 
 class ProductSearchResult(BaseModel):

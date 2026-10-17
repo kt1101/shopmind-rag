@@ -20,7 +20,7 @@ def embed_knowledge_documents(documents,provider,dataset_version,batch_size,outp
 def _provider(cfg,source,embedder_id=None):
     """The configured text embedder of the knowledge index (E5 by default), else legacy SigLIP2."""
     from shopmind.infrastructure.embedding.factory import build_embedder, field_embedder_ids
-    embedder_id=embedder_id or field_embedder_ids(cfg,f"{source}s").get("text_vector")
+    embedder_id=embedder_id or field_embedder_ids(cfg,{"policy":"policies","review":"reviews"}[source]).get("text_vector")
     if embedder_id and (cfg.embedders or embedder_id=="siglip2"):
         return build_embedder(cfg,embedder_id,device="cpu")
     return SigLIP2EmbeddingProvider(model_name=cfg.embedding.model_name,model_revision=cfg.embedding.model_revision,hf_token=cfg.embedding.hf_token)

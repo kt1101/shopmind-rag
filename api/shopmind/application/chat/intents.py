@@ -13,9 +13,12 @@ from typing import Any
 
 from shopmind.application.retrieval.language import explain_lexical_query, known_colors
 
-INTENTS = ("product_search", "product_question", "policy_question", "compare", "chitchat")
+INTENTS = ("product_search", "product_question", "policy_question", "compare", "chitchat", "shopping_plan")
 
 _CHITCHAT = re.compile(r"^\s*(xin chào|chào( bạn| shop)?|hello|hi|hey|cảm ơn|cám ơn|thanks?( you)?|ok(ay)?|tạm biệt|bye)\b[\s!.?]*$", re.IGNORECASE)
+# A situation to shop for (several products, often with a budget) → the shopping planner (F6).
+_PLAN = re.compile(r"(lên kế hoạch|lên danh sách|chuẩn bị (cho|đi|đồ)|mới chuyển|chuyển (vào|sang|đến)?\s*nhà|dọn (vào|về) nhà|nhà mới|căn hộ mới|đi (biển|du lịch|cắm trại|công tác)|góc làm việc|làm việc tại nhà|quà (tặng|sinh nhật|cho)|mua quà|setting up|set up my|moving (in|into)|new apartment|planning (a|my|for)|prepare for|packing for|home office|gift (for|ideas))", re.IGNORECASE)
+_BUDGET_WORD = re.compile(r"(ngân sách|budget)", re.IGNORECASE)
 _COMPARE = re.compile(r"(so sánh|compare|\bvs\.?\b|khác nhau|difference between|nên chọn cái nào|which (one|is better))", re.IGNORECASE)
 _POLICY = re.compile(r"(đổi trả|trả hàng|hoàn tiền|bảo hành|giao hàng|vận chuyển|phí ship|thanh toán|chính sách|return|refund|warranty|shipping|delivery|payment|policy|exchange)", re.IGNORECASE)
 _SEARCH = re.compile(r"^\s*(tìm|kiếm|cho (tôi|mình) xem|gợi ý|mình cần mua|tôi cần mua|muốn mua|có .* nào|find|search|show me|looking for|recommend|i need|i want( to buy)?)\b", re.IGNORECASE)
@@ -43,6 +46,8 @@ def route_intent(message: str, *, has_image: bool = False, product_id: str | Non
         return "product_search", "an image is attached"
     if _CHITCHAT.match(message):
         return "chitchat", "greeting / thanks"
+    if _PLAN.search(message) or (_BUDGET_WORD.search(message) and re.search(r",|và|and", message)):
+        return "shopping_plan", "a situation to shop for: plan a basket"
     if _COMPARE.search(message):
         return "compare", "comparison wording"
     if _POLICY.search(message):

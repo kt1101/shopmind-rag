@@ -32,10 +32,13 @@ def apply_config(container, config) -> None:
 
         rebuilt = create_rag_service(search, container.get("es_client"), container.get("knowledge_embedder"), config.rag, review_index_alias=config.index_alias("reviews"), policy_index_alias=config.index_alias("policies"), prompts=container.get("prompts"))
         container.provide("rag_service", rebuilt)
-        for name, attribute in (("chat_service", "rag_service"), ("compare_service", "rag")):
+        for name, attribute in (("chat_service", "rag_service"), ("compare_service", "rag"), ("planner", "rag")):
             service = container.get(name)
             if service is not None:
                 setattr(service, attribute, rebuilt)
+    planner = container.get("planner")
+    if planner is not None:
+        planner.default_pipeline = config.defaults.get("search")
     logger.info("runtime config applied (pipelines and RAG rebuilt)")
 
 

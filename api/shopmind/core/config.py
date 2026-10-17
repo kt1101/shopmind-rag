@@ -166,7 +166,7 @@ class StepSpec(BaseModel):
 
 class PipelineSpec(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    kind: Literal["search", "image_search", "compose_search", "rag", "chat", "compare", "knowledge"] = "search"
+    kind: Literal["search", "image_search", "compose_search", "rag", "chat", "compare", "plan", "knowledge"] = "search"
     description: str = ""
     public: bool = True
     steps: list[StepSpec] = Field(default_factory=list)

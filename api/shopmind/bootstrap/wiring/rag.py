@@ -53,6 +53,22 @@ def wire(container) -> None:
     container.provide("knowledge_embedder", knowledge_embedder)
     prompts = PromptLibrary(config.prompts)
     container.provide("prompts", prompts)
+    # Fail loudly (in /ready) when a knowledge index was embedded with a different model than the
+    # one configured for it: retrieval would otherwise only break at question time.
+    status = {}
+    for source, alias in (("policies", config.index_alias("policies")), ("reviews", config.index_alias("reviews"))):
+        repository_ = ElasticsearchKnowledgeRepository(client, alias, source=source[:-1] if source == "reviews" else "policy")
+        try:
+            if not repository_.alias_exists():
+                status[source] = "missing"
+                continue
+            repository_.bind_embedding(knowledge_embedder)
+            status[source] = "ok"
+        except ValueError:
+            status[source] = "embedding_mismatch"
+        except Exception:
+            status[source] = "error"
+    container.provide("knowledge_status", status)
     rag_service = create_rag_service(container.search_service, client, knowledge_embedder, config.rag, review_index_alias=config.index_alias("reviews"), policy_index_alias=config.index_alias("policies"), prompts=prompts)
     container.provide("rag_service", rag_service)
     repository = container.get("repository")
@@ -75,3 +91,7 @@ def wire(container) -> None:
     container.provide("chat_service", ChatService(rag_service, config.rag.chat, reviews.alias_exists, lambda product_id: (repository.get_product(product_id) or {}).get("title"), understanding=understanding, search=container.search_service, image_cache=container.get("image_cache"), store=LazyComponent(container, "chat_store"), commerce=LazyComponent(container, "commerce")))
     if catalog is not None:
         container.provide("compare_service", CompareService(catalog, rag_service, prompts))
+    from shopmind.application.rag.planner import ShoppingPlanner
+
+    planner = container.provide("planner", ShoppingPlanner(container.search_service, rag_service, prompts, commerce=LazyComponent(container, "commerce"), catalog_values=catalog_values, occasions_path=config.vocabularies.get("occasions"), default_pipeline=config.defaults.get("search")))
+    container.get("chat_service").planner = planner

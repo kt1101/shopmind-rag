@@ -31,6 +31,8 @@ def _components(request: Request) -> dict[str, str]:
     status["text_embedder"] = "ok" if text_id and bool(getattr(embedders.get(text_id), "is_ready", False)) else ("ok" if embedder is not None and getattr(embedder, "is_ready", False) else "error")
     rag = component(request, "rag_service")
     status["llm"] = "ok" if rag is not None and getattr(rag, "llm", None) is not None else "disabled"
+    for source, value in (component(request, "knowledge_status") or {}).items():
+        status[source] = value
     database = component(request, "db")
     try:
         status["database"] = database.status() if database is not None and hasattr(database, "status") else "disabled"

@@ -78,18 +78,22 @@ def _inline(trace, explain: bool) -> dict[str, Any] | None:
 @router.post("/text", response_model=TextSearchResponse)
 def search_text(payload: TextSearchRequest, request: Request, service: SearchService = Depends(get_search_service)) -> TextSearchResponse:
     started = perf_counter()
-    domain_request = payload.to_domain()
+    config = get_config(request)
+    # Storefront requests carry no mode: run the admin-configured default (`defaults.search`).
+    default_pipeline = config.defaults.get("search") if config is not None and getattr(service, "pipelines", None) is not None else None
+    domain_request = payload.to_domain(default_pipeline)
+    mode_label = payload.mode or ("default" if domain_request.query else "bm25")
     explain = wants_explain(request, payload.explain)
     pipeline = _pipeline_name(service, "text", domain_request)
-    with traced(request, pipeline, kind="search", input={"query": domain_request.query, "mode": domain_request.mode.value, "filters": domain_request.filters, "top_k": payload.top_k, "offset": payload.offset}, verbose=explain) as trace:
+    with traced(request, pipeline, kind="search", input={"query": domain_request.query, "mode": mode_label, "filters": domain_request.filters, "top_k": payload.top_k, "offset": payload.offset}, verbose=explain) as trace:
         results = service.search_text(domain_request)[payload.offset:]
         if payload.sort == "title":
             results = sorted(results, key=lambda result: result.title.casefold())
         trace.set_output(result_ids=[result.product_id for result in results])
     latency_ms = round((perf_counter() - started) * 1000, 3)
     log_search_event(logger, request_id=request.state.request_id, query=domain_request.query, mode=domain_request.mode.value, pipeline=pipeline, latency_ms=latency_ms, candidate_k=domain_request.candidate_k, result_count=len(results), index_alias=getattr(request.app.state, "index_alias", None), embedding_model=getattr(request.app.state, "embedding_model", None), embedding_version=getattr(request.app.state, "embedding_version", None))
-    _record(request, trace_id=trace.trace_id, query=domain_request.query, mode=domain_request.mode.value, pipeline=pipeline, latency_ms=latency_ms, result_count=len(results), filters=domain_request.filters)
-    return TextSearchResponse(query=domain_request.query, mode=domain_request.mode.value, filter_only=domain_request.query is None, results=[ProductSearchResult.from_domain(result) for result in results], pipeline=pipeline, trace_id=trace.trace_id, trace=_inline(trace, explain))
+    _record(request, trace_id=trace.trace_id, query=domain_request.query, mode=mode_label, pipeline=pipeline, latency_ms=latency_ms, result_count=len(results), filters=domain_request.filters)
+    return TextSearchResponse(query=domain_request.query, mode=mode_label, filter_only=domain_request.query is None, results=[ProductSearchResult.from_domain(result) for result in results], pipeline=pipeline, trace_id=trace.trace_id, trace=_inline(trace, explain))
 
 
 @router.get("/filter-options", response_model=FilterOptionsResponse)

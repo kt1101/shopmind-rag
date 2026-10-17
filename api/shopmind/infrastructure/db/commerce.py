@@ -7,6 +7,7 @@ generated values; without a database the generated values are served directly.
 from __future__ import annotations
 
 import hashlib
+import math
 import logging
 import random
 from collections.abc import Iterable
@@ -23,11 +24,37 @@ DEFAULT_CURRENCY = "USD"
 SEED = 42
 
 
-def synthetic_overlay(product_id: str, *, seed: int = SEED, currency: str = DEFAULT_CURRENCY) -> dict[str, Any]:
-    """Deterministic fake price/stock for one product (same id + seed → same values)."""
+# Plausible USD price bands by category keyword (first match wins), so budget-based features such as
+# the shopping planner behave realistically. Still synthetic: labelled as such everywhere.
+PRICE_BANDS: tuple[tuple[tuple[str, ...], tuple[float, float]], ...] = (
+    (("SOFA", "BED", "DRESSER", "CABINET", "MAJOR_HOME_APPLIANCES", "TELEVISION", "PERSONAL_COMPUTER", "COMPUTER"), (249, 1199)),
+    (("TABLE", "DESK", "CHAIR", "OTTOMAN", "BENCH", "HEADBOARD", "SHELF", "BEAN_BAG", "FURNITURE", "STOOL", "RUG", "SUITCASE", "LUGGAGE", "BARBECUE"), (59, 449)),
+    (("LAMP", "LIGHT_FIXTURE", "LIGHTING", "WALL_ART", "MIRROR", "HEADPHONES", "SPEAKERS", "WATCH", "FINE", "OUTDOOR_LIVING", "CLOCK", "STORAGE_RACK"), (29, 249)),
+    (("SHOES", "BOOT", "SANDAL", "HANDBAG", "BACKPACK", "TOTE_BAG", "FLAT_SHEET", "HOME_BED_AND_BATH", "KITCHEN", "PAN", "OVEN", "PET_SUPPLIES", "SPORTING_GOODS", "EXERCISE", "BARBELL", "KEYBOARD", "MOUSE", "MICROPHONE"), (19, 129)),
+    (("CELLULAR_PHONE_CASE", "SCREEN_PROTECTOR", "GROCERY", "FRUIT", "VEGETABLE", "BREAD", "SNACK", "COFFEE", "TEA", "SAUCE", "HAT", "SUNGLASSES", "EYEWEAR", "WALLET", "BOTTLE", "DRINKING_CUP", "JAR", "OFFICE", "WRITING", "STAPLER", "FOLDER", "BEAUTY", "SKIN", "SHAMPOO", "UMBRELLA", "EARRING", "RING", "NECKLACE", "BRACELET"), (6, 59)),
+)
+DEFAULT_BAND = (9, 99)
+
+
+def price_band(category: str | None) -> tuple[float, float]:
+    value = (category or "").upper()
+    for keywords, band in PRICE_BANDS:
+        if any(keyword in value for keyword in keywords):
+            return band
+    return DEFAULT_BAND
+
+
+def synthetic_overlay(product_id: str, *, seed: int = SEED, currency: str = DEFAULT_CURRENCY, category: str | None = None) -> dict[str, Any]:
+    """Deterministic fake price/stock for one product (same id + seed + category → same values).
+
+    With a ``category`` the price falls in a plausible band for that kind of product (log-uniform,
+    rounded to x.99); without it a generic band is used.
+    """
     digest = hashlib.sha256(f"{seed}:{product_id}".encode()).digest()
     rng = random.Random(int.from_bytes(digest[:8], "big"))
-    amount = round(rng.choice([4, 9, 14, 19, 24, 29, 39, 49, 59, 79, 99, 129, 149, 199, 249]) + 0.99 + rng.choice([0, 0, 0, 10, 20]), 2)
+    low, high = price_band(category)
+    raw = math.exp(rng.uniform(math.log(low), math.log(high)))
+    amount = round(max(1, round(raw) - 1) + 0.99, 2)
     in_stock = rng.random() >= 0.12
     quantity = rng.randint(1, 120) if in_stock else 0
     return {"product_id": product_id, "price_amount": amount, "currency": currency, "in_stock": in_stock, "quantity": quantity}
@@ -70,8 +97,10 @@ class ProductOverlayService:
                 result[product_id] = _shape(row)
         return result
 
-    def upsert_synthetic(self, product_ids: Iterable[str], *, seed: int = SEED) -> int:
-        """Write generated rows for products that have none yet (idempotent). Returns rows added."""
+    def upsert_synthetic(self, product_ids: Iterable[str], *, seed: int = SEED, categories: dict[str, str | None] | None = None, refresh: bool = False) -> int:
+        """Write generated rows for products that have none yet (idempotent). Returns rows written.
+
+        ``categories`` makes prices category-aware; ``refresh`` regenerates existing synthetic rows."""
         if self.db is None:
             return 0
         ids = list(dict.fromkeys(str(product_id) for product_id in product_ids if product_id))
@@ -81,9 +110,15 @@ class ProductOverlayService:
             for start in range(0, len(ids), 500):
                 existing.update(session.scalars(select(ProductOverlay.product_id).where(ProductOverlay.product_id.in_(ids[start:start + 500]))))
             for product_id in ids:
-                if product_id in existing:
+                if product_id in existing and not refresh:
                     continue
-                values = synthetic_overlay(product_id, seed=seed)
-                session.add(ProductOverlay(product_id=product_id, price_amount=values["price_amount"], currency=values["currency"], in_stock=values["in_stock"], quantity=values["quantity"], synthetic=True))
+                values = synthetic_overlay(product_id, seed=seed, category=(categories or {}).get(product_id))
+                if product_id in existing:
+                    row = session.scalars(select(ProductOverlay).where(ProductOverlay.product_id == product_id)).first()
+                    if row is None or not row.synthetic:
+                        continue
+                    row.price_amount, row.currency, row.in_stock, row.quantity = values["price_amount"], values["currency"], values["in_stock"], values["quantity"]
+                else:
+                    session.add(ProductOverlay(product_id=product_id, price_amount=values["price_amount"], currency=values["currency"], in_stock=values["in_stock"], quantity=values["quantity"], synthetic=True))
                 added += 1
         return added

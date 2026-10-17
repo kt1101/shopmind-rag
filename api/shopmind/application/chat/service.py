@@ -47,6 +47,8 @@ def answer_payload(answer: RAGAnswer, standalone_question: str, prepared: Prepar
     }
     if prepared is not None:
         payload.update(session_id=prepared.session_id, intent=prepared.intent, products=[product_payload(item) for item in prepared.products])
+        if prepared.extra.get("plan") is not None:
+            payload["plan"] = prepared.extra["plan"]
     return payload
 
 
@@ -66,7 +68,7 @@ class ChatService:
     go through RAG as before. Every stage records a glass-box step in the active trace.
     """
 
-    def __init__(self, rag_service, config: ChatConfig, review_available: Callable[[], bool], product_title: Callable[[str], str | None], *, understanding=None, search=None, image_cache=None, store=None, commerce=None, max_products: int = 6) -> None:
+    def __init__(self, rag_service, config: ChatConfig, review_available: Callable[[], bool], product_title: Callable[[str], str | None], *, understanding=None, search=None, image_cache=None, store=None, commerce=None, planner=None, max_products: int = 6) -> None:
         self.rag_service = rag_service
         self.config = config
         self.review_available = review_available
@@ -76,6 +78,7 @@ class ChatService:
         self.image_cache = image_cache
         self.store = store
         self.commerce = commerce
+        self.planner = planner
         self.max_products = max_products
 
     def sources(self) -> tuple[str, ...]:
@@ -108,6 +111,8 @@ class ChatService:
             if intent == "chitchat":
                 answer = RAGAnswer(HELP_TEXT[detect_language(message)], (), False, {"generation_attempts": 0})
                 return PreparedChat(message, False, None, None, intent, answer, (), session_id, understanding, trace, message)
+            if intent == "shopping_plan" and self.planner is not None and image is None:
+                return self._plan(message, understanding, session_id, trace)
             if intent in {"product_search", "compare"} and self.search is not None:
                 products, notes = self._search_products(understood, image)
                 answer = RAGAnswer(self._products_answer(message, products, understood, notes, intent), (), not products, {"generation_attempts": 0})
@@ -126,6 +131,25 @@ class ChatService:
                 step.set_summary("rewrite failed: original message used" if fallback else f"standalone question: {question}")
         request = RAGRequest(question, product_id=product_id, sources=self.sources())
         return PreparedChat(question, fallback, request, self.rag_service.prepare(request), intent, None, (), session_id, understanding, trace, message)
+
+    def _plan(self, message: str, understanding, session_id: str, trace) -> PreparedChat:
+        from shopmind.domain.search_result import SearchResult
+
+        plan = self.planner.plan(message)
+        vi = plan["language"] == "vi"
+        products, lines = [], [plan["summary"]]
+        for index, need in enumerate(plan["needs"], start=1):
+            item = need.get("chosen")
+            if item:
+                products.append(SearchResult(item["product_id"], item["title"], len(products) + 1, item["score"], "plan", {"image_url": item.get("image_url"), "brand": item.get("brand"), "category": item.get("category")}))
+                price = f" — {item['price']['amount']:.2f} USD" if item.get("price") else ""
+                lines.append(f"{index}. {need['label']}: {item['title']}{price}")
+            else:
+                lines.append(f"{index}. {need['label']}: " + ("(bỏ qua)" if vi else "(skipped)"))
+        lines.append("Mở trang kế hoạch để xem lý do có trích dẫn và đổi lựa chọn." if vi else "Open the planner page for cited reasons and alternatives.")
+        summary = {"needs": [{"id": need["id"], "label": need["label"], "product_id": (need.get("chosen") or {}).get("product_id"), "status": need["status"]} for need in plan["needs"]], "total": plan["total"], "budget": plan["budget"], "occasion": plan.get("occasion"), "method": plan["method"]}
+        answer = RAGAnswer("\n".join(lines), (), plan["insufficient_evidence"], {"generation_attempts": 0})
+        return PreparedChat(message, False, None, None, "shopping_plan", answer, tuple(products), session_id, understanding, trace, message, {"plan": summary})
 
     def _search_products(self, understood, image) -> tuple[list[Any], list[str]]:
         notes: list[str] = []

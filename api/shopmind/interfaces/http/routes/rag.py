@@ -6,11 +6,12 @@ from time import perf_counter
 from fastapi import APIRouter, Depends, Request
 
 from shopmind.application.rag.compare import CompareError
+from shopmind.application.rag.planner import PlanRequestError
 from shopmind.application.rag.models import RAGRequest
 from shopmind.interfaces.http.deps import component, traced, wants_explain
 from shopmind.interfaces.http.errors import register_error
 from shopmind.interfaces.http.ratelimit import rate_limit
-from shopmind.interfaces.http.schemas.rag import CompareRequest, CompareResponse, RAGAskRequest, RAGAskResponse, RAGSourceResponse
+from shopmind.interfaces.http.schemas.rag import CompareRequest, CompareResponse, PlanRequest, PlanResponse, RAGAskRequest, RAGAskResponse, RAGSourceResponse
 
 router = APIRouter(prefix="/api/v1/rag", tags=["rag"], dependencies=[Depends(rate_limit)])
 
@@ -20,6 +21,7 @@ class RAGUnavailable(RuntimeError):
 
 
 register_error(CompareError, 422, "invalid_compare_request")
+register_error(PlanRequestError, 422, "invalid_plan_request")
 
 
 def _rag_service(request: Request):
@@ -71,3 +73,18 @@ def compare(payload: CompareRequest, request: Request) -> CompareResponse:
         trace.set_output(summary=result.get("summary"), points=len(result.get("points") or []))
     _record(request, trace, kind="compare", latency_ms=(perf_counter() - started) * 1000, insufficient=bool(result.get("insufficient_evidence")), query=payload.question or " vs ".join(payload.product_ids))
     return CompareResponse(**result, trace_id=trace.trace_id, trace=trace.to_dict() if explain else None)
+
+
+@router.post("/plan", response_model=PlanResponse)
+def plan(payload: PlanRequest, request: Request) -> PlanResponse:
+    """F6: situation + budget → needs → per-need retrieval → budget optimization → cited reasons."""
+    service = component(request, "planner")
+    if service is None:
+        raise RAGUnavailable("shopping planner is not ready")
+    explain = wants_explain(request, payload.explain)
+    started = perf_counter()
+    with traced(request, "rag.plan", kind="plan", input={"request": payload.request, "budget": payload.budget, "max_needs": payload.max_needs}, verbose=explain) as trace:
+        result = service.plan(payload.request, budget=payload.budget, language=payload.language, max_needs=payload.max_needs)
+        trace.set_output(total=result["total"], budget=result["budget"], chosen=[(need["chosen"] or {}).get("product_id") for need in result["needs"]])
+    _record(request, trace, kind="plan", latency_ms=(perf_counter() - started) * 1000, insufficient=bool(result.get("insufficient_evidence")), query=payload.request)
+    return PlanResponse(**result, trace_id=trace.trace_id, trace=trace.to_dict() if explain else None)

@@ -82,3 +82,66 @@ class CompareResponse(BaseModel):
     llm_available: bool = True
     trace_id: str | None = None
     trace: dict[str, Any] | None = None
+
+
+class PlanRequest(BaseModel):
+    request: str = Field(min_length=3, max_length=800)
+    budget: float | None = Field(default=None, gt=0, le=100000)
+    language: Literal["vi", "en"] | None = None
+    max_needs: int = Field(default=6, ge=2, le=8)
+    explain: bool = False
+
+
+class PlanPrice(BaseModel):
+    amount: float
+    currency: str = "USD"
+    synthetic: bool = True
+
+
+class PlanItem(BaseModel):
+    product_id: str
+    title: str
+    brand: str | None = None
+    category: str | None = None
+    image_url: str | None = None
+    price: PlanPrice | None = None
+    in_stock: bool | None = None
+    score: float
+    rank: int
+
+
+class PlanNeed(BaseModel):
+    id: str
+    label: str
+    query: str
+    categories: list[str]
+    priority: Literal["must", "nice"]
+    status: Literal["chosen", "skipped_budget", "no_match"]
+    chosen: PlanItem | None = None
+    alternatives: list[PlanItem]
+    reason: str
+    citation_ids: list[str]
+
+
+class PlanTip(BaseModel):
+    text: str
+    citation_ids: list[str]
+
+
+class PlanResponse(BaseModel):
+    request: str
+    language: str
+    method: Literal["llm", "rules"]
+    occasion: dict[str, str] | None = None
+    budget: float | None = None
+    currency: str = "USD"
+    total: float
+    within_budget: bool
+    summary: str
+    needs: list[PlanNeed]
+    tips: list[PlanTip]
+    sources: list[RAGSourceResponse]
+    insufficient_evidence: bool
+    notes: list[str] = Field(default_factory=list)
+    trace_id: str | None = None
+    trace: dict[str, Any] | None = None

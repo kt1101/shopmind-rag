@@ -18,13 +18,13 @@ def get_trace(trace_id: str, request: Request) -> dict:
 
 
 @router.get("/meta/pipelines")
-def list_pipelines(request: Request) -> dict:
+def list_pipelines(request: Request, include_hidden: bool = False) -> dict:
     config = get_config(request)
     factory = component(request, "pipelines")
     pipelines = []
     for name, spec in config.pipelines.items():
-        if not spec.public:
+        if not spec.public and not include_hidden:
             continue
-        pipelines.append({"name": name, "kind": spec.kind, "description": spec.description, "steps": [{"id": step.key, "step": step.step, "impl": step.impl, "enabled": step.enabled} for step in spec.steps]})
+        pipelines.append({"name": name, "kind": spec.kind, "description": spec.description, "public": spec.public, "steps": [{"id": step.key, "step": step.step, "impl": step.impl, "enabled": step.enabled} for step in spec.steps]})
     del factory
     return {"pipelines": pipelines, "defaults": dict(config.defaults), "components": available()}
