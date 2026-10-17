@@ -1,3 +1,4 @@
 # Generated benchmark files are byte-compared by tests: keep LF on every OS.
 *.jsonl text eol=lf
 api/evaluation/benchmarks/** text eol=lf
+*.cmd text eol=crlf
