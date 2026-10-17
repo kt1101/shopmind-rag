@@ -35,6 +35,12 @@ indicative, not statistically tested.
 | Hybrid lexical-preserving (previous production) | 0.5000 | 0.3711 | 0.3327 | 0.2571 | 0.6889 | 0.4571 | 171.7 | 298.8 |
 | Adaptive rule router (`search.adaptive`) | 0.5625 | **0.4517** | **0.4171** | 0.2857 | 0.7778 | 0.5429 | 115.8 | 230.1 |
 
+**A-5 (cross-encoder rerank, `search.hybrid_rerank`) is implemented but has no measured row.** With
+`BAAI/bge-reranker-v2-m3` reranking the top 50 on this laptop CPU, the 80-query run was stopped after
+more than 2 h 15 min of CPU time without finishing (> 100 s per query), so no metrics.json exists. It needs
+a GPU, a smaller depth or a smaller model (for example `BAAI/bge-reranker-base`) before it can be measured
+or used interactively; it stays opt-in.
+
 Previous report (2026-09-17, SigLIP2 for text): BM25 Recall@10 0.4625, dense 0.0125, hybrid RRF 0.3250.
 
 Acceptance (plan §4): dense text Recall@10 on semantic queries 0.4857 > BM25 0.4571, and every hybrid
