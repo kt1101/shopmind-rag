@@ -7,6 +7,7 @@ import {
 } from '../lib/configTree.js'
 import { formatDateTime } from '../lib/format.js'
 import { Banner, Card, EmptyState, ErrorState, PageHeader, Pill, Skeleton, TableSkeleton } from '../components/ui.jsx'
+import StorefrontSearchCard from '../components/StorefrontSearchCard.jsx'
 
 function TreeNode({ node, hotKeys, depth }) {
   if (node.children) {
@@ -146,6 +147,14 @@ export default function ConfigPage() {
     }
   }
 
+  function onStorefrontSaved(data, text) {
+    config.setData((d) => ({ ...d, effective: data.effective ?? d.effective, active_profile: data.profile ?? d.active_profile }))
+    if (!data.effective) config.reload()
+    profiles.reload()
+    setSaveError(null)
+    setMessage(text)
+  }
+
   const items = profiles.data?.items || []
   const activeIndex = items.findIndex((p) => p.active)
   const rollbackTarget = activeIndex >= 0 ? items.slice(activeIndex + 1).find((p) => !p.active) : null
@@ -154,6 +163,7 @@ export default function ConfigPage() {
     <>
       <PageHeader title="Pipeline & Config" description="Effective config (all layers merged). Hot-reloadable keys can be changed and saved as a named profile." />
       {message && <Banner tone="good">{message}</Banner>}
+      {!(config.error && !config.data) && <StorefrontSearchCard config={config.data} profiles={items} onSaved={onStorefrontSaved} onActivate={activate} />}
       {config.error && !config.data && <ErrorState error={config.error} onRetry={config.reload} />}
       {config.loading && !config.data && <div className="adm-grid-2"><Card><Skeleton lines={12} /></Card><Card><Skeleton lines={12} /></Card></div>}
       {config.data && (

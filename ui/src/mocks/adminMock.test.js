@@ -41,6 +41,20 @@ test('config save validates and activates a new profile', async () => {
   assert.equal(cfg.active_profile.id, 'p1')
 })
 
+test('saving defaults.search switches what the mock storefront search runs; rollback restores it', async () => {
+  mock.resetAdminMock()
+  await signIn()
+  const { searchText, setMockDelay } = await import('./mockApi.js')
+  setMockDelay(0)
+  assert.equal(mock.mockConfigValue('defaults.search'), 'search.hybrid')
+  const { data } = await mock.saveConfigProfile({ name: 'search-default-bm25', overrides: { 'defaults.search': 'search.bm25' } })
+  assert.equal(data.effective.defaults.search, 'search.bm25')
+  assert.equal((await searchText({ query: 'ba lô' })).data.pipeline, 'search.bm25')
+  await mock.activateConfigProfile({ id: 'p1' })
+  assert.equal((await searchText({ query: 'ba lô' })).data.pipeline, 'search.hybrid')
+  mock.resetAdminMock()
+})
+
 test('publishing policies starts a reindex job', async () => {
   mock.resetAdminMock()
   await signIn()
