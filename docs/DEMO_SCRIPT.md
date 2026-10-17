@@ -32,6 +32,10 @@ chưa được người duyệt. Nói rõ điều này khi đưa số liệu.
 
 ## 1. Storefront + Search Inspector (2 phút)
 
+Khách hàng không chọn thuật toán: ô tìm kiếm chạy pipeline admin đặt ở `defaults.search`. Các nút
+"glass-box" chỉ hiện khi đã đăng nhập admin (header có nhãn **"Chế độ quản trị"**). Trước bước này,
+đăng nhập <http://localhost:5173/admin> trong cùng trình duyệt để bật chế độ quản trị.
+
 1. Ở trang chủ <http://localhost:5173>, bấm vào ô tìm kiếm ở header.
 2. Gõ chậm `giày bốt` và dừng lại: chỉ vào **autocomplete** (gợi ý sản phẩm, category, brand).
 3. Gõ hết `giày bốt da màu nâu`, nhấn **Enter**. Trang `/search` hiện kết quả; chỉ vào facet có đếm
@@ -49,7 +53,7 @@ Thông điệp: mọi kết quả đều giải thích được từng bước, 
 
 ## 2. Embedding Map (1 phút)
 
-1. Mở <http://localhost:5173/lab/embeddings>.
+1. Mở <http://localhost:5173/admin/embedding-map> (nhóm **Glass-box & lab** trong admin).
 2. Chọn không gian **"image-SigLIP"**: các cụm category tách rõ (ảnh là thế mạnh của SigLIP2).
 3. Gõ lại `giày bốt da màu nâu` vào ô truy vấn của bản đồ: điểm truy vấn và top-k hiện lên.
 4. Chuyển sang **"text-SigLIP"**: điểm truy vấn rơi xa cụm giày, giải thích vì sao dense cũ có
@@ -82,6 +86,23 @@ Thông điệp: quyết định thêm text embedder E5 ([ADR 0001](adr/0001-text
    **context thật sự gửi cho LLM** (tài liệu nào bị cắt vì ngân sách), prompt đã render (API key đã che),
    kết quả **kiểm tra citation** (lần thử 1/2), token usage.
 
+## 4b. Lên kế hoạch mua sắm, F6 (1,5 phút) — tính năng RAG chính mới
+
+1. Bấm **"Lên kế hoạch mua sắm"** trên header (trang `/plan`).
+2. Chọn ví dụ **"Mình mới chuyển vào căn hộ studio, ngân sách 800 đô"** → **"Lên kế hoạch"**.
+3. Chỉ vào: thanh ngân sách (tổng / ngân sách / còn lại), mỗi nhu cầu một thẻ (Cần thiết / Nếu dư
+   ngân sách), món được chọn kèm **lý do có trích dẫn**, các nhu cầu "Tạm bỏ qua để vừa ngân sách".
+4. Bấm một lựa chọn thay thế: tổng tiền tính lại ngay. Bấm **"Thêm tất cả vào giỏ"**.
+5. Chỉ vào **mẹo chính sách** (đổi trả, giao hàng) có trích dẫn policy.
+6. (Chế độ quản trị) **"Xem quy trình"**: `decompose` → `retrieve` từng nhu cầu (kèm các bước của
+   pipeline tìm kiếm) → `optimize_budget` (quy hoạch động, đúng tối ưu) → `build_context` →
+   `justify` / `generate` + `validate_citations`.
+7. Trong chat gõ `Chuẩn bị đi biển 5 ngày cho 2 người, dưới 300 đô`: trợ lý nhận ý định
+   `shopping_plan`, trả danh sách món + link **"Mở kế hoạch đầy đủ"**.
+
+Thông điệp: RAG không chỉ để trả lời câu hỏi — nó tách nhu cầu, truy hồi nhiều lần, ràng buộc ngân
+sách và giải thích bằng dẫn chứng; chạy được cả khi không có LLM (template + lý do trích xuất).
+
 ## 5. F3, so sánh sản phẩm (1 phút)
 
 1. Trên kết quả tìm `sofa`, bấm **"Thêm vào so sánh"** ở 2 sản phẩm, rồi bấm **"So sánh (2)"**.
@@ -90,6 +111,11 @@ Thông điệp: quyết định thêm text embedder E5 ([ADR 0001](adr/0001-text
 3. Đoạn nhận xét do RAG sinh: mỗi nhận định có citation tới thuộc tính / review / policy; bấm một chip để xác minh.
 
 ## 6. Admin console (2 phút)
+
+0. **Pipeline & Config → "Thuật toán tìm kiếm của cửa hàng"**: đổi sang `search.bm25`, lưu; tìm lại
+   trên storefront thấy pipeline đổi ngay (không restart); bấm **"Roll back to this"** để quay lại.
+   **Search Playground**: so sánh `search.hybrid_linear` với `search.dense_siglip` cùng một truy vấn,
+   xem overlap@10 và mở Inspector từng bên.
 
 1. Chuyển sang cửa sổ <http://localhost:5173/admin> (đăng nhập bằng `ADMIN_USERNAME` / `ADMIN_PASSWORD`).
 2. **Policy CMS:** mở policy **"Return Window"**, bấm **"Sửa"**, đổi `30 calendar days` thành
