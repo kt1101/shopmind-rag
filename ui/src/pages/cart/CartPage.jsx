@@ -4,7 +4,8 @@ import { formatPrice } from '../../lib/format.js'
 import { productPath } from '../../lib/urlState.js'
 import { useI18n } from '../../shared/ui/I18nProvider.jsx'
 import { useShopLists } from '../../features/shop-lists/ShopListsProvider.jsx'
-import { cartTotal } from '../../features/shop-lists/shopLists.js'
+import { cartTotal, lineTotal } from '../../features/shop-lists/shopLists.js'
+import { displayTitle } from '../../entities/product/product.js'
 import './cart.css'
 
 function Thumb({ item }) {
@@ -29,19 +30,23 @@ export default function CartPage() {
             {cart.map((item) => (
               <li key={item.product_id} className="cart-row">
                 <Thumb item={item} />
-                <Link to={productPath(item.product_id)} className="cart-title">{item.title}</Link>
-                <span className="cart-price">{formatPrice(item.price) ?? '—'}</span>
+                <Link to={productPath(item.product_id)} className="cart-title">{displayTitle(item.title)}</Link>
+                <span className="cart-price">
+                  {formatPrice(lineTotal(item)) ?? '—'}
+                  {item.quantity > 1 && item.price && <small className="sm-muted">{t('cart.unitPrice', { price: formatPrice(item.price) })}</small>}
+                </span>
                 <label className="cart-qty">
-                  <span className="sr-only">{t('cart.quantity')}</span>
-                  <input type="number" min="1" max="99" value={item.quantity} onChange={(e) => setQuantity(item.product_id, e.target.value)} />
+                  <span className="sr-only">{t('cart.quantity')}: {displayTitle(item.title)}</span>
+                  <input type="number" inputMode="numeric" min="1" max="99" value={item.quantity} onChange={(e) => setQuantity(item.product_id, e.target.value)} />
                 </label>
-                <button type="button" className="sm-button sm-button--small" onClick={() => removeFromCart(item.product_id)}>{t('cart.remove')}</button>
+                <button type="button" className="sm-button sm-button--small" onClick={() => removeFromCart(item.product_id)} aria-label={`${t('cart.remove')}: ${displayTitle(item.title)}`}>{t('cart.remove')}</button>
               </li>
             ))}
           </ul>
         )}
         {total && (
           <p className="cart-total">
+            <span>{t('cart.total')}</span>
             <strong>{formatPrice(total)}</strong> <span className="sm-badge sm-badge--warning">{t('product.synthetic')}</span>
           </p>
         )}
@@ -54,10 +59,10 @@ export default function CartPage() {
             {wishlist.map((item) => (
               <li key={item.product_id} className="cart-row">
                 <Thumb item={item} />
-                <Link to={productPath(item.product_id)} className="cart-title">{item.title}</Link>
+                <Link to={productPath(item.product_id)} className="cart-title">{displayTitle(item.title)}</Link>
                 <span className="cart-price">{formatPrice(item.price) ?? '—'}</span>
-                <button type="button" className="sm-button sm-button--small" onClick={() => addToCart(item)}>{t('product.addToCart')}</button>
-                <button type="button" className="sm-button sm-button--small sm-button--ghost" onClick={() => removeFromWishlist(item.product_id)}>{t('cart.remove')}</button>
+                <button type="button" className="sm-button sm-button--small" onClick={() => addToCart(item)} aria-label={`${t('product.addToCart')}: ${displayTitle(item.title)}`}>{t('product.addToCart')}</button>
+                <button type="button" className="sm-button sm-button--small sm-button--ghost" onClick={() => removeFromWishlist(item.product_id)} aria-label={`${t('cart.remove')}: ${displayTitle(item.title)}`}>{t('cart.remove')}</button>
               </li>
             ))}
           </ul>

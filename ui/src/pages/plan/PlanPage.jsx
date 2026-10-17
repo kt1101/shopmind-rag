@@ -4,6 +4,7 @@ import { ragPlan, resolveImageUrl } from '../../api.js'
 import { formatPrice } from '../../lib/format.js'
 import { buildSearchUrl, productPath } from '../../lib/urlState.js'
 import AnswerText from '../../entities/citation/AnswerText.jsx'
+import { displayTitle } from '../../entities/product/product.js'
 import {
   PLAN_MAX_CHARS, buildPlanUrl, canPlan, chosenProducts, citationsFor, normalizePlan, parseBudget, parsePlanParams, removeChoice, swapChoice,
 } from '../../features/planner/plan.js'
@@ -12,7 +13,7 @@ import { categoryLabel } from '../../shared/i18n.js'
 import { useStaffMode } from '../../shared/lib/useStaffMode.js'
 import { useI18n } from '../../shared/ui/I18nProvider.jsx'
 import { SkeletonBlock } from '../../shared/ui/Skeleton.jsx'
-import StatusBlock from '../../shop/StatusBlock.jsx'
+import StatusBlock, { ErrorBlock } from '../../shop/StatusBlock.jsx'
 import InspectorDrawer from '../../widgets/inspector/InspectorDrawer.jsx'
 import '../../entities/citation/citation.css'
 import './plan.css'
@@ -91,9 +92,9 @@ function Alternatives({ need, onPick, label }) {
       <ul>
         {need.alternatives.map((item) => (
           <li key={item.product_id}>
-            <button type="button" className="plan-alt" onClick={() => onPick(need.id, item.product_id)} aria-label={t('plan.pick', { title: item.title, price: item.price ? money(item.price.amount, item.price.currency) : '—' })} title={item.title}>
+            <button type="button" className="plan-alt" onClick={() => onPick(need.id, item.product_id)} aria-label={t('plan.pick', { title: displayTitle(item.title), price: item.price ? money(item.price.amount, item.price.currency) : '—' })} title={displayTitle(item.title)}>
               <Thumb item={item} className="plan-alt-thumb" />
-              <span className="plan-alt-title">{item.title}</span>
+              <span className="plan-alt-title">{displayTitle(item.title)}</span>
               <span className="plan-alt-price">{item.price ? money(item.price.amount, item.price.currency) : '—'}</span>
             </button>
           </li>
@@ -119,11 +120,11 @@ function NeedCard({ need, sources, onPick, onRemove }) {
 
       {item ? (
         <div className="plan-item">
-          <Link to={productPath(item.product_id)} className="plan-item-link">
+          <Link to={productPath(item.product_id)} className="plan-item-link" tabIndex={-1} aria-hidden="true">
             <Thumb item={item} />
           </Link>
           <div className="plan-item-info">
-            <Link to={productPath(item.product_id)} className="plan-item-title">{item.title}</Link>
+            <Link to={productPath(item.product_id)} className="plan-item-title">{displayTitle(item.title)}</Link>
             <span className="sm-muted sm-small">{[item.brand, categoryLabel(lang, item.category)].filter(Boolean).join(' · ')}</span>
             <span className="plan-item-price">
               {item.price ? money(item.price.amount, item.price.currency) : t('plan.noPrice')}
@@ -274,7 +275,7 @@ export default function PlanPage() {
       </section>
 
       {state.loading && !plan ? <ResultSkeleton /> : state.error ? (
-        <StatusBlock tone="error" title={t('plan.failed')} message={state.error.message} action={{ label: t('state.retry'), onClick: () => setReload((n) => n + 1) }} />
+        <ErrorBlock error={state.error} context={t('plan.failed')} onRetry={() => setReload((n) => n + 1)} />
       ) : plan ? (
         <section className={`plan-result ${state.loading ? 'is-refreshing' : ''}`} aria-labelledby="plan-result-title" aria-busy={state.loading}>
           <header className="plan-result-head">

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
-  COMPARE_MAX, addAllToCart, addToCart, buildCompareUrl, cartCount, cartTotal, clampQuantity, parseCompareIds, removeItem, sanitizeList, setCartQuantity, snapshot, toggleItem,
+  COMPARE_MAX, addAllToCart, addToCart, buildCompareUrl, cartCount, cartTotal, lineTotal, clampQuantity, parseCompareIds, removeItem, sanitizeList, setCartQuantity, snapshot, toggleItem,
 } from './shopLists.js'
 
 const p = (id, extra = {}) => ({ product_id: id, title: `T${id}`, description: 'long text', ...extra })
@@ -41,6 +41,9 @@ test('cart adds, merges quantity, counts and totals', () => {
   assert.deepEqual(cartTotal(cart), { amount: 30, currency: 'USD', synthetic: true })
   assert.equal(setCartQuantity(cart, 'A', 0)[0].quantity, 1)
   assert.equal(cartTotal([]), null)
+  assert.deepEqual(lineTotal(cart[0]), { amount: 30, currency: 'USD' })
+  assert.deepEqual(lineTotal({ price: { amount: 0.1, currency: 'USD' }, quantity: 3 }), { amount: 0.3, currency: 'USD' })
+  assert.equal(lineTotal(cart[1]), null)
   assert.equal(clampQuantity('abc'), 1)
 })
 

@@ -4,6 +4,7 @@ import { resolveImageUrl } from '../api.js'
 import { formatPrice } from '../lib/format.js'
 import { productPath } from '../lib/urlState.js'
 import { categoryLabel } from '../shared/i18n.js'
+import { displayTitle } from '../entities/product/product.js'
 import { useI18n } from '../shared/ui/I18nProvider.jsx'
 import { useShopLists } from '../features/shop-lists/ShopListsProvider.jsx'
 
@@ -15,6 +16,7 @@ export default function ProductCard({ product, onOpen, showActions = true }) {
   if (!product) return null
 
   const image = resolveImageUrl(product.image_url)
+  const title = displayTitle(product.title)
   const priceLabel = formatPrice(product.price)
   const comparing = lists.isComparing(product.product_id)
   const saved = lists.isWishlisted(product.product_id)
@@ -24,14 +26,14 @@ export default function ProductCard({ product, onOpen, showActions = true }) {
       <Link to={productPath(product.product_id)} className="product-card-link" onClick={() => onOpen?.(product)}>
         <div className="product-visual">
           {image && !broken ? (
-            <img src={image} alt={product.title || ''} loading="lazy" onError={() => setBroken(true)} />
+            <img src={image} alt={title} loading="lazy" decoding="async" onError={() => setBroken(true)} />
           ) : (
             <span aria-hidden="true" className="product-visual-placeholder">◇</span>
           )}
         </div>
         <div className="product-info">
           {product.category && <p className="eyebrow">{categoryLabel(lang, product.category)}</p>}
-          <h3 className="product-title">{product.title}</h3>
+          <h3 className="product-title" title={title}>{title}</h3>
           <div className="product-meta">
             {product.brand && <span className="product-brand">{product.brand}</span>}
             {priceLabel && (
@@ -48,7 +50,7 @@ export default function ProductCard({ product, onOpen, showActions = true }) {
             type="button"
             className={`card-action ${saved ? 'is-on' : ''}`}
             aria-pressed={saved}
-            aria-label={`${saved ? t('card.wishlistRemove') : t('card.wishlistAdd')}: ${product.title}`}
+            aria-label={`${saved ? t('card.wishlistRemove') : t('card.wishlistAdd')}: ${title}`}
             title={saved ? t('card.wishlistRemove') : t('card.wishlistAdd')}
             onClick={() => lists.toggleWishlist(product)}
           >
@@ -60,7 +62,7 @@ export default function ProductCard({ product, onOpen, showActions = true }) {
             type="button"
             className={`card-action card-action--compare ${comparing ? 'is-on' : ''}`}
             aria-pressed={comparing}
-            aria-label={`${comparing ? t('card.compareRemove') : t('card.compareAdd')}: ${product.title}`}
+            aria-label={`${comparing ? t('card.compareRemove') : t('card.compareAdd')}: ${title}`}
             title={comparing ? t('card.compareRemove') : t('card.compareAdd')}
             onClick={() => lists.toggleCompare(product)}
           >
