@@ -15,7 +15,7 @@ python -m pip install -e '.[dev]'            # add '.[rag-rerank]' for the cross
 docker compose up -d elasticsearch           # ES on :9200; full stack: docker compose up -d --build api frontend
 
 # Fast tests (no Elasticsearch, no real model)
-pytest tests/unit tests/api tests/evaluation tests/a3 -q
+pytest tests/unit tests/api tests/evaluation tests/a3 tests/platform -q
 pytest tests/unit/test_bm25_retriever.py::test_bm25_maps_hits_to_ranked_results -q   # single test
 
 pytest tests/integration -m integration -q   # needs Elasticsearch running
