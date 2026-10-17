@@ -21,7 +21,6 @@ function usePersistentList(key, options) {
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
     // options are static per list
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key])
   return [list, setList]
 }

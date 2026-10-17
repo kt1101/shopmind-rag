@@ -292,6 +292,10 @@
   transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
+.shop .product-card { position: relative; }
+.shop .product-card-link { display: flex; flex-direction: column; flex: 1; color: inherit; text-decoration: none; }
+.shop article.product-card:hover,
+.shop article.product-card:focus-within,
 .shop a.product-card:hover {
   border-color: var(--color-border-strong);
   transform: translateY(-2px);
@@ -1615,3 +1619,140 @@
   .shop .header-link { display: none; }
   .shop .site-footer-note { margin-left: 0; width: 100%; }
 }
+
+/* --- Product card actions (wishlist, compare) -------------------------------------- */
+.shop .product-card-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  left: 8px;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  pointer-events: none;
+}
+.shop .card-action {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 600;
+  opacity: .92;
+}
+.shop .card-action:hover { border-color: var(--color-accent); color: var(--color-accent); opacity: 1; }
+.shop .card-action.is-on { border-color: var(--color-accent); background: var(--color-accent); color: var(--color-on-accent); }
+.shop .card-action--compare { margin-left: auto; }
+.shop .product-price sup { margin-left: 1px; color: var(--color-warning); }
+
+/* --- Search bar: attached image chip + autocomplete -------------------------------- */
+.shop .search-combobox { position: relative; flex: 1; min-width: 0; display: flex; }
+.shop .search-combobox .search-input { width: 100%; }
+.shop .search-image-chip { position: relative; flex-shrink: 0; width: 34px; height: 34px; border-radius: 7px; overflow: visible; }
+.shop .search-image-chip img { width: 34px; height: 34px; object-fit: cover; border-radius: 7px; border: 1px solid var(--color-border); }
+.shop .search-image-chip-remove {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 12px;
+  line-height: 1;
+}
+.shop .search-suggest {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: -8px;
+  right: -140px;
+  z-index: 1100;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  max-height: 360px;
+  overflow-y: auto;
+}
+.shop .search-suggest-item {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.shop .search-suggest-item.is-active { background: var(--color-accent-soft); }
+.shop .search-suggest-thumb { display: grid; place-items: center; width: 34px; height: 30px; border-radius: 6px; background: var(--color-surface-2); color: var(--color-text-muted); overflow: hidden; }
+.shop .search-suggest-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.shop .search-suggest-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shop .search-suggest-type { font-size: 11px; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.shop .search-bar-hint { margin-top: 5px; padding-left: 4px; font-size: 12px; color: var(--color-text-muted); }
+@media (max-width: 720px) {
+  .shop .search-suggest { right: -8px; }
+}
+
+/* --- Facets ------------------------------------------------------------------------ */
+.shop .filter-facets-hint { margin: 0 0 4px; font-size: 11.5px; color: var(--color-text-muted); }
+.shop .filter-checkbox-label.is-zero { opacity: .55; }
+.shop .filter-swatch { width: 14px; height: 14px; flex-shrink: 0; border-radius: 50%; border: 1px solid var(--color-border-strong); }
+.shop .filter-section-color .filter-category-list { max-height: none; }
+
+/* --- Search page: inspector button, understood filters, did-you-mean, feedback ------ */
+.shop .search-why-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 6px;
+  padding: 5px 11px;
+  border: 1px solid var(--color-accent);
+  border-radius: 999px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-size: 13px;
+  font-weight: 700;
+}
+.shop .search-why-button:hover { background: var(--color-accent); color: var(--color-on-accent); }
+.shop .search-understood {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border: 1px dashed var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: 13px;
+}
+.shop .search-understood-label { color: var(--color-text-muted); font-weight: 600; }
+.shop .search-empty { display: grid; gap: 14px; }
+.shop .search-did-you-mean { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; font-size: 14px; color: var(--color-text-muted); }
+.shop .search-did-you-mean ul { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.shop .search-did-you-mean a {
+  display: inline-block;
+  padding: 4px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+.shop .search-did-you-mean a:hover { border-color: var(--color-accent); }
+.shop .search-feedback { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--color-border); }
+.shop .search-results.is-refreshing { opacity: .55; transition: opacity .15s; }
+.shop .search-meta { flex-wrap: wrap; }

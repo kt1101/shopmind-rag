@@ -1,0 +1,29 @@
+.fb { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; font-size: 13px; color: var(--color-text-muted); }
+.fb--compact { font-size: 12px; gap: 6px; }
+.fb--done { margin: 0; color: var(--color-success); font-weight: 600; }
+.fb-buttons { display: inline-flex; gap: 4px; }
+.fb-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 30px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: 15px;
+  line-height: 1;
+}
+.fb--compact .fb-btn { width: 28px; height: 26px; font-size: 13px; }
+.fb-btn:hover:not(:disabled) { border-color: var(--color-accent); }
+.fb-btn[aria-pressed="true"] { border-color: var(--color-accent); background: var(--color-accent-soft); }
+.fb-form { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 260px; }
+.fb-form input {
+  flex: 1 1 160px;
+  min-width: 0;
+  padding: 5px 9px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 13px;
+}

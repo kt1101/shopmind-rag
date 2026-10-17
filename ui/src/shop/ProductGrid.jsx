@@ -1,6 +1,7 @@
 import ProductCard from './ProductCard.jsx'
 
-export default function ProductGrid({ products = [], loading = false, skeletonCount = 8 }) {
+// `onOpen(product, rank)` fires when a result is opened (click-through events).
+export default function ProductGrid({ products = [], loading = false, skeletonCount = 8, onOpen }) {
   const showSkeletons = loading && (!products || products.length === 0)
 
   return (
@@ -22,9 +23,9 @@ export default function ProductGrid({ products = [], loading = false, skeletonCo
               </div>
             </li>
           ))
-        : (products || []).map((product) => (
+        : (products || []).map((product, index) => (
             <li key={product.product_id} className="product-grid-item">
-              <ProductCard product={product} />
+              <ProductCard product={product} onOpen={onOpen ? () => onOpen(product, product.rank ?? index + 1) : undefined} />
             </li>
           ))}
     </ul>

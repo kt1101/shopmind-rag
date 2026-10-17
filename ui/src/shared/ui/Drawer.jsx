@@ -49,7 +49,7 @@ export default function Drawer({ open, onClose, title, subtitle, children, width
   if (!open) return null
 
   return (
-    <div className="sm-drawer-root" data-shopmind-inspector="">
+    <div className="sm-drawer-root">
       <div className="sm-drawer-backdrop" onClick={onClose} aria-hidden="true" />
       <section
         ref={panelRef}
