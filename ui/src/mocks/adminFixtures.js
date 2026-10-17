@@ -26,6 +26,8 @@ export const EFFECTIVE_CONFIG = {
     chat: { sources: ['product', 'policy'], include_reviews_when_available: true },
   },
   auth: { enabled: true, token_ttl_minutes: 120 },
+  // Pipeline the storefront runs when a request names no mode/pipeline (hot-reloadable).
+  defaults: { search: 'search.hybrid', rag: 'rag.ask' },
 }
 
 export const HOT_RELOADABLE = [
@@ -43,6 +45,7 @@ export const HOT_RELOADABLE = [
   'rag.llm.model',
   'rag.llm.temperature',
   { key: 'rag.llm.prompt_version', type: 'enum', options: ['v1', 'v2', 'v3-experimental'] },
+  'defaults.search',
 ]
 
 // Validation rules the mock applies on PUT /admin/config (mirrors what Pydantic would enforce).

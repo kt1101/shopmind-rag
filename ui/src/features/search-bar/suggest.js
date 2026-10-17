@@ -35,7 +35,7 @@ export function suggestionHref(s) {
   if (s.type === 'product' && s.product_id) return productPath(s.product_id)
   if (s.type === 'category') return buildCatalogUrl({ category: [s.value] })
   if (s.type === 'brand') return buildCatalogUrl({ brand: [s.value] })
-  return buildSearchUrl({ type: 'text', query: s.label || s.value, mode: 'hybrid' })
+  return buildSearchUrl({ type: 'text', query: s.label || s.value })
 }
 
 export function shouldSuggest(query) {
@@ -49,13 +49,13 @@ export function fallbackTerms(query) {
 }
 
 // "Có phải bạn muốn tìm…": search links built from suggestions, never the query itself.
-export function didYouMean(query, suggestions = [], { limit = 4, mode = 'hybrid', filters } = {}) {
+export function didYouMean(query, suggestions = [], { limit = 4, filters } = {}) {
   const current = String(query || '').trim().toLowerCase()
   const out = []
   for (const s of orderSuggestions(suggestions)) {
     const text = (s.type === 'product' ? s.label : s.label || s.value || '').trim()
     if (!text || text.toLowerCase() === current || out.some((o) => o.label.toLowerCase() === text.toLowerCase())) continue
-    out.push({ label: text, type: s.type, href: buildSearchUrl({ type: 'text', query: text, mode, filters }) })
+    out.push({ label: text, type: s.type, href: buildSearchUrl({ type: 'text', query: text, filters }) })
     if (out.length >= limit) break
   }
   return out

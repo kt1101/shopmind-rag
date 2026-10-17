@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { resolveImageUrl, searchSuggest } from '../api.js'
-import { SEARCH_MODES, buildSearchUrl, parseFilters, parseSearch } from '../lib/urlState.js'
+import { buildSearchUrl, parseFilters, parseSearch } from '../lib/urlState.js'
 import { SUGGEST_DEBOUNCE_MS, moveHighlight, orderSuggestions, shouldSuggest, suggestionHref } from '../features/search-bar/suggest.js'
 import { useI18n } from '../shared/ui/I18nProvider.jsx'
 import { useImageSearch } from './ImageSearchContext.jsx'
@@ -47,7 +47,6 @@ export default function SearchBar() {
 
   const current = useMemo(() => (location.pathname === '/search' ? parseSearch(location.search) : null), [location.pathname, location.search])
   const [query, setQuery] = useState(current?.type === 'text' || current?.type === 'compose' ? current.query : '')
-  const [mode, setMode] = useState(current?.mode || 'hybrid')
   const [fileError, setFileError] = useState(null)
   const [suggestions, setSuggestions] = useState([])
   const [open, setOpen] = useState(false)
@@ -56,7 +55,6 @@ export default function SearchBar() {
 
   useEffect(() => {
     setQuery(current?.type === 'text' || current?.type === 'compose' ? current.query : '')
-    setMode(current?.mode || 'hybrid')
     setFileError(null)
     setOpen(false)
     setTyped(false)
@@ -102,7 +100,7 @@ export default function SearchBar() {
     } else if (imageFile) {
       go(buildSearchUrl({ type: 'image', filters }))
     } else if (trimmed) {
-      go(buildSearchUrl({ type: 'text', query: trimmed, mode, filters }))
+      go(buildSearchUrl({ type: 'text', query: trimmed, filters }))
     }
   }
 
@@ -152,7 +150,7 @@ export default function SearchBar() {
     setImageFile(null)
     inputRef.current?.focus()
     if (current?.type === 'compose' && current.query) {
-      go(buildSearchUrl({ type: 'text', query: current.query, mode, filters: current.filters }))
+      go(buildSearchUrl({ type: 'text', query: current.query, filters: current.filters }))
     }
   }
 
@@ -216,14 +214,6 @@ export default function SearchBar() {
             </ul>
           )}
         </div>
-
-        {!imageFile && (
-          <select className="search-mode-select" value={mode} onChange={(e) => setMode(e.target.value)} aria-label={t('search.mode')}>
-            {Object.keys(SEARCH_MODES).map((key) => (
-              <option key={key} value={key}>{t(`mode.${key}`)}</option>
-            ))}
-          </select>
-        )}
 
         <input
           ref={fileInputRef}

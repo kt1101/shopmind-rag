@@ -8,6 +8,7 @@ import AlphaControl from '../features/compose/AlphaControl.jsx'
 import FeedbackWidget from '../features/feedback/FeedbackWidget.jsx'
 import InspectorDrawer from '../widgets/inspector/InspectorDrawer.jsx'
 import { categoryLabel, colorLabel } from '../shared/i18n.js'
+import { useStaffMode } from '../shared/lib/useStaffMode.js'
 import { useI18n } from '../shared/ui/I18nProvider.jsx'
 import FilterSidebar from './FilterSidebar.jsx'
 import { useImageSearch } from './ImageSearchContext.jsx'
@@ -53,6 +54,7 @@ export default function SearchPage() {
   const navigate = useNavigate()
   const { t, lang } = useI18n()
   const { imageFile, setImageFile } = useImageSearch()
+  const staff = useStaffMode()
   const fileInputRef = useRef(null)
   const thumbnailUrl = useObjectUrl(imageFile)
 
@@ -139,10 +141,10 @@ export default function SearchPage() {
         if (controller.signal.aborted) return
         if (found.length >= 4) break
       }
-      if (!controller.signal.aborted) setSuggestions(didYouMean(search.query, found, { mode: search.mode }))
+      if (!controller.signal.aborted) setSuggestions(didYouMean(search.query, found))
     })()
     return () => controller.abort()
-  }, [loading, error, items.length, search.type, search.query, search.mode])
+  }, [loading, error, items.length, search.type, search.query])
 
   // Inspector: use the inline trace when present, otherwise re-run with explain=true.
   const loadTrace = useCallback((key) => {
@@ -199,7 +201,9 @@ export default function SearchPage() {
   const filtersActive = hasActiveFilters(search.filters)
   const pending = pendingUnderstood(understood, search.filters)
   const titles = Object.fromEntries(items.map((p) => [p.product_id, p.title]))
-  const modeLabel = search.type === 'image' ? t('mode.image') : search.type === 'compose' ? t('mode.compose') : t(`mode.${search.mode}`)
+  // Shoppers see what kind of search ran, never the algorithm; staff also see the pipeline name.
+  const modeLabel = search.type === 'image' ? t('mode.image') : search.type === 'compose' ? t('mode.compose') : null
+  const pipelineName = staff.active ? response?.pipeline || response?.trace?.pipeline || null : null
   const needsImage = (search.type === 'image' || search.type === 'compose') && !imageFile
 
   return (
@@ -236,16 +240,17 @@ export default function SearchPage() {
                   </h1>
                 </div>
                 <div className="search-meta">
-                  <span className="search-meta-mode">{modeLabel}</span>
+                  {modeLabel && <span className="search-meta-mode">{modeLabel}</span>}
+                  {pipelineName && <code className="search-meta-pipeline" title={t('staff.pipelineHint')}>{pipelineName}</code>}
                   {durationMs != null && !loading && !error && (
                     <>
-                      <span className="search-meta-dot" aria-hidden="true">·</span>
+                      {(modeLabel || pipelineName) && <span className="search-meta-dot" aria-hidden="true">·</span>}
                       <span className="search-meta-count">{t('results.count', { count: items.length })}</span>
                       <span className="search-meta-dot" aria-hidden="true">·</span>
                       <span className="search-meta-duration">{t('results.ms', { ms: durationMs })}</span>
                     </>
                   )}
-                  {response?.trace_id && (
+                  {staff.active && response?.trace_id && (
                     <button type="button" className="search-why-button" onClick={() => setInspector((s) => ({ ...s, open: true }))}>
                       <span aria-hidden="true">🔍</span> {t('results.why')}
                     </button>
@@ -316,7 +321,7 @@ export default function SearchPage() {
         )}
       </div>
 
-      <InspectorDrawer
+      {staff.active && <InspectorDrawer
         open={inspector.open}
         onClose={() => setInspector((s) => ({ ...s, open: false }))}
         trace={inspector.trace}
@@ -327,7 +332,7 @@ export default function SearchPage() {
           loadTrace(searchKey)
         }}
         titles={titles}
-      />
+      />}
     </div>
   )
 }

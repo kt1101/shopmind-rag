@@ -185,6 +185,12 @@ export function validateOverrides(overrides) {
   return details
 }
 
+// Effective config value for the storefront mock (e.g. `defaults.search`), no auth needed:
+// lets the mock storefront follow what an admin saved on the Config page.
+export function mockConfigValue(path) {
+  return path.split('.').reduce((node, key) => (node && typeof node === 'object' ? node[key] : undefined), configResponse().effective)
+}
+
 export function getConfig({ signal } = {}) {
   return respond(signal, configResponse)
 }

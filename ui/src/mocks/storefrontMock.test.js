@@ -3,7 +3,7 @@ import test from 'node:test'
 import {
   askProduct, chat, chatStream, getChatSession, getEmbeddingMap, getFacets, getFilterOptions, getPipelines, getProduct,
   getRecordedEvents, getSimilarProducts, projectEmbedding, ragCompare, searchCompose, searchImage, searchSuggest, searchText,
-  sendClick, sendFeedback, setMockDelay, understandQuery, uploadChatImage,
+  resolveSearchPipeline, sendClick, sendFeedback, setMockDelay, understandQuery, uploadChatImage,
 } from './mockApi.js'
 
 setMockDelay(0)
@@ -194,9 +194,27 @@ test('feedback and clicks are recorded; invalid feedback is rejected', async () 
   assert.deepEqual(recorded.clicks.at(-1), { trace_id: 't1', product_id: 'M-001', rank: 2 })
 })
 
+test('storefront search without mode runs the admin default pipeline; staff can name one', async () => {
+  assert.deepEqual(resolveSearchPipeline({ query: 'boots', defaultPipeline: 'search.bm25' }), { pipeline: 'search.bm25', engineMode: 'bm25', mode: 'default' })
+  assert.equal(resolveSearchPipeline({ query: '', pipeline: 'search.dense' }).pipeline, 'search.bm25', 'filter-only is always BM25')
+  assert.equal(resolveSearchPipeline({ query: 'x', mode: 'dense' }).pipeline, 'search.dense')
+  assert.equal(resolveSearchPipeline({ query: 'x', pipeline: 'search.unknown' }).engineMode, 'hybrid')
+
+  const shopper = await searchText({ query: 'ba lô đen', topK: 5, explain: true })
+  assert.equal(shopper.data.mode, 'default')
+  assert.equal(shopper.data.pipeline, 'search.hybrid')
+  assert.equal(shopper.data.trace.pipeline, 'search.hybrid')
+  const staff = await searchText({ query: 'ba lô đen', pipeline: 'search.bm25', topK: 5, explain: true })
+  assert.equal(staff.data.pipeline, 'search.bm25')
+  assert.ok(!staff.data.trace.steps.some((s) => s.id === 'semantic'), 'bm25 pipeline has no dense step')
+})
+
 test('meta: pipelines and embedding maps', async () => {
   const p = await getPipelines()
   assert.ok(p.data.pipelines.some((x) => x.name === p.data.defaults.search))
+  assert.ok(p.data.pipelines.every((x) => x.public !== false), 'hidden pipelines only with includeHidden')
+  const all = await getPipelines({ includeHidden: true })
+  assert.ok(all.data.pipelines.some((x) => x.public === false))
   for (const space of ['text', 'siglip_text', 'image']) {
     const map = await getEmbeddingMap({ space })
     assert.equal(map.data.space, space)

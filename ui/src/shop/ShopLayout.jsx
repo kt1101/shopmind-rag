@@ -21,8 +21,7 @@ export default function ShopLayout() {
             <Outlet />
           </main>
           <footer className="site-footer">
-            <Link to="/lab">{t('nav.lab')}</Link>
-            <Link to="/lab/embeddings">{t('nav.map')}</Link>
+            <Link to="/plan">{t('nav.plan')}</Link>
             <Link to="/admin">{t('nav.admin')}</Link>
             <span className="site-footer-note">{t('footer.note')}</span>
           </footer>

@@ -87,7 +87,7 @@ function Progress({ steps }) {
   )
 }
 
-function AssistantMessage({ msg, onAsk, onInspect }) {
+function AssistantMessage({ msg, onAsk, onInspect, staff }) {
   const { t } = useI18n()
   const [showTrace, setShowTrace] = useState(false)
   const isSearchAnswer = msg.kind === 'search' || msg.intent === 'product_search'
@@ -105,9 +105,9 @@ function AssistantMessage({ msg, onAsk, onInspect }) {
         {citations.length ? <AnswerText answer={msg.content} sources={citations} className="chat-bubble-text" /> : <p className="chat-bubble-text">{msg.content}</p>}
         {msg.kind !== 'search' && msg.evidence && <ChatEvidence evidence={msg.evidence} />}
         <ProductCards products={products} onAsk={onAsk} />
-        {(msg.trace || msg.traceId) && (
+        {((staff && msg.trace) || msg.traceId) && (
           <div className="chat-tools">
-            {msg.trace && (isSearchAnswer ? (
+            {staff && msg.trace && (isSearchAnswer ? (
               <button type="button" className="chat-tool-button" onClick={() => onInspect(msg)}>🔍 {t('results.why')}</button>
             ) : (
               <button type="button" className="chat-tool-button" aria-expanded={showTrace} onClick={() => setShowTrace((v) => !v)}>
@@ -117,14 +117,14 @@ function AssistantMessage({ msg, onAsk, onInspect }) {
             {msg.traceId && <FeedbackWidget target={isSearchAnswer ? 'search' : 'answer'} traceId={msg.traceId} query={msg.question} compact />}
           </div>
         )}
-        {showTrace && msg.trace && <RagInspector trace={msg.trace} compact />}
+        {staff && showTrace && msg.trace && <RagInspector trace={msg.trace} compact />}
       </div>
     </div>
   )
 }
 
 export default function ChatWidget() {
-  const { open, pending, messages, scope, live, explain, openChat, closeChat, send, retry, setScope, newChat, setExplain } = useChat()
+  const { open, pending, messages, scope, live, explain, staff, openChat, closeChat, send, retry, setScope, newChat, setExplain } = useChat()
   const { t, lang } = useI18n()
   const [input, setInput] = useState('')
   const [attachment, setAttachment] = useState(null) // {token, url, name} | {uploading: true} | {error}
@@ -207,10 +207,12 @@ export default function ChatWidget() {
               <h2 className="chat-title">{t('chat.title')}</h2>
               <p className="chat-subtitle">{scope ? t('chat.subtitleScoped') : t('chat.subtitle')}</p>
             </div>
-            <label className="chat-explain" title={t('chat.explainHint')}>
-              <input type="checkbox" checked={explain} onChange={(e) => setExplain(e.target.checked)} />
-              <span>{t('chat.explain')}</span>
-            </label>
+            {staff && (
+              <label className="chat-explain" title={t('chat.explainHint')}>
+                <input type="checkbox" checked={explain} onChange={(e) => setExplain(e.target.checked)} />
+                <span>{t('chat.explain')}</span>
+              </label>
+            )}
             <button type="button" className="chat-icon-button" aria-label={t('chat.newChat')} title={t('chat.newChat')} onClick={newChat} disabled={pending}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
             </button>
@@ -266,7 +268,7 @@ export default function ChatWidget() {
                   </div>
                 )
               }
-              return <AssistantMessage key={msg.id} msg={msg} onAsk={setScope} onInspect={setInspected} />
+              return <AssistantMessage key={msg.id} msg={msg} onAsk={setScope} onInspect={setInspected} staff={staff} />
             })}
 
             {pending && (
@@ -318,7 +320,7 @@ export default function ChatWidget() {
         </div>
       )}
 
-      <InspectorDrawer open={Boolean(inspected)} onClose={() => setInspected(null)} trace={inspected?.trace} view="search" />
+      {staff && <InspectorDrawer open={Boolean(inspected)} onClose={() => setInspected(null)} trace={inspected?.trace} view="search" />}
     </>
   )
 }

@@ -11,6 +11,7 @@ import {
   CATALOG, facetsEngine, searchComposeEngine, searchImageEngine, searchTextEngine, similarEngine, suggestEngine, understandEngine,
 } from './searchEngine.js'
 import { productArt, productImages, PRODUCT_COLORS, stockFor } from './storefrontFixtures.js'
+import { mockConfigValue } from './adminMock.js'
 
 export let mockDelayMs = 220
 export function setMockDelay(ms) {
@@ -117,8 +118,31 @@ export function checkReadiness(signal) {
   return respond(signal, () => ({ status: 'ready', components: { elasticsearch: 'ok', embedder: 'ok', text_embedder: 'ok', llm: 'ok', database: 'ok' } }), 0)
 }
 
-export function searchText({ query = '', mode = 'hybrid', topK = 20, offset = 0, filters = {}, explain = false, signal } = {}) {
-  return respond(signal, () => searchTextEngine({ query: (query || '').trim(), mode, top_k: topK, offset, filters: cleanFilters(filters), explain }))
+// Pipeline name -> the mock engine mode that imitates it (unknown names fall back to hybrid).
+const ENGINE_MODES = {
+  'search.bm25': 'bm25', 'search.dense': 'dense', 'search.hybrid': 'hybrid', 'search.cross_modal': 'cross_modal',
+  'search.adaptive': 'adaptive', 'search.hybrid_rerank': 'hybrid', 'search.dense_siglip': 'cross_modal',
+}
+
+// Which pipeline a POST /search/text runs (docs/API_CONTRACT.md "Storefront vs. staff"):
+// `pipeline` wins, then `mode` (defaults.mode.*), else the admin default `defaults.search`.
+// Filter-only requests always use search.bm25.
+export function resolveSearchPipeline({ query = '', mode, pipeline, defaultPipeline = 'search.hybrid' } = {}) {
+  if (!String(query || '').trim()) return { pipeline: 'search.bm25', engineMode: 'bm25', mode: mode || 'default' }
+  if (pipeline) return { pipeline, engineMode: ENGINE_MODES[pipeline] || 'hybrid', mode: mode || 'pipeline' }
+  if (mode) return { pipeline: `search.${mode}`, engineMode: ENGINE_MODES[`search.${mode}`] || 'hybrid', mode }
+  return { pipeline: defaultPipeline, engineMode: ENGINE_MODES[defaultPipeline] || 'hybrid', mode: 'default' }
+}
+
+export function searchText({ query = '', mode, pipeline, topK = 20, offset = 0, filters = {}, explain = false, signal } = {}) {
+  return respond(signal, () => {
+    const resolved = resolveSearchPipeline({ query, mode, pipeline, defaultPipeline: mockConfigValue('defaults.search') || 'search.hybrid' })
+    const body = searchTextEngine({ query: (query || '').trim(), mode: resolved.engineMode, top_k: topK, offset, filters: cleanFilters(filters), explain })
+    body.mode = resolved.mode
+    body.pipeline = resolved.pipeline
+    if (body.trace) body.trace = { ...body.trace, pipeline: resolved.pipeline, input: { ...body.trace.input, mode: resolved.mode, pipeline: resolved.pipeline } }
+    return body
+  })
 }
 
 export function searchImage({ file, topK = 20, offset = 0, filters = {}, explain = false, signal } = {}) {
@@ -238,29 +262,40 @@ export function sendClick({ traceId, productId, rank, signal } = {}) {
 
 // --- meta ---------------------------------------------------------------------------------
 
+const UNDERSTAND = { id: 'understand', step: 'query_understanding', impl: 'rules' }
+const LEXICAL = { id: 'lexical', step: 'retrieve', impl: 'bm25' }
+const SEMANTIC = { id: 'semantic', step: 'retrieve', impl: 'knn' }
+
+// `public: false` pipelines are evaluation-only; GET /meta/pipelines lists them with include_hidden=true.
 export const MOCK_PIPELINES = {
   pipelines: [
-    { name: 'search.hybrid', kind: 'search', description: 'BM25 + dense (E5) fused with RRF, then attribute rerank', steps: [
-      { id: 'understand', step: 'query_understanding', impl: 'rules' }, { id: 'lexical', step: 'retrieve', impl: 'bm25' },
-      { id: 'semantic', step: 'retrieve', impl: 'knn' }, { id: 'fuse', step: 'fuse', impl: 'rrf' }, { id: 'rerank', step: 'rerank', impl: 'attribute_boost' }] },
-    { name: 'search.bm25', kind: 'search', description: 'Exact-term BM25 over title, brand, category, colour, description', steps: [
-      { id: 'understand', step: 'query_understanding', impl: 'rules' }, { id: 'lexical', step: 'retrieve', impl: 'bm25' }] },
-    { name: 'search.dense', kind: 'search', description: 'Multilingual E5 text embedding, kNN on text_vector', steps: [
-      { id: 'understand', step: 'query_understanding', impl: 'rules' }, { id: 'semantic', step: 'retrieve', impl: 'knn' }] },
-    { name: 'search.cross_modal', kind: 'search', description: 'SigLIP2 text embedding searched against image_vector', steps: [
-      { id: 'understand', step: 'query_understanding', impl: 'rules' }, { id: 'semantic', step: 'retrieve', impl: 'knn' }] },
-    { name: 'search.image', kind: 'image_search', description: 'SigLIP2 image embedding, kNN on image_vector', steps: [{ id: 'image_knn', step: 'retrieve', impl: 'knn' }] },
-    { name: 'search.compose', kind: 'compose_search', description: 'q = normalize(α·image + (1−α)·text) on image_vector', steps: [
-      { id: 'understand', step: 'query_understanding', impl: 'rules' }, { id: 'compose', step: 'compose_query', impl: 'weighted_sum' }, { id: 'image_knn', step: 'retrieve', impl: 'knn' }] },
-    { name: 'rag.ask', kind: 'rag', description: 'Multi-source retrieve, RRF, budgeted context, LLM with citation validation', steps: [
+    { name: 'search.hybrid', kind: 'search', public: true, description: 'BM25 + dense (E5) fused with RRF, then attribute rerank', steps: [
+      UNDERSTAND, LEXICAL, SEMANTIC, { id: 'fuse', step: 'fuse', impl: 'rrf' }, { id: 'rerank', step: 'rerank', impl: 'attribute_boost' }] },
+    { name: 'search.bm25', kind: 'search', public: true, description: 'Exact-term BM25 over title, brand, category, colour, description', steps: [UNDERSTAND, LEXICAL] },
+    { name: 'search.dense', kind: 'search', public: true, description: 'Multilingual E5 text embedding, kNN on text_vector', steps: [UNDERSTAND, SEMANTIC] },
+    { name: 'search.cross_modal', kind: 'search', public: true, description: 'SigLIP2 text embedding searched against image_vector', steps: [UNDERSTAND, SEMANTIC] },
+    { name: 'search.adaptive', kind: 'search', public: true, description: 'Rule router: identifier -> BM25, descriptive -> dense, mixed -> hybrid', steps: [UNDERSTAND, LEXICAL, SEMANTIC] },
+    { name: 'search.hybrid_rerank', kind: 'search', public: false, description: 'Hybrid RRF followed by a cross-encoder on the top 50 (evaluation only)', steps: [
+      UNDERSTAND, LEXICAL, SEMANTIC, { id: 'fuse', step: 'fuse', impl: 'rrf' }, { id: 'rerank', step: 'rerank', impl: 'cross_encoder' }] },
+    { name: 'search.dense_siglip', kind: 'search', public: false, description: 'Old SigLIP text tower on text_vector (evaluation baseline)', steps: [UNDERSTAND, SEMANTIC] },
+    { name: 'search.image', kind: 'image_search', public: true, description: 'SigLIP2 image embedding, kNN on image_vector', steps: [{ id: 'image_knn', step: 'retrieve', impl: 'knn' }] },
+    { name: 'search.compose', kind: 'compose_search', public: true, description: 'q = normalize(α·image + (1−α)·text) on image_vector', steps: [
+      UNDERSTAND, { id: 'compose', step: 'compose_query', impl: 'weighted_sum' }, { id: 'image_knn', step: 'retrieve', impl: 'knn' }] },
+    { name: 'rag.ask', kind: 'rag', public: true, description: 'Multi-source retrieve, RRF, budgeted context, LLM with citation validation', steps: [
       { id: 'retrieve', step: 'multi_source_retrieve', impl: 'multi_source' }, { id: 'fuse', step: 'fuse', impl: 'rrf' }, { id: 'context', step: 'build_context', impl: 'budgeted' },
       { id: 'generate', step: 'generate', impl: 'openai_responses' }, { id: 'citations', step: 'validate_citations', impl: 'exact_context' }] },
+    { name: 'rag.plan', kind: 'rag', public: true, description: 'F6 shopping planner: decompose -> retrieve per need -> budget optimizer -> cited justification', steps: [
+      { id: 'decompose', step: 'decompose', impl: 'rules' }, { id: 'needs', step: 'retrieve', impl: 'per_need' }, { id: 'budget', step: 'optimize_budget', impl: 'greedy' },
+      { id: 'context', step: 'build_context', impl: 'budgeted' }, { id: 'justify', step: 'justify', impl: 'extractive' }] },
   ],
   defaults: { search: 'search.hybrid', rag: 'rag.ask' },
 }
 
-export function getPipelines({ signal } = {}) {
-  return respond(signal, () => MOCK_PIPELINES, Math.min(mockDelayMs, 80))
+export function getPipelines({ includeHidden = false, signal } = {}) {
+  return respond(signal, () => ({
+    pipelines: MOCK_PIPELINES.pipelines.filter((p) => includeHidden || p.public !== false),
+    defaults: { ...MOCK_PIPELINES.defaults, search: mockConfigValue('defaults.search') || MOCK_PIPELINES.defaults.search },
+  }), Math.min(mockDelayMs, 80))
 }
 
 export function getEmbeddingMap({ space = 'text', signal } = {}) {

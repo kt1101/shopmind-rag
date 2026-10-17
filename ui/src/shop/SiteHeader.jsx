@@ -3,6 +3,7 @@ import SearchBar from './SearchBar.jsx'
 import { useI18n } from '../shared/ui/I18nProvider.jsx'
 import { useShopLists } from '../features/shop-lists/ShopListsProvider.jsx'
 import { buildCompareUrl } from '../features/shop-lists/shopLists.js'
+import { useStaffMode } from '../shared/lib/useStaffMode.js'
 
 function Counter({ value }) {
   return value > 0 ? <span className="header-counter" aria-hidden="true">{value}</span> : null
@@ -11,6 +12,7 @@ function Counter({ value }) {
 export default function SiteHeader() {
   const { t, lang, setLang } = useI18n()
   const { compare, wishlist, cartCount } = useShopLists()
+  const staff = useStaffMode()
 
   return (
     <header className="site-header">
@@ -19,8 +21,17 @@ export default function SiteHeader() {
       </Link>
       <SearchBar />
       <nav className="header-nav" aria-label="ShopMind">
-        <NavLink to="/lab/embeddings" className="header-link">{t('nav.map')}</NavLink>
-        <NavLink to="/lab" className="header-link header-link--secondary">{t('nav.lab')}</NavLink>
+        <NavLink to="/plan" className="header-plan-link" title={t('nav.planHint')} aria-label={t('nav.plan')}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+          </svg>
+          <span>{t('nav.plan')}</span>
+        </NavLink>
+        {staff.active && (
+          <Link to="/admin" className="header-staff-pill" title={t('staff.pillHint', { user: staff.user?.username || 'admin' })}>
+            {t('staff.pill')}
+          </Link>
+        )}
         <Link to={buildCompareUrl(compare.map((item) => item.product_id))} className="header-icon-link" aria-label={`${t('nav.compare')} (${compare.length})`} title={t('nav.compare')}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M16 3h5v5" /><path d="M21 3l-7 7" /><path d="M8 21H3v-5" /><path d="M3 21l7-7" />

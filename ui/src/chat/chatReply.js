@@ -47,7 +47,7 @@ async function legacyReply({ question, scope, signal, api }) {
     }
   }
 
-  const { data } = await api.searchText({ query: question, mode: 'hybrid', topK: 3, filters: {}, signal })
+  const { data } = await api.searchText({ query: question, topK: 3, filters: {}, signal })
   const results = data?.results ?? []
   return {
     kind: 'search',
