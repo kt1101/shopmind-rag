@@ -43,3 +43,12 @@ compose search.
 - **Hosted embedding API (OpenAI)**: good quality but adds cost, network dependency and an API key to
   search, which must keep working offline.
 - **Fine-tuning**: out of scope (Won't).
+
+## Outcome (2026-10-17)
+
+Implemented as `embedders.text_e5` (`sentence_transformer`, `intfloat/multilingual-e5-base`) with the
+SigLIP2 text space kept as `siglip_text_vector` for comparison. On the A1 seed-42 benchmark (80 text
+queries, `api/reports/a1/RESULTS.md`): dense Recall@10 0.0375 (SigLIP2 text) → 0.5500 (E5), against
+0.4875 for BM25; hybrid linear fusion reaches 0.5875. On the accuracy_v2 holdout the DEV-selected hybrid
+reaches nDCG@10 0.6961 versus 0.6075 for the previous lexical-preserving setting. Labels are seed /
+metadata labels that still need human review.

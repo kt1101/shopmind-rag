@@ -499,3 +499,32 @@ Hợp đồng công khai của kết quả search giữ nguyên (`product_id, ti
 - [ ] F1, F2, F3 chạy end-to-end, có test, F1 có số đo.
 - [ ] CI xanh: ruff, pytest (unit/api/evaluation/a3), `npm test`, `npm run build`.
 - [ ] README quick start chạy được trên máy sạch với `make setup && make up && make seed`.
+
+---
+
+## 15. Trạng thái thực hiện (cập nhật 2026-10-17)
+
+Số đo lấy từ `metrics.json` trong `api/runs/` (chi tiết và đường dẫn run: [`api/reports/a1/RESULTS.md`](../api/reports/a1/RESULTS.md)).
+Qrels A1/accuracy_v2 vẫn là nhãn seed/metadata chưa được người duyệt; nhãn F1 là nhãn tổng hợp.
+
+### Đã xong
+
+| Hạng mục | Kết quả |
+|---|---|
+| **P0** nền móng | Makefile (thêm `embed-text`, `index` 2 embedder, `embedding-map`, `eval-compose`, `dev-api`, `dev-ui`), CI (ruff, pytest gồm `tests/platform`, npm test/build, hard-code guard), pre-commit, PostgreSQL + Alembic (SQLite cho dev), profile `dev/demo/eval`, bỏ `egg-info`, một lockfile UI (`shopmind-ui`), `.gitattributes` giữ LF cho file benchmark |
+| **P1** kiến trúc + engine | Registry, pipeline engine có trace, container + wiring theo subsystem, bảng ánh xạ lỗi. Mọi chế độ search chạy qua pipeline khai báo trong `configs/pipelines/search.yaml`; prompt là file có version (`configs/prompts/`), từ điển ở `configs/vocab/`, alias index ở `configs/components/embedders.yaml`; hard-code guard xanh |
+| **P2** sửa lõi (A-1…A-6) | E5 đa ngôn ngữ cho `text_vector` (A-1), template văn bản embed trong config (A-2), từ điển YAML (A-3), RRF có trọng số + linear min-max (A-4), bước `rerank.cross_encoder` cho A1 (A-5), ablation mới (A-6). Dense text Recall@10: 0.0375 (SigLIP2 cũ) → **0.5500** (E5); BM25 0.4875; hybrid linear **0.5875**. Trên accuracy_v2: chọn hybrid linear theo DEV, holdout nDCG@10 **0.6961** so với 0.6075 của cấu hình cũ |
+| **P3** glass-box | Trace từng bước cho search/RAG/chat/compare (`explain`, lưu DB, `GET /traces/{id}`), highlight + ES DSL + giải thích bộ lọc + công thức RRF/linear, SSE `step`, Search Inspector, RAG Inspector, Embedding Map (PCA, 3 không gian, chiếu truy vấn) |
+| **P4** tính năng | F1 compose search (`/search/compose`, thanh trượt α; nDCG@10 0.536 so với 0.107 image-only, 0.148 text-only), F2 hiểu ý định + chat nhận ảnh + thẻ sản phẩm + phiên chat, F3 so sánh có trích dẫn (`/rag/compare`, bảng thuộc tính không qua LLM) |
+| **P5** admin + storefront | JWT, dashboard, config + profile + rollback + hot-reload, Trace Explorer, index/jobs, Policy CMS (publish → job reindex), Evaluation Center, Feedback, Annotation + kappa; storefront: design token + dark mode, i18n vi/en, autocomplete, facet có đếm, giá/tồn kho tổng hợp có nhãn, sản phẩm tương tự theo ảnh, yêu thích/giỏ hàng (localStorage), F4 👍/👎 + click |
+| Bảo mật | Rate limit `/rag`, `/chat`; `/admin`, `/debug`, `/traces` cần JWT; secret chỉ từ env; trace không chứa vector/ảnh; test prompt-injection (`tests/a3/test_prompt_injection.py`) |
+| LLM | Provider theo registry (`openai`, `ollama`), không có key thì search/trợ lý tìm sản phẩm/so sánh dạng bảng vẫn chạy |
+
+### Chưa làm / giới hạn còn lại
+
+- **Frontend TypeScript, TanStack Query, client sinh từ OpenAPI** (§3.3): chưa chuyển; UI vẫn là JS + `fetch` qua `shared/api`, có mock đầy đủ. Không có test component (chỉ test logic thuần).
+- **Đánh giá A3 thật (§9)**: s4–s5, faithfulness/LLM-as-judge, citation precision/recall cần `OPENAI_API_KEY` và tập ca có nhãn — chưa chạy. Chỉ số chất lượng câu trả lời RAG vẫn là **null**.
+- **Review**: không có dữ liệu review cục bộ nên index `reviews` trống; F5 (tóm tắt review theo khía cạnh, Could) chưa làm.
+- **Hạ tầng**: chưa chạy được `docker compose` trên máy hiện tại (không có Docker) và chưa chạy migration trên PostgreSQL thật (chỉ SQLite); Redis cache, cache câu trả lời theo hash, `/metrics` Prometheus (Could) chưa làm.
+- Từ điển `configs/vocab/` sửa bằng file/config; Admin chưa có trang sửa từ điển. α mặc định của F1 (0.5) được so sánh trên chính tập tổng hợp, chưa có tập tách riêng.
+- Nhãn qrels vẫn cần người duyệt (dùng trang Annotation) trước khi báo cáo chính thức.

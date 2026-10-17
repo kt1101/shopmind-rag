@@ -26,7 +26,7 @@ tracing:
   retention_days: 7
 
 features:
-  compose_default_alpha: 0.7
+  compose_default_alpha: 0.5   # F1 benchmark: 0.3 > 0.5 > 0.7 (same set, see reports/a1/RESULTS.md)
   query_understanding: rules
   synthetic_commerce: true
   chat_image_ttl_seconds: 900

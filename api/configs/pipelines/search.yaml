@@ -104,7 +104,7 @@ pipelines:
     kind: compose_search
     description: "F1: normalize(alpha*image + (1-alpha)*text) on image_vector, then boost matching colours"
     steps:
-      - { step: compose_query, impl: weighted_sum, params: { image_weight: 0.7 } }
+      - { step: compose_query, impl: weighted_sum, params: { image_weight: 0.5 } }
       - { step: retrieve, id: composed, impl: dense, params: { field: image_vector, input: composed } }
       - { step: rerank, impl: attribute_boost, params: { fields: [color], boost: 0.05 } }
 

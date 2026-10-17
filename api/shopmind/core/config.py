@@ -183,7 +183,7 @@ class TracingConfig(BaseModel):
 
 class FeaturesConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    compose_default_alpha: float = Field(default=0.7, ge=0, le=1)
+    compose_default_alpha: float = Field(default=0.5, ge=0, le=1)
     query_understanding: Literal["rules", "llm", "off"] = "rules"
     synthetic_commerce: bool = True
     chat_image_ttl_seconds: int = Field(default=900, gt=0)

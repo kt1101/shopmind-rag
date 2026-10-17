@@ -35,9 +35,9 @@ ShopMind là một "cửa hàng thu nhỏ" dùng để nghiên cứu và trình 
 | Admin console | Đăng nhập JWT, dashboard (latency, zero-result, abstain, phản hồi), sửa config hot-reload + rollback, Trace Explorer, quản lý index/alias, Policy CMS, Evaluation Center, gán nhãn relevance |
 | Đánh giá | Benchmark A1 seed 42 (Recall@10, nDCG@10, MRR@10), ablation, lộ trình RAG `s0`–`s5`, mọi run ghi vào `runs/<timestamp>_<name>/` |
 
-Lộ trình và phạm vi chi tiết (MoSCoW) nằm trong [`docs/REFACTOR_PLAN.md`](docs/REFACTOR_PLAN.md);
-hợp đồng API dùng chung giữa backend và frontend nằm trong [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md).
-Một số tính năng ở trên đang được xây dựng theo lộ trình đó.
+Lộ trình, phạm vi (MoSCoW) và **trạng thái thực hiện** (mục 15) nằm trong
+[`docs/REFACTOR_PLAN.md`](docs/REFACTOR_PLAN.md); hợp đồng API dùng chung giữa backend và frontend nằm trong
+[`docs/API_CONTRACT.md`](docs/API_CONTRACT.md). Số đo mới nhất: [`api/reports/a1/RESULTS.md`](api/reports/a1/RESULTS.md).
 
 ## Kiến trúc
 
@@ -94,10 +94,32 @@ Quy trình dựng lại từ đầu nằm ở [`api/README.md`](api/README.md#ap
 | <http://localhost:8000/health>, `/ready` | Liveness, readiness |
 | <http://localhost:9200> | Elasticsearch |
 
-Không có `OPENAI_API_KEY` thì tìm kiếm vẫn chạy, còn chat/RAG trả `503 llm_unavailable`.
+Không có `OPENAI_API_KEY` thì tìm kiếm, trợ lý tìm sản phẩm (ý định `product_search`), so sánh dạng bảng
+và toàn bộ admin vẫn chạy; câu hỏi cần RAG trả `503 llm_unavailable`.
 Dùng LLM cục bộ: `docker compose --profile llm-local up -d ollama`.
 
 `make help` liệt kê mọi lệnh.
+
+### Chạy local không cần Docker (Windows / Linux)
+
+Cần Elasticsearch 8.15 chạy ở `:9200` (bản zip chính thức, `discovery.type: single-node`,
+`xpack.security.enabled: false`), Python 3.11+ và Node 22+.
+
+```bash
+cd api && python -m venv .venv && .venv/Scripts/python -m pip install -e '.[dev,text-embed,viz]'   # Linux: .venv/bin/python
+export PYTHONUTF8=1                                   # Windows
+python -m scripts.prepare_a1_abo_subset --output data/a1_abo_1500 --limit 1500 --seed 42 --max-per-category 150 --force
+python -m scripts.generate_embeddings --input data/a1_abo_1500/products.jsonl --output-dir data/embeddings/abo_a1_1500_v1 --dataset-version abo_a1_1500_v1 --device cpu --force
+python -m scripts.generate_embeddings --input data/a1_abo_1500/products.jsonl --output-dir data/embeddings/abo_a1_1500_v1_text_e5 --dataset-version abo_a1_1500_v1_text_e5 --embedder text_e5 --device cpu --force
+cd .. && make index embedding-map            # hoặc chạy các lệnh tương ứng trong Makefile
+cd api && python -m scripts.generate_knowledge_embeddings --source policy --input data/policies/shopmind_policies.jsonl --dataset-version policies_a3_v1 --output-dir data/embeddings/policies_a3_v1 --force
+python -m scripts.index_policies --input data/policies/shopmind_policies.jsonl --embeddings data/embeddings/policies_a3_v1 --index-name policies_a3_v1 --switch-alias
+SHOPMIND_PROFILE=dev python -m scripts.seed_demo   # SQLite data/shopmind.db, admin/admin, policy CMS, giá/tồn kho tổng hợp
+cd .. && make dev-api                        # http://127.0.0.1:8000
+cd ui && npm ci && cd .. && make dev-ui      # http://localhost:5173 (proxy tới 127.0.0.1:8000)
+```
+
+Lưu ý Windows: dùng `127.0.0.1` thay vì `localhost` cho API (phân giải IPv6 `::1` trước làm mỗi request chậm ~2 giây).
 
 ## Cấu trúc dự án
 
