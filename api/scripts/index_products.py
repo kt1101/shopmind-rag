@@ -8,7 +8,7 @@ from typing import Any
 import numpy as np
 
 from shopmind.core.config import load_app_config
-from shopmind.application.retrieval.language import catalog_color_terms
+from shopmind.application.retrieval.language import canonical_color, catalog_color_terms
 from shopmind.infrastructure.embedding.validation import field_embedding_metadata, index_embedding_metadata, validate_index_identity, validate_vectors
 from shopmind.infrastructure.elasticsearch.client import create_elasticsearch_client
 from shopmind.infrastructure.elasticsearch.index import switch_alias, validate_product_index
@@ -59,7 +59,7 @@ def build_index_documents(processed_rows: list[dict[str, Any]], product_ids: lis
         attributes = dict(row.get("attributes") or {})
         metadata = dict(row.get("metadata") or {})
         metadata["missing_image"] = bool(np.isclose(np.linalg.norm(image_vector), 0.0, atol=1e-6))
-        document = {"product_id": str(row["product_id"]), "title": str(row.get("title") or ""), "description": str(row.get("description") or ""), "brand": row.get("brand"), "category": row.get("category"), "attributes": attributes, "attributes_text": "\n".join(f"{key}: {attributes[key]}" for key in sorted(attributes)), "search_text": str(row.get("search_text") or "") + "\n" + catalog_color_terms(str(attributes.get("color") or "")), "image_url": public_image_url(row.get("main_image_path")), "text_vector": text_vector.astype(np.float32, copy=False).tolist(), "embedding_model": embedding_model, "embedding_version": embedding_version, "metadata": metadata}
+        document = {"product_id": str(row["product_id"]), "title": str(row.get("title") or ""), "description": str(row.get("description") or ""), "brand": row.get("brand"), "category": row.get("category"), "attributes": attributes, "attributes_text": "\n".join(f"{key}: {attributes[key]}" for key in sorted(attributes)), "search_text": str(row.get("search_text") or "") + "\n" + catalog_color_terms(str(attributes.get("color") or "")), "image_url": public_image_url(row.get("main_image_path")), "color": canonical_color(str(attributes.get("color") or "")), "text_vector": text_vector.astype(np.float32, copy=False).tolist(), "embedding_model": embedding_model, "embedding_version": embedding_version, "metadata": metadata}
         if dedicated is not None:
             document["siglip_text_vector"] = document["text_vector"]
             document["text_vector"] = dedicated[0][index].astype(np.float32, copy=False).tolist()

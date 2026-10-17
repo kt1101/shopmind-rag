@@ -7,6 +7,8 @@ class SearchMode(StrEnum):
     DENSE = "dense"
     HYBRID = "hybrid"
     CROSS_MODAL = "cross_modal"
+    # Rule-based router (identifier-like → bm25, descriptive → dense, mixed → hybrid); not learned.
+    ADAPTIVE = "adaptive"
 
 
 FilterValue = str | list[str]
@@ -19,6 +21,8 @@ class SearchRequest:
     top_k: int = 10
     candidate_k: int = 100
     filters: dict[str, FilterValue] = field(default_factory=dict)
+    # Explicit pipeline name (``config.pipelines``); ``None`` = the default pipeline for ``mode``.
+    pipeline: str | None = None
 
     def __post_init__(self) -> None:
         query = self.query.strip() if isinstance(self.query, str) else None

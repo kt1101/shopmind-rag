@@ -23,8 +23,20 @@ def _clean(values: list[str]) -> list[str]:
 
 
 class CatalogService:
-    def __init__(self, repository: Any) -> None:
+    """Catalog listing / detail. ``commerce`` (optional) adds synthetic price and stock, always
+    flagged ``synthetic: true`` because ABO has no commerce data."""
+
+    def __init__(self, repository: Any, commerce: Any | None = None) -> None:
         self.repository = repository
+        self.commerce = commerce
+
+    def _overlay(self, product_ids: list[str]) -> dict[str, dict[str, Any]]:
+        if self.commerce is None or not product_ids:
+            return {}
+        try:
+            return dict(self.commerce.get_many(product_ids) or {})
+        except Exception:
+            return {}
 
     def list_products(self, *, categories: list[str], brands: list[str], page: int, page_size: int) -> dict[str, Any]:
         if page * page_size > MAX_RESULT_WINDOW:
@@ -36,9 +48,10 @@ class CatalogService:
             raise InvalidFilter(str(exc)) from exc
         except (ProductIndexMissing, elasticsearch.ApiError, elasticsearch.TransportError) as exc:
             raise SearchInfrastructureError("product catalog is unavailable") from exc
+        overlay = self._overlay([str(item.get("product_id") or "") for item in result.items])
         return {
             "items": [
-                {"product_id": str(item.get("product_id") or ""), "title": str(item.get("title") or ""), "image_url": _optional_str(item.get("image_url")), "brand": _optional_str(item.get("brand")), "category": _optional_str(item.get("category"))}
+                {"product_id": str(item.get("product_id") or ""), "title": str(item.get("title") or ""), "image_url": _optional_str(item.get("image_url")), "brand": _optional_str(item.get("brand")), "category": _optional_str(item.get("category")), "price": (overlay.get(str(item.get("product_id") or "")) or {}).get("price")}
                 for item in result.items
             ],
             "total": result.total,
@@ -71,4 +84,6 @@ class CatalogService:
             "bullet_points": [item for item in bullet_points if isinstance(item, str)],
             "category_path": [segment for segment in first_path.split("/") if segment],
             "image_url": _optional_str(source.get("image_url")),
+            "images": [url for url in [_optional_str(source.get("image_url"))] if url],
+            **{key: value for key, value in (self._overlay([product_id]).get(product_id) or {}).items() if key in {"price", "stock"}},
         }

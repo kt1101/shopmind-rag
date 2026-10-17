@@ -39,6 +39,8 @@ class Citation:
     policy_version: str | None = None
     source_url: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    snippet: str | None = None
+    image_url: str | None = None
 
 
 @dataclass(frozen=True)
@@ -62,6 +64,9 @@ class PreparedContext:
     context: RAGContext
     trace: dict[str, Any]
     started: float
+    # The glass-box PipelineTrace active while preparing; generation (which may run on a
+    # streaming worker thread, outside the request context) appends its steps to it.
+    pipeline_trace: Any = None
 
 
 @dataclass(frozen=True)

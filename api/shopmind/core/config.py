@@ -85,9 +85,10 @@ class RAGContextConfig(BaseModel):
 
 class RAGLLMConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    provider: Literal["openai"] = "openai"
+    provider: str = "openai"  # registry name (kind "llm"): openai | ollama
     model: str = "gpt-5.4-mini"
     api_key: str | None = None
+    base_url: str = "http://localhost:11434"
     max_generation_attempts: int = Field(default=2, ge=1, le=2)
     timeout_seconds: float = Field(default=60, gt=0)
 
@@ -221,6 +222,10 @@ def _overlay_env(data: dict[str, Any]) -> dict[str, Any]:
     data["elasticsearch"] = elasticsearch
     data["embedding"] = embedding
     llm_overrides = {key: value for key, env_name in (("api_key", "OPENAI_API_KEY"), ("model", "OPENAI_MODEL")) if (value := os.getenv(env_name))}
+    if value := os.getenv("OLLAMA_BASE_URL"):
+        rag = dict(data.get("rag") or {})
+        rag["llm"] = {**(rag.get("llm") or {}), "base_url": value}
+        data["rag"] = rag
     simple = {"DATABASE_URL": ("database", "url"), "JWT_SECRET": ("auth", "jwt_secret"), "ADMIN_USERNAME": ("auth", "admin_username"), "ADMIN_PASSWORD": ("auth", "admin_password")}
     for env_name, (section, key) in simple.items():
         if value := os.getenv(env_name):
@@ -307,6 +312,10 @@ def load_config_data(path: str | Path, profile: str | None = None, environ: Mapp
     data = _read_yaml(config_path)
     for include in data.pop("include", []) or []:
         data = deep_merge(_read_yaml(config_path.parent / include), data)
+    # File references (prompts, vocabularies) are relative to the base config's directory.
+    for section in ("prompts", "vocabularies"):
+        if isinstance(data.get(section), dict):
+            data[section] = {key: str(value if Path(str(value)).is_absolute() else (config_path.parent / str(value)).resolve()) for key, value in data[section].items()}
     profile = profile if profile is not None else environ.get("SHOPMIND_PROFILE") or None
     if profile:
         profile_path = config_path.parent / "profiles" / f"{profile}.yaml"

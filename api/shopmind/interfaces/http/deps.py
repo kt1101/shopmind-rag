@@ -62,7 +62,7 @@ def wants_explain(request: Request, explicit: bool | None = None) -> bool:
 
 
 @contextmanager
-def traced(request: Request, pipeline: str, *, kind: str, input: Mapping[str, Any] | None = None) -> Iterator[PipelineTrace]:
+def traced(request: Request, pipeline: str, *, kind: str, input: Mapping[str, Any] | None = None, verbose: bool = False, persist: bool = True) -> Iterator[PipelineTrace]:
     """Run a request inside a glass-box trace and persist it to the trace store afterwards.
 
     ``trace_id`` equals the request id so the UI can fetch it later via ``GET /api/v1/traces/{id}``.
@@ -70,8 +70,15 @@ def traced(request: Request, pipeline: str, *, kind: str, input: Mapping[str, An
     config = request.app.state.config
     max_items = config.tracing.max_items_per_step if config is not None else 20
     trace_id = getattr(request.state, "request_id", None) or "unknown"
-    with start_trace(pipeline, kind=kind, trace_id=trace_id, input=input, max_items=max_items) as trace:
+    with start_trace(pipeline, kind=kind, trace_id=trace_id, input=input, max_items=max_items, verbose=verbose) as trace:
         yield trace
+    if persist:
+        save_trace(request, trace)
+
+
+def save_trace(request: Request, trace: PipelineTrace) -> None:
+    """Persist a finished trace (no-op when tracing is disabled; never raises)."""
+    config = request.app.state.config
     if config is None or config.tracing.enabled:
         store = component(request, "trace_store")
         if store is not None:

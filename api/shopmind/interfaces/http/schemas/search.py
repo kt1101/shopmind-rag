@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -8,7 +8,7 @@ from shopmind.interfaces.http.errors import InvalidFilter, UnsupportedSearchMode
 from shopmind.domain.search_query import SearchMode, SearchRequest
 from shopmind.domain.search_result import SearchResult
 
-_ALLOWED_FILTERS = {"brand", "category", "product_id"}
+_ALLOWED_FILTERS = {"brand", "category", "product_id", "color"}
 
 
 class TextSearchRequest(BaseModel):
@@ -18,6 +18,10 @@ class TextSearchRequest(BaseModel):
     candidate_k: int | None = Field(default=None, gt=0)
     offset: int = Field(default=0, ge=0)
     filters: dict[str, str | list[str]] = Field(default_factory=dict)
+    sort: Literal["relevance", "title"] = "relevance"
+    explain: bool = False
+    # Run a named pipeline from config instead of the mode default (Lab comparisons).
+    pipeline: str | None = Field(default=None, max_length=64)
 
     @field_validator("query", mode="before")
     @classmethod
@@ -57,7 +61,7 @@ class TextSearchRequest(BaseModel):
         unknown = sorted(set(self.filters) - _ALLOWED_FILTERS)
         if unknown:
             raise InvalidFilter(f"unsupported filter field: {unknown[0]}")
-        return SearchRequest(query=self.query, mode=mode, top_k=self.offset + self.top_k, candidate_k=self._effective_candidate_k(), filters=dict(self.filters))
+        return SearchRequest(query=self.query, mode=mode, top_k=self.offset + self.top_k, candidate_k=self._effective_candidate_k(), filters=dict(self.filters), pipeline=self.pipeline)
 
 
 class ProductSearchResult(BaseModel):
@@ -79,6 +83,9 @@ class TextSearchResponse(BaseModel):
     mode: str
     filter_only: bool = False
     results: list[ProductSearchResult]
+    pipeline: str | None = None
+    trace_id: str | None = None
+    trace: dict[str, Any] | None = None
 
 
 class DebugSearchResult(BaseModel):
@@ -120,11 +127,71 @@ class DebugSearchResponse(BaseModel):
     filter_only: bool
     rrf_k: int
     results: list[DebugSearchResult]
+    trace: dict[str, Any] | None = None
 
 
 class ImageSearchResponse(BaseModel):
     mode: str = "image_dense"
     results: list[ProductSearchResult]
+    trace_id: str | None = None
+    trace: dict[str, Any] | None = None
+
+
+class ComposeSearchResponse(BaseModel):
+    mode: str = "compose"
+    text: str
+    alpha: float
+    results: list[ProductSearchResult]
+    trace_id: str | None = None
+    trace: dict[str, Any] | None = None
+
+
+class Suggestion(BaseModel):
+    type: Literal["product", "brand", "category"]
+    value: str
+    label: str
+    count: int | None = None
+    product_id: str | None = None
+    image_url: str | None = None
+
+
+class SuggestResponse(BaseModel):
+    query: str
+    suggestions: list[Suggestion]
+
+
+class FacetsRequest(BaseModel):
+    query: str | None = Field(default=None, max_length=500)
+    filters: dict[str, str | list[str]] = Field(default_factory=dict)
+
+    @field_validator("filters", mode="before")
+    @classmethod
+    def normalize_filter_values(cls, value: Any) -> dict[str, str | list[str]]:
+        return normalize_filters(value)
+
+
+class FacetValue(BaseModel):
+    value: str
+    count: int
+
+
+class FacetsResponse(BaseModel):
+    facets: dict[str, list[FacetValue]]
+
+
+class UnderstandRequest(BaseModel):
+    query: str = Field(min_length=1, max_length=500)
+
+
+class UnderstandResponse(BaseModel):
+    query: str
+    intent: str
+    method: str
+    reason: str
+    rewritten_query: str
+    filters: dict[str, list[str]]
+    price: dict[str, float] = Field(default_factory=dict)
+    spans: list[dict[str, str]] = Field(default_factory=list)
 
 
 class FilterOption(BaseModel):

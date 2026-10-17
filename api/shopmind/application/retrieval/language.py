@@ -123,3 +123,18 @@ def detect_language(query: str) -> str:
 def known_colors() -> dict[str, str]:
     """Every color spelling (canonical + aliases, casefolded) → canonical color."""
     return {alias.casefold(): canonical for canonical, aliases in vocabulary().colors.items() for alias in (canonical, *aliases)}
+
+
+def canonical_color(raw: str | None) -> str | None:
+    """Catalog colour value for facets/filters: the canonical vocabulary colour when any word of
+    ``raw`` is a known spelling (``"Roze Roze"`` → ``pink``), else the casefolded raw value."""
+    if not raw or not raw.strip():
+        return None
+    value = raw.strip().casefold()
+    spellings = known_colors()
+    if value in spellings:
+        return spellings[value]
+    for token in re.split(r"[\s,/&+-]+", value):
+        if token in spellings:
+            return spellings[token]
+    return value[:64]

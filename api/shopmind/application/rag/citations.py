@@ -25,6 +25,11 @@ class CitationValidator:
         return unique
 
 
+def _snippet(content: str, limit: int = 320) -> str:
+    text = " ".join(str(content or "").split())
+    return text if len(text) <= limit else text[:limit].rsplit(" ", 1)[0] + "…"
+
+
 class CitationResolver:
     def resolve(self, citation_ids: tuple[str, ...], documents: tuple[RetrievedDocument, ...]) -> tuple[Citation, ...]:
         by_id = {document.id: document for document in documents}
@@ -41,5 +46,7 @@ class CitationResolver:
                 policy_version=details.get("version"),
                 source_url=details.get("source_url"),
                 metadata={key: details[key] for key in ("rating", "verified_purchase", "timestamp", "helpful_vote", "content_truncated", "matched_by", "effective_date", "policy_type", "provenance", "source_score", "score_type", "pre_rerank_score") if key in details},
+                snippet=_snippet(document.content),
+                image_url=details.get("image_url") if isinstance(details.get("image_url"), str) else None,
             ))
         return tuple(output)

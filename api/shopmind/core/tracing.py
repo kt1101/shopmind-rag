@@ -24,6 +24,8 @@ from time import perf_counter
 from typing import Any
 
 _BANNED_KEY_PARTS = ("vector", "embedding", "image_bytes", "raw_image", "api_key", "password", "secret", "authorization")
+# A vector-named key is kept only when it is a summary like {"dims": [768], "norm": 1.0}.
+_VECTOR_SUMMARY_KEYS = {"dims", "norm", "hash", "model", "embedder"}
 DEFAULT_MAX_ITEMS = 20
 
 _current: contextvars.ContextVar[PipelineTrace | None] = contextvars.ContextVar("shopmind_trace", default=None)
@@ -44,7 +46,8 @@ def sanitize(value: Any, *, depth: int = 0) -> Any:
         for key, item in value.items():
             name = str(key)
             if any(part in name.lower() for part in _BANNED_KEY_PARTS):
-                continue
+                if not (isinstance(item, Mapping) and item and set(map(str, item)) <= _VECTOR_SUMMARY_KEYS and "secret" not in name.lower() and "password" not in name.lower() and "key" not in name.lower()):
+                    continue
             out[name] = sanitize(item, depth=depth + 1)
         return out
     if hasattr(value, "shape") and hasattr(value, "dtype"):  # numpy / torch arrays
@@ -73,6 +76,13 @@ class StepTrace:
     status: str = "ok"
     error: str | None = None
     max_items: int = DEFAULT_MAX_ITEMS
+    # True when the request asked for ``explain``: steps may then do extra, costlier work
+    # (ES highlight, filter resolution details) purely for the inspector.
+    verbose: bool = False
+
+    @property
+    def active(self) -> bool:
+        return True
 
     def note(self, text: str) -> None:
         self.notes.append(text)
@@ -112,6 +122,10 @@ class _NullStep(StepTrace):
     def set_output(self, **values: Any) -> None: ...
     def set_details(self, **values: Any) -> None: ...
 
+    @property
+    def active(self) -> bool:
+        return False
+
 
 @dataclass
 class PipelineTrace:
@@ -124,6 +138,7 @@ class PipelineTrace:
     created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat().replace("+00:00", "Z"))
     duration_ms: float = 0.0
     max_items: int = DEFAULT_MAX_ITEMS
+    verbose: bool = False
     _started: float = field(default_factory=perf_counter, repr=False)
 
     def elapsed_ms(self) -> float:
@@ -148,13 +163,13 @@ def current_trace() -> PipelineTrace | None:
 
 
 @contextmanager
-def start_trace(pipeline: str, *, kind: str, trace_id: str, input: Mapping[str, Any] | None = None, max_items: int = DEFAULT_MAX_ITEMS) -> Iterator[PipelineTrace]:
+def start_trace(pipeline: str, *, kind: str, trace_id: str, input: Mapping[str, Any] | None = None, max_items: int = DEFAULT_MAX_ITEMS, verbose: bool = False) -> Iterator[PipelineTrace]:
     """Bind a new trace for the duration of the block (nested calls reuse the outer trace)."""
     outer = _current.get()
     if outer is not None:
         yield outer
         return
-    trace = PipelineTrace(trace_id=trace_id, pipeline=pipeline, kind=kind, input=dict(input or {}), max_items=max_items)
+    trace = PipelineTrace(trace_id=trace_id, pipeline=pipeline, kind=kind, input=dict(input or {}), max_items=max_items, verbose=verbose)
     token = _current.set(trace)
     try:
         yield trace
@@ -164,12 +179,16 @@ def start_trace(pipeline: str, *, kind: str, trace_id: str, input: Mapping[str, 
 
 
 @contextmanager
-def trace_step(step: str, *, impl: str | None = None, id: str | None = None, params: Mapping[str, Any] | None = None) -> Iterator[StepTrace]:
-    trace = _current.get()
+def trace_step(step: str, *, impl: str | None = None, id: str | None = None, params: Mapping[str, Any] | None = None, trace: PipelineTrace | None = None) -> Iterator[StepTrace]:
+    """Record one step in ``trace`` (default: the trace bound to the current context).
+
+    Pass ``trace`` explicitly from code that runs outside the request context, such as a
+    streaming generator advanced from worker threads."""
+    trace = trace if trace is not None else _current.get()
     if trace is None:
         yield _NullStep(step)
         return
-    record = StepTrace(step=step, impl=impl, id=id, params=dict(params or {}), started_ms=trace.elapsed_ms(), max_items=trace.max_items)
+    record = StepTrace(step=step, impl=impl, id=id, params=dict(params or {}), started_ms=trace.elapsed_ms(), max_items=trace.max_items, verbose=trace.verbose)
     trace.steps.append(record)
     started = perf_counter()
     try:
@@ -188,7 +207,7 @@ def result_items(results: Sequence[Any]) -> list[dict[str, Any]]:
         metadata = getattr(result, "metadata", {}) or {}
         scores = getattr(result, "retrieval_scores", None)
         details = {key: value for key, value in (vars(scores).items() if scores is not None and hasattr(scores, "__dict__") else []) if value is not None}
-        for key in ("matched_terms", "contributions", "ordering_policy", "explanation"):
+        for key in ("matched_terms", "contributions", "formula", "ordering_policy", "explanation", "before_rank", "after_rank", "reranker_score", "boosted"):
             if key in metadata:
                 details[key] = metadata[key]
         items.append({"id": getattr(result, "product_id", None) or getattr(result, "id", None), "rank": getattr(result, "rank", None), "score": getattr(result, "score", None), "title": getattr(result, "title", None) or metadata.get("title"), "details": details})

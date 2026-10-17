@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import copy
+import re
 from typing import Any
 
 from shopmind.domain.catalog import ProductPage
@@ -7,12 +9,14 @@ from shopmind.domain.search_result import RawSearchHit
 from shopmind.application.retrieval.language import normalize_lexical_query
 from shopmind.infrastructure.embedding.validation import embedding_identity, validate_index_identity, validate_vectors
 
-_FILTER_FIELDS = {"brand": "brand.keyword", "category": "category.keyword", "product_id": "product_id"}
+_FILTER_FIELDS = {"brand": "brand.keyword", "category": "category.keyword", "product_id": "product_id", "color": "color"}
 _VECTOR_FIELDS = {"text_vector", "image_vector", "siglip_text_vector"}
 _FACET_FIELDS = set(_FILTER_FIELDS)
 _SOURCE_EXCLUDES = ["text_vector", "image_vector", "siglip_text_vector", "embedding_identities"]
 _CATALOG_SOURCE_EXCLUDES = [*_SOURCE_EXCLUDES, "search_text"]
 _CATEGORY_FACET_SIZE = 300
+_HIGHLIGHT_FIELDS = ("title", "brand", "category", "description", "attributes_text")
+_MARK = re.compile(r"<<(.+?)>>")
 
 
 class ProductIndexMissing(Exception):
@@ -74,9 +78,34 @@ def _source_without_vectors(source: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in source.items() if key not in _SOURCE_EXCLUDES}
 
 
+def _matched_terms(hit: dict[str, Any]) -> dict[str, list[str]]:
+    """``{field: [term, ...]}`` from an ES highlight block (markers ``<<...>>``)."""
+    terms: dict[str, list[str]] = {}
+    for field, fragments in (hit.get("highlight") or {}).items():
+        found = [match.casefold() for fragment in fragments for match in _MARK.findall(fragment)]
+        if found:
+            terms[field] = list(dict.fromkeys(found))
+    return terms
+
+
 def _to_raw_hit(hit: dict[str, Any]) -> RawSearchHit:
     source = dict(hit.get("_source") or {})
-    return RawSearchHit(product_id=str(source.get("product_id") or hit.get("_id") or ""), title=str(source.get("title") or ""), score=float(hit.get("_score") or 0.0), metadata=_source_without_vectors(source))
+    metadata = _source_without_vectors(source)
+    matched = _matched_terms(hit)
+    if matched:
+        metadata["matched_terms"] = matched
+    return RawSearchHit(product_id=str(source.get("product_id") or hit.get("_id") or ""), title=str(source.get("title") or ""), score=float(hit.get("_score") or 0.0), metadata=metadata)
+
+
+def _public_dsl(kwargs: dict[str, Any]) -> dict[str, Any]:
+    """The search request body as sent to ES (vectors elided), for the inspector's DSL tab."""
+    body = {key: copy.deepcopy(value) for key, value in kwargs.items() if key not in {"index", "source_excludes"}}
+    if "from_" in body:
+        body["from"] = body.pop("from_")
+    knn = body.get("knn")
+    if isinstance(knn, dict) and "query_vector" in knn:
+        knn["query_vector"] = f"<{len(knn['query_vector'])} floats>"
+    return body
 
 
 class ElasticsearchProductRepository:
@@ -148,7 +177,7 @@ class ElasticsearchProductRepository:
             return None
         return dict(response.get("_source") or {})
 
-    def _lexical_once(self, query: str | None, size: int, clauses: list[dict[str, Any]]) -> list[RawSearchHit]:
+    def _lexical_once(self, query: str | None, size: int, clauses: list[dict[str, Any]], debug: dict[str, Any] | None = None) -> list[RawSearchHit]:
         lexical_query = normalize_lexical_query(query) if query else query
         must = [{"match_all": {}}] if query is None else [{"multi_match": {"query": lexical_query, "fields": ["title^3", "brand^2", "category^2", "description", "attributes_text", "search_text"]}}]
         search_query: dict[str, Any] = {"bool": {"must": must, "filter": clauses}}
@@ -161,15 +190,22 @@ class ElasticsearchProductRepository:
         kwargs: dict[str, Any] = {"index": self.index_alias, "query": search_query, "size": size, "source_excludes": list(_SOURCE_EXCLUDES)}
         if query is None:
             kwargs["sort"] = [{"product_id": "asc"}]
+        if debug is not None:
+            if query:
+                kwargs["highlight"] = {"fields": {field: {} for field in _HIGHLIGHT_FIELDS}, "pre_tags": ["<<"], "post_tags": [">>"], "number_of_fragments": 3, "fragment_size": 120}
+            debug["query_dsl"] = _public_dsl(kwargs)
+            debug["normalized_query"] = lexical_query
         response = self.client.search(**kwargs)
         return [_to_raw_hit(hit) for hit in response.get("hits", {}).get("hits", [])]
 
-    def lexical_search(self, query: str | None, size: int, filters: dict[str, str | list[str]]) -> list[RawSearchHit]:
+    def lexical_search(self, query: str | None, size: int, filters: dict[str, str | list[str]], debug: dict[str, Any] | None = None) -> list[RawSearchHit]:
+        """BM25 search. With ``debug`` (a dict) the ES request is recorded and hits carry the
+        highlighted ``matched_terms`` per field (glass-box only: it costs a highlight pass)."""
         if size <= 0:
             raise ValueError("size must be positive")
-        return self._lexical_once(query, size, self._resolved_filter_clauses(filters))
+        return self._lexical_once(query, size, self._resolved_filter_clauses(filters), debug)
 
-    def vector_search(self, field: str, vector: list[float], size: int, num_candidates: int, filters: dict[str, str | list[str]]) -> list[RawSearchHit]:
+    def vector_search(self, field: str, vector: list[float], size: int, num_candidates: int, filters: dict[str, str | list[str]], debug: dict[str, Any] | None = None, exclude_ids: list[str] | None = None) -> list[RawSearchHit]:
         if field not in _VECTOR_FIELDS:
             raise ValueError(f"unsupported vector field: {field}")
         if size <= 0 or num_candidates < size:
@@ -183,8 +219,12 @@ class ElasticsearchProductRepository:
 
         def search_with(filter_clauses: list[dict[str, Any]]) -> list[RawSearchHit]:
             knn: dict[str, Any] = {"field": field, "query_vector": vector, "k": size, "num_candidates": num_candidates}
+            if exclude_ids:
+                filter_clauses = [*filter_clauses, {"bool": {"must_not": [{"terms": {"product_id": list(exclude_ids)}}]}}]
             if filter_clauses:
                 knn["filter"] = filter_clauses[0] if len(filter_clauses) == 1 else {"bool": {"filter": filter_clauses}}
+            if debug is not None:
+                debug["query_dsl"] = _public_dsl({"knn": knn, "size": size})
             response = self.client.search(index=self.index_alias, knn=knn, size=size, source_excludes=list(_SOURCE_EXCLUDES))
             return [_to_raw_hit(hit) for hit in response.get("hits", {}).get("hits", [])]
 
@@ -210,6 +250,75 @@ class ElasticsearchProductRepository:
         response = self.client.search(**kwargs)
         buckets = response.get("aggregations", {}).get("options", {}).get("buckets", [])
         return [{"value": str(bucket["key"]), "count": int(bucket.get("doc_count", 0))} for bucket in buckets]
+
+    def describe_filters(self, filters: dict[str, str | list[str]]) -> dict[str, dict[str, Any]]:
+        """How each filter value resolves against the catalog: ``exact`` match or substring/prefix
+        ``fallback`` (with the catalog values the fallback matches), for the glass-box trace."""
+        described: dict[str, dict[str, Any]] = {}
+        for key, value in sorted(filters.items()):
+            requested = _values(value, key)
+            resolved: list[str] = []
+            matches = set()
+            for item in requested:
+                exact = build_filter_clauses({key: item})[0]
+                if self.client.count(index=self.index_alias, query=exact)["count"] > 0:
+                    resolved.append(item)
+                    matches.add("exact")
+                    continue
+                matches.add("fallback")
+                response = self.client.search(index=self.index_alias, size=0, query=build_partial_filter_clauses({key: item})[0], aggs={"values": {"terms": {"field": _FILTER_FIELDS[key], "size": 10}}})
+                resolved.extend(str(bucket["key"]) for bucket in response.get("aggregations", {}).get("values", {}).get("buckets", []))
+            described[key] = {"requested": requested, "resolved": list(dict.fromkeys(resolved)), "match": "exact" if matches == {"exact"} else "fallback"}
+        return described
+
+    def facets(self, query: str | None, filters: dict[str, str | list[str]], size: int = 30) -> dict[str, list[dict[str, Any]]]:
+        """Brand / category / color counts. Each facet ignores its own filter (multi-select menus)."""
+        clauses = {key: self._resolved_filter_clauses({key: value})[0] for key, value in filters.items()}
+        must: list[dict[str, Any]] = [{"multi_match": {"query": normalize_lexical_query(query), "fields": ["title^3", "brand^2", "category^2", "description", "attributes_text", "search_text"]}}] if query else [{"match_all": {}}]
+        aggs = {}
+        for name in ("brand", "category", "color"):
+            others = [clause for key, clause in clauses.items() if key != name]
+            aggs[name] = {"filter": {"bool": {"filter": others}} if others else {"match_all": {}}, "aggs": {"values": {"terms": {"field": _FILTER_FIELDS[name], "size": size, "order": [{"_count": "desc"}, {"_key": "asc"}]}}}}
+        response = self.client.search(index=self.index_alias, size=0, query={"bool": {"must": must}}, aggs=aggs)
+        result = {}
+        for name in aggs:
+            buckets = response.get("aggregations", {}).get(name, {}).get("values", {}).get("buckets", [])
+            result[name] = [{"value": str(bucket["key"]), "count": int(bucket.get("doc_count", 0))} for bucket in buckets]
+        return result
+
+    def suggest(self, prefix: str, limit: int = 8) -> list[dict[str, Any]]:
+        """Autocomplete: matching brands, categories and product titles (title phrase-prefix)."""
+        prefix = prefix.strip()
+        if not prefix:
+            return []
+        suggestions: list[dict[str, Any]] = []
+        for field in ("brand", "category"):
+            for option in self.filter_options(field, prefix, min(limit, 5)):
+                label = option["value"].replace("_", " ").title() if field == "category" else option["value"]
+                suggestions.append({"type": field, "value": option["value"], "label": label, "count": option["count"]})
+        query = {"bool": {"should": [{"match_phrase_prefix": {"title": {"query": prefix, "max_expansions": 30}}}, {"term": {"product_id": {"value": prefix, "case_insensitive": True, "boost": 10}}}], "minimum_should_match": 1}}
+        response = self.client.search(index=self.index_alias, size=limit, query=query, source_includes=["product_id", "title", "image_url"])
+        for hit in response.get("hits", {}).get("hits", []):
+            source = hit.get("_source") or {}
+            suggestions.append({"type": "product", "value": str(source.get("title") or ""), "label": str(source.get("title") or ""), "product_id": str(source.get("product_id") or hit.get("_id")), "image_url": source.get("image_url")})
+        return suggestions
+
+    def all_values(self, field: str, size: int = 2000) -> list[str]:
+        """Every catalog value of a keyword filter field (brand / category / color)."""
+        if field not in _FACET_FIELDS:
+            raise ValueError(f"unsupported filter field: {field}")
+        response = self.client.search(index=self.index_alias, size=0, aggs={"values": {"terms": {"field": _FILTER_FIELDS[field], "size": size}}})
+        return [str(bucket["key"]) for bucket in response.get("aggregations", {}).get("values", {}).get("buckets", [])]
+
+    def product_vector(self, product_id: str, field: str) -> list[float] | None:
+        """A stored vector of one product (for "similar items"); never leaves the API."""
+        if field not in _VECTOR_FIELDS:
+            raise ValueError(f"unsupported vector field: {field}")
+        response = self.client.options(ignore_status=404).get(index=self.index_alias, id=product_id, source_includes=[field])
+        if not response.get("found"):
+            return None
+        vector = (response.get("_source") or {}).get(field)
+        return list(vector) if vector else None
 
     def _validate_bulk(self, index_name: str, documents: list[dict[str, Any]]) -> None:
         mappings = self.client.indices.get_mapping(index=index_name)

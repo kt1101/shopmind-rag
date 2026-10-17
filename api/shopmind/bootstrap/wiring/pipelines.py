@@ -9,4 +9,5 @@ LIGHTWEIGHT = True
 def wire(container) -> None:
     from shopmind.application.pipeline import PipelineFactory
 
-    container.provide("pipelines", PipelineFactory(container.config.pipelines, container))
+    if container.get("pipelines") is None:
+        container.provide("pipelines", PipelineFactory(container.config.pipelines, container))
