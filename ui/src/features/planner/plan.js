@@ -170,6 +170,12 @@ export function removeChoice(plan, needId) {
   return changed ? withTotals({ ...plan, needs }) : plan
 }
 
+// True once the shopper swapped, picked or removed an item: the server's summary text (which
+// quotes its own total) then describes the original suggestion, not what is on screen.
+export function isEdited(plan) {
+  return (plan?.needs || []).some((need) => (need.status === 'chosen' && need.chosen ? need.chosen.product_id : null) !== (need.serverChoice ?? null))
+}
+
 // --- citations, cart ----------------------------------------------------------------------
 
 export function citationsFor(sources = [], ids = []) {

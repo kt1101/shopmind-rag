@@ -52,6 +52,7 @@ export const MORE = {
     'map.toPlayground': 'Mở Search Playground →',
     'product.notFoundError': 'Không tìm thấy sản phẩm',
     'common.loading': 'Đang tải…',
+    'plan.summaryStale': '(Đây là tóm tắt của gợi ý ban đầu; tổng tiền bên dưới đã tính lại theo lựa chọn của bạn.)',
     'answer.version': 'phiên bản {version}',
   },
   en: {
@@ -104,6 +105,7 @@ export const MORE = {
     'map.toPlayground': 'Open Search Playground →',
     'product.notFoundError': 'Product not found',
     'common.loading': 'Loading…',
+    'plan.summaryStale': '(This summary describes the original suggestion; the total below follows your changes.)',
     'answer.version': 'version {version}',
   },
 }

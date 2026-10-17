@@ -6,7 +6,7 @@ import { buildSearchUrl, productPath } from '../../lib/urlState.js'
 import AnswerText from '../../entities/citation/AnswerText.jsx'
 import { displayTitle } from '../../entities/product/product.js'
 import {
-  PLAN_MAX_CHARS, buildPlanUrl, canPlan, chosenProducts, citationsFor, normalizePlan, parseBudget, parsePlanParams, removeChoice, swapChoice,
+  PLAN_MAX_CHARS, buildPlanUrl, canPlan, chosenProducts, citationsFor, isEdited, normalizePlan, parseBudget, parsePlanParams, removeChoice, swapChoice,
 } from '../../features/planner/plan.js'
 import { useShopLists } from '../../features/shop-lists/ShopListsProvider.jsx'
 import { categoryLabel } from '../../shared/i18n.js'
@@ -290,7 +290,7 @@ export default function PlanPage() {
               </div>
             )}
           </header>
-          {plan.summary && <p className="plan-summary">{plan.summary}</p>}
+          {plan.summary && <p className="plan-summary">{plan.summary}{isEdited(plan) && <span className="plan-summary-stale"> {t('plan.summaryStale')}</span>}</p>}
           <BudgetBar plan={plan} />
           {plan.insufficientEvidence && <p className="plan-warning" role="note">{t('plan.insufficient')}</p>}
 
