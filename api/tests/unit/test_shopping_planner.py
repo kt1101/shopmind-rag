@@ -28,12 +28,12 @@ def test_parse_budget(text, budget):
 
 
 def _brute_force(options, budget):
-    best, best_utility = None, -1.0
+    best_utility = -1.0
     for combo in itertools.product(*[[None, *range(len(opts))] for opts in options]):
         cost = sum((options[i][j][0] or 0) for i, j in enumerate(combo) if j is not None)
         utility = sum(options[i][j][1] for i, j in enumerate(combo) if j is not None)
         if cost <= budget and utility > best_utility + 1e-9:
-            best, best_utility = combo, utility
+            best_utility = utility
     return best_utility
 
 
