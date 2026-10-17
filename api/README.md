@@ -1,27 +1,29 @@
 # ShopMind Multimodal Product Retrieval and A3 RAG
 
-Python-first retrieval foundation for product search using Amazon Berkeley Objects (ABO), Elasticsearch BM25 + dense-vector kNN, SigLIP2 multimodal embeddings, Reciprocal Rank Fusion (RRF), FastAPI, and reproducible information-retrieval evaluation.
+Python-first retrieval foundation for product search using Amazon Berkeley Objects (ABO), Elasticsearch BM25 + dense-vector kNN, a dedicated multilingual text embedder (E5) for text-to-text retrieval, SigLIP2 for images and cross-modal search, config-declared pipelines with a glass-box trace, FastAPI, and reproducible information-retrieval evaluation.
 
 A1 stops at retrieval. A3 adds a separate answer layer using `RetrievedDocument[]`; product search remains available when RAG or its LLM is unavailable.
 
 ## Architecture
 
 ```text
-ABO compact subset -> canonical products + local main images -> SigLIP2 text/image embeddings
-                                                        |
-                                                        v
-                                             Elasticsearch products_vN
-                                                /                 \
-                                             BM25                 kNN
-                                                \                 /
-                                                 --- RRF hybrid ---
-                                                         |
-                                                   SearchService
-                                                     /       \
-                                                FastAPI   A3 RAG <- reviews + policies
-                                                             |
-                                                             v
-                                                     answer + sources
+ABO compact subset -> canonical products + local main images
+        |                                   |
+        v                                   v
+  E5 passage embeddings              SigLIP2 text + image embeddings
+        \                                   /
+         -------> Elasticsearch products_vN <-------
+                text_vector (E5) | image_vector + siglip_text_vector (SigLIP2) | BM25 fields
+                                   |
+          pipelines (configs/pipelines/search.yaml), traced step by step:
+          query_understanding -> retrieve bm25 / dense -> fuse (rrf | linear) -> rerank
+                                   |
+                             SearchService
+                               /       \
+                          FastAPI   A3 RAG <- reviews + policies (E5)
+                                       |
+                                       v
+                              answer + validated citations
 ```
 
 Elasticsearch is the primary search store. Embeddings are generated offline and saved as reusable artifacts before any indexing step.
@@ -83,19 +85,37 @@ docker compose run --rm -T --no-deps \
   --device cpu \
   --force
 
+# Dedicated text embedder (E5, ADR 0001): text-only artifacts, product text from its document_template
+docker compose run --rm -T --no-deps \
+  -v "$PWD:/app" \
+  api python -u -m scripts.generate_embeddings \
+  --input /app/data/a1_abo_1500/products.jsonl \
+  --output-dir /app/data/embeddings/abo_a1_1500_v1_text_e5 \
+  --config /app/configs/app.yaml \
+  --dataset-version abo_a1_1500_v1_text_e5 \
+  --embedder text_e5 \
+  --device cpu \
+  --force
+
 python -m scripts.create_index \
   --manifest data/embeddings/abo_a1_1500_v1/manifest.json \
-  --index-name products_a1_1500_v1 \
+  --text-manifest data/embeddings/abo_a1_1500_v1_text_e5/manifest.json \
+  --index-name products_a1_1500_v2 \
   --recreate
 
 python -m scripts.index_products \
   --products data/a1_abo_1500/products.jsonl \
   --embeddings data/embeddings/abo_a1_1500_v1 \
-  --index-name products_a1_1500_v1 \
+  --text-embeddings data/embeddings/abo_a1_1500_v1_text_e5 \
+  --index-name products_a1_1500_v2 \
   --switch-alias products
+
+python -m scripts.build_embedding_map --output data/embedding_map   # glass-box 2D maps (PCA)
 ```
 
-`--force` and `--recreate` replace only the generated subset/artifact directory and the versioned index named above. The alias is switched only after document-count, BM25, and kNN validation.
+`--force` and `--recreate` replace only the generated subset/artifact directory and the versioned index named above. The alias is switched only after document-count, per-field vector dimension, BM25, and kNN validation. Without `--text-manifest`/`--text-embeddings` the previous single-embedder layout (SigLIP2 for `text_vector`) is built; the app then serves it unchanged if `configs/components/embedders.yaml` maps `text_vector` to `siglip2`.
+
+On Windows or Linux hosts the same commands run without Docker (`--device cpu`, and `PYTHONUTF8=1` on Windows); the macOS MPS crash only affects the Docker-less path on Apple silicon.
 
 ### 3. Start API/UI and verify readiness
 

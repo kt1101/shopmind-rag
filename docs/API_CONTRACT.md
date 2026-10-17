@@ -81,18 +81,25 @@ Additive fields are allowed; renaming/removing requires updating this file.
 
 ## Search
 
-- `POST /search/text` body `{query, mode: bm25|dense|hybrid|cross_modal|adaptive, top_k, offset, candidate_k, filters: {brand?: str|[str], category?: str|[str], product_id?: str, color?: [str]}, sort?: relevance|title, explain?: bool}`
-  → `{query, mode, filter_only, results:[ProductResult], trace_id, trace?, understood?: {filters, rewritten_query, intent}}`
+- `POST /search/text` body `{query, mode: bm25|dense|hybrid|cross_modal|adaptive, top_k, offset, candidate_k, filters: {brand?: str|[str], category?: str|[str], product_id?: str, color?: [str]}, sort?: relevance|title, explain?: bool, pipeline?: str}`
+  → `{query, mode, filter_only, results:[ProductResult], pipeline, trace_id, trace?}`.
+  `pipeline` runs a named pipeline from `GET /meta/pipelines` instead of the mode default (Lab comparisons).
+  Default pipelines: `bm25 → search.bm25`, `dense → search.dense` (E5), `hybrid → search.hybrid_linear`,
+  `cross_modal → search.cross_modal`, `adaptive → search.adaptive` (config `defaults.mode.*`).
 - `POST /search/image` multipart `image` + query `top_k, offset, candidate_k, brand, category, product_id, explain` → `{results, trace_id, trace?}`
-- `POST /search/compose` multipart `image` (required), form `text` (required), `alpha` (0..1, image weight, default from config), `top_k`, `explain` → `{results, alpha, trace_id, trace?}`
-- `GET /search/suggest?q=&limit=8` → `{suggestions:[{type: product|brand|category, value, label, product_id?, image_url?}]}`
+- `POST /search/compose` multipart `image` (required), form `text` (required), `alpha` (0..1, image weight, default `features.compose_default_alpha`), `top_k`, `candidate_k`, `brand` / `category` (repeatable), query `explain` → `{mode: "compose", text, alpha, results, trace_id, trace?}`
+- `GET /search/suggest?q=&limit=8` → `{query, suggestions:[{type: product|brand|category, value, label, count?, product_id?, image_url?}]}`
 - `GET /search/filter-options?field=brand|category|product_id&prefix=&limit=` (unchanged) → `{field, options:[str]}`
-- `POST /search/facets` body `{query?, filters}` → `{facets: {brand:[{value,count}], category:[{value,count}], color:[{value,count}]}}`
-- `POST /search/understand` body `{query}` → `{query, filters, rewritten_query, intent, method: llm|rules}`
+- `POST /search/facets` body `{query?, filters: {brand?, category?, color?}}` → `{facets: {brand:[{value,count}], category:[{value,count}], color:[{value,count}]}}`.
+  Counts use the BM25 match of `query` (all products when absent); each facet ignores its own filter
+  and applies the others (multi-select menus). `color` is the canonical catalog colour (vocabulary-normalized).
+- `POST /search/understand` body `{query}` → `{query, intent, method: llm|rules, reason, rewritten_query, filters: {brand?, category?, color?: [str]}, price: {max?, min?}, spans:[{text, filter, value}]}`
+  (filter values are always catalog values; prices refer to the synthetic overlay).
 
 ## Products
 
-- `GET /products?category=&brand=&limit=24&offset=0` → `{total, items:[{product_id,title,brand,category,image_url,price?:{amount,currency,synthetic:true}}]}`
+- `GET /products?category=&brand=&limit=24&offset=0` → `{total, limit, offset, page, page_size, facets, items:[{product_id,title,brand,category,image_url,price?:{amount,currency,synthetic:true}}]}`
+  (`page`/`page_size` are still accepted; `offset` must be a multiple of `limit`)
 - `GET /products/{id}` → `{product_id,title,brand,category,image_url,description,attributes:{},price?,stock?:{in_stock,quantity,synthetic:true},images:[url]}`
 - `GET /products/{id}/similar?limit=8` → `{product_id, items:[ProductResult]}` (image kNN, excludes self)
 
@@ -100,9 +107,13 @@ Additive fields are allowed; renaming/removing requires updating this file.
 
 - `POST /rag/ask` body `{question, product_id?, sources:[product|review|policy], debug?, explain?}` →
   `{answer, sources:[Citation], insufficient_evidence, metadata, trace_id, trace?}`
-- `Citation = {citation_id, source, document_id, title, snippet, product_id?, url?, image_url?, metadata:{}}` (existing shape, additive)
+- `Citation = {citation_id, document_id, source, title, score, snippet, product_id?, policy_version?, source_url?, url?, image_url?, metadata:{}}`
+  (`citation_id` == `document_id`; `score` is the server-resolved fused score). Answers do **not** contain
+  inline citation markers: the prompt asks for plain text and the citations come only from `sources`
+  (validated to be in the exact context that was sent).
 - `POST /rag/compare` body `{product_ids:[2..3], question?, explain?}` →
-  `{products:[{product_id,title,brand,category,image_url}], attributes:[{name, values:{<product_id>: str|null}}], summary, points:[{text, citation_ids:[str]}], sources:[Citation], insufficient_evidence, trace_id, trace?}`
+  `{products:[{product_id,title,brand,category,image_url}], attributes:[{name, values:{<product_id>: str|null}}], summary, points:[{text, citation_ids:[str]}], sources:[Citation], insufficient_evidence, llm_available, trace_id, trace?}`
+  (optional body `language: vi|en`; without an LLM the attribute table is returned with `llm_available: false`, `summary: null`, `points: []`)
 
 ## Chat
 
@@ -111,10 +122,10 @@ Additive fields are allowed; renaming/removing requires updating this file.
   (`intent` `product_search` answers with `products` and a short `answer`, no LLM call needed;
   `chitchat` answers with a fixed help text.)
 - `POST /chat/stream` same body, SSE events: `meta {standalone_question, rewrite_fallback, session_id, intent, trace_id}`,
-  `step {id, step, status: started|done, summary, duration_ms?}`, `products {items:[ProductResult]}`,
+  `step {id, step, status: done|error|rejected, summary, duration_ms?, count?, sources?: {<source>: n}}`, `products {items:[ProductResult]}`,
   `delta {text}`, `reset {reason}`, `done {...same as POST /chat}`, `error {code,message}`.
 - `POST /chat/image` multipart `image` → `{image_token, expires_in}` (server caches the image embedding; chat body references it via `image_token`). Intent `product_search` with image + text → compose search; image only → image search.
-- `GET /chat/sessions/{session_id}` → `{session_id, messages:[{role, content, created_at, sources?, products?}]}`
+- `GET /chat/sessions/{session_id}` → `{session_id, messages:[{role, content, created_at, intent?, trace_id?, sources?, products?, insufficient_evidence?}]}`
 
 Intents: `product_search | product_question | policy_question | compare | chitchat`.
 
@@ -127,7 +138,8 @@ Intents: `product_search | product_question | policy_question | compare | chitch
 
 - `GET /traces/{trace_id}` → Trace (404 `trace_not_found`)
 - `GET /meta/pipelines` → `{pipelines:[{name, kind, description, steps:[{id, step, impl}]}], defaults:{search, rag}}`
-- `GET /meta/embedding-map?space=text|image|siglip_text` → `{space, points:[{product_id, x, y, category, title}], projection:"pca"|"umap"}`
+- `GET /meta/embedding-map?space=text|image|siglip_text` → `{space, projection:"pca", embedder, model, dims, explained_variance:[f,f], points:[{product_id, x, y, category, title}]}`
+  (404 `embedding_map_not_built` until `python -m scripts.build_embedding_map` has run)
 - `POST /meta/embedding-map/project` body `{space, query}` → `{x, y}` (PCA projection of the query embedding)
 
 ## Admin (JWT)

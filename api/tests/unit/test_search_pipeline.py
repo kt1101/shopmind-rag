@@ -83,7 +83,7 @@ def make(repository=None, specs=None):
 def test_hybrid_pipeline_fuses_with_contributions_and_a_full_trace():
     service, repository, _ = make()
     with start_trace("search.hybrid", kind="search", trace_id="t", verbose=True) as trace:
-        results = service.search_text(SearchRequest("ghế sofa xám", SearchMode.HYBRID, top_k=3, candidate_k=10, filters={"category": "SOFA"}))
+        results = service.search_text(SearchRequest("ghế sofa xám", SearchMode.HYBRID, top_k=3, candidate_k=10, filters={"category": "SOFA"}, pipeline="search.hybrid"))
     assert [r.product_id for r in results] == ["A", "C", "B"]  # A: 1/61+1/62, C: 1/63+1/61, B: 1/62
     assert {r.source for r in results} == {"hybrid"} and [r.rank for r in results] == [1, 2, 3]
     steps = {step.id: step for step in trace.steps}
@@ -159,6 +159,11 @@ def test_image_and_similar_pipelines():
     assert [r.source for r in results] == ["image_dense", "image_dense"]
     similar = service.similar("C", [1.0, 0.0, 0.0], limit=2)
     assert "C" not in [r.product_id for r in similar] and repository.calls[-1][3] == ["C"]
+
+
+def test_default_hybrid_mode_uses_linear_fusion():
+    service, *_ = make()
+    assert service.pipeline_name("text", SearchRequest("sofa", SearchMode.HYBRID)) == "search.hybrid_linear"
 
 
 def test_every_configured_pipeline_resolves_its_steps():

@@ -2,11 +2,14 @@
 # Every A1 search mode is a pipeline of registered steps (shopmind/application/search/steps.py),
 # run by the traced engine. Changing retrieval = editing this file (or an admin override of
 # `pipelines.<name>.steps`), not code. `public: false` pipelines are evaluation-only.
+# mode.hybrid -> hybrid_linear: selected on the accuracy_v2 DEV split (best nDCG@10 of all hybrids),
+# then reported once on HOLDOUT; see api/reports/a1/RESULTS.md. search.hybrid (equal RRF) stays
+# available by name and in the ablation.
 defaults:
-  search: search.hybrid
+  search: search.hybrid_linear
   mode.bm25: search.bm25
   mode.dense: search.dense
-  mode.hybrid: search.hybrid
+  mode.hybrid: search.hybrid_linear
   mode.cross_modal: search.cross_modal
   mode.adaptive: search.adaptive
   image_search: search.image
@@ -56,7 +59,7 @@ pipelines:
 
   search.hybrid_linear:
     kind: search
-    description: BM25 + dense with min-max linear score fusion (ablation of A-4)
+    description: BM25 + dense (E5) with min-max linear score fusion (default hybrid, A-4)
     steps:
       - { step: query_understanding, impl: rules }
       - { step: retrieve, id: lexical, impl: bm25 }
