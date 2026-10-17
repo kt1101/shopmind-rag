@@ -13,7 +13,7 @@ export const STOREFRONT_KEY = 'defaults.search'
 // "Thuật toán tìm kiếm của cửa hàng": the one setting that decides what shoppers' text searches
 // run (docs/API_CONTRACT.md "Storefront vs. staff"). Saving creates a config profile through
 // the normal PUT /admin/config flow; rollback re-activates an earlier profile.
-export default function StorefrontSearchCard({ config, profiles, onSaved, onActivate }) {
+export default function StorefrontSearchCard({ config, profiles, rollbackTarget, onSaved, onActivate }) {
   const meta = useAsync((signal) => getPipelines({ signal }), [])
   const active = getAtPath(config?.effective, STOREFRONT_KEY) ?? null
   const hot = useMemo(() => normalizeHotReloadable(config?.hot_reloadable).some((spec) => spec.key === STOREFRONT_KEY), [config])
@@ -70,6 +70,11 @@ export default function StorefrontSearchCard({ config, profiles, onSaved, onActi
             <code>{active || '—'}</code>
             {activeInfo?.description && <span className="adm-muted adm-small">{activeInfo.description}</span>}
             {config.active_profile?.name && <span className="adm-small">profile <strong>{config.active_profile.name}</strong></span>}
+            {rollbackTarget && (
+              <button type="button" className="adm-btn adm-btn-small" onClick={() => onActivate?.(rollbackTarget, 'Rolled back to')} title="Re-activates the previous profile (all of its overrides)">
+                Roll back to “{rollbackTarget.name}”{rollbackTarget.overrides?.['defaults.search'] ? ` (${rollbackTarget.overrides['defaults.search']})` : ''}
+              </button>
+            )}
           </p>
           {!hot && <Banner tone="warn">The backend does not list <code>{STOREFRONT_KEY}</code> as hot-reloadable, so it cannot be changed here.</Banner>}
           {meta.error && <Banner tone="bad">Could not load pipelines: {meta.error.message}</Banner>}
