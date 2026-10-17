@@ -55,9 +55,10 @@ def test_embedding_contract_pins_alias_and_rejects_wrong_identity_and_vectors():
         switch_alias(client,alias=alias,target=a)
         repo=ElasticsearchProductRepository(client,alias);repo.bind_embedding(embedder)
         switch_alias(client,alias=alias,target=b)
-        assert repo.index_alias==a
-        repo.bind_embedding(embedder)
+        assert repo.index_alias==alias  # follows the alias; never queries b without a matching identity
+        with pytest.raises(ValueError):repo.bind_embedding(embedder)
         with pytest.raises(ValueError):ElasticsearchProductRepository(client,alias).bind_embedding(embedder)
+        switch_alias(client,alias=alias,target=a)
         for vector in ([0,0,0,0],[float("nan"),0,0,1],[1,0,0]):
             with pytest.raises(ValueError):repo.vector_search("text_vector",vector,1,1,{})
         with pytest.raises(ValueError):repo.bulk_index(a,[{"product_id":"P", "text_vector":[1,0,0,0], "embedding_model":"fake", "embedding_version":"wrong"}])

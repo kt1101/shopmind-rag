@@ -35,8 +35,16 @@ from shopmind.infrastructure.llm.base import InvalidLLMOutput, LLMProviderError
 
 DEFAULT_OCCASIONS = Path(__file__).resolve().parents[3] / "configs" / "vocab" / "occasions.yaml"
 PRIORITY_WEIGHT = {"must": 10.0, "nice": 3.0}
-_BUDGET = re.compile(r"(?:ngân\s*sách|budget|dưới|không\s*quá|tối\s*đa|khoảng|tầm|under|below|max(?:imum)?|around|about|up\s*to)\s*(?:là|of|is)?\s*\$?\s*(\d[\d.,]*)\s*(k|nghìn|ngàn|đô|usd|\$|dollars?)?", re.IGNORECASE)
-_AMOUNT = re.compile(r"\$\s*(\d[\d.,]*)|(\d[\d.,]*)\s*(?:đô|usd|\$|dollars?)\b", re.IGNORECASE)
+# Budget parsing. Numbers: "1,234.50", "2.500", "1.000.000", "800". Units: USD ($, đô, usd, dollar)
+# or VND (đồng, vnd, k/nghìn, triệu), converted with an approximate demo rate. Loose words such as
+# "khoảng"/"under" only count when a currency follows, so "khoảng 5 ngày" is not a budget.
+_NUM = r"(\d{1,3}(?:[.,\s]\d{3})+(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)"
+_UNIT = r"(đô(?:\s*la)?|usd|dollars?|\$|đồng|vnđ|vnd|k(?![a-zà-ỹ])|nghìn|ngàn|triệu|tr(?![a-zà-ỹ]))"
+_EXPLICIT = re.compile(r"(?:ngân\s*sách|budget)\s*(?:là|of|is|:)?\s*(?:khoảng|tầm|dưới|tối\s*đa|about|around|under|up\s*to)?\s*(\$)?\s*" + _NUM + r"\s*" + _UNIT + "?", re.IGNORECASE)
+_LOOSE = re.compile(r"(?:dưới|không\s*quá|tối\s*đa|khoảng|tầm|under|below|max(?:imum)?|around|about|up\s*to|for)\s*(\$)?\s*" + _NUM + r"\s*" + _UNIT + "?", re.IGNORECASE)
+_AMOUNT = re.compile(r"(\$)\s*" + _NUM + "()|" + _NUM + r"\s*" + _UNIT, re.IGNORECASE)
+VND_PER_USD = 25_000  # approximate, only to read Vietnamese budgets against the synthetic USD prices
+MAX_BUDGET_USD = 100_000
 _SITUATION = re.compile(r"(chuyển|chuẩn bị|dọn|đi |sắm|tặng|đón|mới|cho (bé|con|vợ|chồng|mẹ|bố|bạn)|moving|prepare|going|planning|set(ting)? up|new |for my)", re.IGNORECASE)
 # Policy evidence for plan tips: returns first, then shipping (queries match the policy corpus wording).
 _POLICY_QUERIES = ("returns return window days eligible", "shipping delivery estimate")
@@ -90,20 +98,51 @@ def _text(value: Any, language: str) -> str:
     return str(value or "")
 
 
-def _number(raw: str, unit: str | None) -> float:
-    cleaned = raw.replace(",", "") if raw.count(",") and not raw.count(".") and len(raw.split(",")[-1]) == 3 else raw.replace(",", ".")
-    value = float(cleaned.rstrip("."))
-    return value * 1000 if (unit or "").casefold() in {"k", "nghìn", "ngàn"} else value
+def _number(raw: str) -> float:
+    """``1,234.50`` / ``1.234,5`` / ``2.500`` / ``1 000 000`` / ``12.5`` → float."""
+    digits = raw.replace(" ", "")
+    match = re.fullmatch(r"(\d{1,3}(?:[.,]\d{3})+)(?:[.,](\d{1,2}))?", digits)
+    if match:  # groups of three after a separator are thousands
+        whole = re.sub(r"[.,]", "", match.group(1))
+        return float(f"{whole}.{match.group(2)}" if match.group(2) else whole)
+    return float(digits.replace(",", "."))
+
+
+def _to_usd(amount: float, unit: str | None, dollar: str | None) -> float | None:
+    unit = (unit or "").casefold().strip()
+    if dollar or unit in {"$", "usd", "dollar", "dollars"} or unit.startswith("đô"):
+        return amount
+    if unit in {"k", "nghìn", "ngàn"}:
+        return amount * 1_000 / VND_PER_USD
+    if unit in {"triệu", "tr"}:
+        return amount * 1_000_000 / VND_PER_USD
+    if unit in {"đồng", "vnđ", "vnd"}:
+        return amount / VND_PER_USD
+    return None
 
 
 def parse_budget(text: str) -> float | None:
-    """Budget in USD stated in the request ("ngân sách 800 đô", "under $500", "300$")."""
-    match = _BUDGET.search(text)
-    if match:
-        return _number(match.group(1), match.group(2))
-    match = _AMOUNT.search(text)
-    if match:
-        return _number(match.group(1) or match.group(2), None)
+    """Budget in USD stated in the request ("ngân sách 800 đô", "under $500", "2 triệu", "300$").
+
+    An explicit "ngân sách/budget" wins; other cue words need a currency; a bare number after
+    "ngân sách" is read as USD. Returns None for anything unreadable, non-finite or absurd.
+    """
+    candidates = []
+    explicit = _EXPLICIT.search(text)
+    if explicit:
+        candidates.append((explicit.group(2), explicit.group(3) or "usd", explicit.group(1)))
+    for match in _LOOSE.finditer(text):
+        if match.group(1) or match.group(3):
+            candidates.append((match.group(2), match.group(3), match.group(1)))
+    for match in _AMOUNT.finditer(text):
+        candidates.append((match.group(2) or match.group(4), match.group(5) if match.group(4) else None, match.group(1)))
+    for raw, unit, dollar in candidates:
+        try:
+            value = _to_usd(_number(raw), unit, dollar)
+        except (ValueError, OverflowError):
+            continue
+        if value is not None and math.isfinite(value) and 0 < value <= MAX_BUDGET_USD:
+            return round(value, 2)
     return None
 
 
@@ -209,8 +248,11 @@ class ShoppingPlanner:
         need_payload = []
         for need in needs:
             item = chosen[need.id]
-            status = "chosen" if item else ("no_match" if not need.candidates else "skipped_budget")
+            in_stock = [c for c in need.candidates if c.get("in_stock") is not False]
+            status = "chosen" if item else ("skipped_budget" if in_stock and budget is not None else "no_match")
             reason = reasons.get(need.id, {})
+            if status == "no_match" and need.candidates and not in_stock:
+                reason = {"reason": "Các sản phẩm phù hợp đều đang hết hàng (dữ liệu tổng hợp)." if language == "vi" else "All matching products are out of stock (synthetic data)."}
             need_payload.append({"id": need.id, "label": need.label, "query": need.query, "categories": need.categories, "priority": need.priority, "status": status, "chosen": item, "alternatives": [c for c in need.candidates if not item or c["product_id"] != item["product_id"]][:3], "reason": reason.get("reason") or self._status_reason(status, language), "citation_ids": reason.get("citation_ids", [])})
         notes.append("prices_are_synthetic")
         return {
@@ -249,7 +291,7 @@ class ShoppingPlanner:
         best-matching occasion template; otherwise the whole request is one need."""
         colors = sorted({canonical for spelling, canonical in known_colors().items() if re.search(rf"(?<!\w){re.escape(spelling)}(?!\w)", text, re.IGNORECASE)})
         suffix = (" " + " ".join(colors)) if colors else ""
-        stripped = _AMOUNT.sub(" ", _BUDGET.sub(" ", text))
+        stripped = _AMOUNT.sub(" ", _LOOSE.sub(" ", _EXPLICIT.sub(" ", text)))
         parts = [_FILLER.sub("", part).strip(" .!?") for part in _SPLIT.split(stripped)]
         parts = [re.sub(r"^(?:a|an|some|một|vài|cái|chiếc|đôi|bộ)\s+", "", part, flags=re.IGNORECASE) for part in parts if len(part.strip()) >= 3]
         # A part describes the situation (not an item) when it names an occasion with a verb or detail:

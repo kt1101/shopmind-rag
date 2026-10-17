@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import threading
 import uuid
 from collections.abc import Callable, Iterator, Sequence
@@ -90,7 +91,7 @@ class ChatService:
     # --- preparation ---------------------------------------------------------------------------
 
     def prepare(self, message: str, history: Sequence[ChatTurn], product_id: str | None, *, image_token: str | None = None, session_id: str | None = None) -> PreparedChat:
-        session_id = session_id or uuid.uuid4().hex
+        session_id = session_id if session_id and self._known_session(session_id) else uuid.uuid4().hex
         trace = current_trace()
         image = self.image_cache.get(image_token) if image_token and self.image_cache is not None else None
         if image_token and image is None:
@@ -306,6 +307,17 @@ class ChatService:
                 total_ms=total_ms,
                 error_type=error_type,
             )
+
+    def _known_session(self, session_id: str) -> bool:
+        """Only server-issued ids (32 hex chars) that already exist are continued; a client can
+        neither choose an id nor write into a session it was not given."""
+        if not re.fullmatch(r"[0-9a-f]{32}", session_id):
+            return False
+        exists = getattr(self.store, "exists", None) if self.store is not None else None
+        try:
+            return bool(exists(session_id)) if callable(exists) else True
+        except Exception:
+            return False
 
     def history(self, session_id: str) -> list[dict[str, Any]]:
         if self.store is None:

@@ -42,6 +42,41 @@ class ProfileNotFound(LookupError):
     pass
 
 
+# Pipeline kinds executed by the engine (their steps must exist in the registry); RAG/chat/plan
+# specs only describe services that are configured through the `rag` section.
+_ENGINE_KINDS = {"search", "image_search", "compose_search"}
+_DEFAULT_KINDS = {"search": {"search"}, "image_search": {"image_search"}, "compose_search": {"compose_search"}}
+
+
+def runtime_problems(config: AppConfig, keys) -> list[dict[str, str]]:
+    """Checks Pydantic cannot do: step implementations exist, defaults name usable pipelines."""
+    import shopmind.application.search.steps  # noqa: F401  (registers search steps)
+    from shopmind.core.registry import UnknownComponent, resolve
+
+    problems: list[dict[str, str]] = []
+    touched = list(keys)
+    for name, spec in config.pipelines.items():
+        if spec.kind not in _ENGINE_KINDS or not any(key.startswith(f"pipelines.{name}") for key in touched):
+            continue
+        for index, step in enumerate(spec.steps):
+            try:
+                resolve("step", f"{step.step}.{step.impl}")
+                if step.when:
+                    resolve("condition", step.when)
+            except UnknownComponent as exc:
+                problems.append({"field": f"pipelines.{name}.steps.{index}", "message": str(exc)})
+    for key, value in config.defaults.items():
+        if not any(touched_key == f"defaults.{key}" or touched_key == "defaults" for touched_key in touched):
+            continue
+        spec = config.pipelines.get(value)
+        kinds = _DEFAULT_KINDS.get(key, {"search"} if key.startswith("mode.") else None)
+        if spec is None:
+            problems.append({"field": f"defaults.{key}", "message": f"unknown pipeline {value!r}"})
+        elif kinds is not None and (spec.kind not in kinds or (key == "search" and not spec.public)):
+            problems.append({"field": f"defaults.{key}", "message": f"{value!r} is not a public {'/'.join(sorted(kinds))} pipeline"})
+    return problems
+
+
 class ConfigService:
     def __init__(self, base: AppConfig, store: ProfileStore | None = None, *, refresh_seconds: float = 10.0) -> None:
         self.base = base
@@ -81,6 +116,8 @@ class ConfigService:
             details.extend(validation_details(exc, allowed.keys()))
         except ValueError as exc:
             details.append({"field": "overrides", "message": str(exc)})
+        if config is not None:
+            details.extend(runtime_problems(config, allowed.keys()))
         if details or config is None:
             raise ConfigValidationError("config validation failed", details)
         return config

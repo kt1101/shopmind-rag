@@ -52,8 +52,11 @@ def test_dense_retrievers_return_only_top_k_even_if_repo_returns_more():
     assert len(results) == 2; assert repo.calls[0][2:4] == (7,7)
 
 
-@pytest.mark.parametrize("wrong_modality", ["text", "image", None])
-def test_cross_modal_checks_both_identities_before_encoding_and_pins_alias(wrong_modality):
+@pytest.mark.parametrize("wrong_modality,alias_moves", [("text", False), ("image", False), (None, True), (None, False)])
+def test_cross_modal_checks_identities_before_encoding_and_never_queries_an_unvalidated_index(wrong_modality, alias_moves):
+    """The repository follows its alias (so re-indexing is picked up) but every physical index it
+    queries for kNN must carry the bound embedders' identity; an alias moved to an incompatible
+    index is refused before any model call."""
     from types import SimpleNamespace
     from shopmind.infrastructure.embedding.validation import index_embedding_metadata
     from shopmind.infrastructure.elasticsearch.repository import ElasticsearchProductRepository
@@ -70,19 +73,19 @@ def test_cross_modal_checks_both_identities_before_encoding_and_pins_alias(wrong
         def get_mapping(self,*,index):
             self.mapping_calls.append(index)
             target=self.alias_target if index=="alias" else index
-            self.alias_target="physical_b"
+            if alias_moves:
+                self.alias_target="physical_b"
             return {target:mapping if target=="physical_a" else {"mappings":{}}}
         def search(self,**kwargs):
             self.calls.append(kwargs)
             return {"hits":{"hits":[{"_source":{"product_id":"P1","title":"Item"},"_score":.8}]}}
     client=Client();repository=ElasticsearchProductRepository(client,"alias")
     retriever=CrossModalRetriever(repository,provider)
-    if wrong_modality:
+    if wrong_modality or alias_moves:
         with pytest.raises(ValueError,match="incompatible embedding identity"):
             retriever.search(SearchRequest("shoe"))
         assert provider.text_calls==[] and client.calls==[]
     else:
         assert retriever.search(SearchRequest("shoe"))[0].product_id=="P1"
-        assert client.mapping_calls[:2]==["alias","physical_a"]
-        assert repository.index_alias==client.calls[0]["index"]=="physical_a"
+        assert repository.index_alias=="alias" and client.calls[0]["index"]=="physical_a"
         assert provider.text_calls==[["shoe"]]

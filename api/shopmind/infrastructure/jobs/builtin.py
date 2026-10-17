@@ -131,6 +131,5 @@ def build_embedding_map(ctx: JobContext) -> dict[str, Any]:
         ctx.log(f"ERROR: {module} is not available in this build")
         raise JobFailed(f"{module} is not available")
     output = safe_relative_path(ctx.params["output"], field="output") if ctx.params.get("output") else ctx.config.jobs.embedding_map_output
-    extra = [str(arg) for arg in ctx.params.get("args") or []]
-    ctx.run_module(module, ["--output", output, *extra])
+    ctx.run_module(module, ["--output", output])  # no free-form args: output stays inside the work dir
     return {"output": output}

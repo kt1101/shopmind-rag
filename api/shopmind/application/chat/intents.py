@@ -46,7 +46,7 @@ def route_intent(message: str, *, has_image: bool = False, product_id: str | Non
         return "product_search", "an image is attached"
     if _CHITCHAT.match(message):
         return "chitchat", "greeting / thanks"
-    if _PLAN.search(message) or (_BUDGET_WORD.search(message) and re.search(r",|và|and", message)):
+    if _PLAN.search(message) or (_BUDGET_WORD.search(message) and re.search(r",|(?<!\w)(?:và|and)(?!\w)", message)):
         return "shopping_plan", "a situation to shop for: plan a basket"
     if _COMPARE.search(message):
         return "compare", "comparison wording"

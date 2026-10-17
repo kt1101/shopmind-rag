@@ -116,12 +116,14 @@ def _public_dsl(kwargs: dict[str, Any]) -> dict[str, Any]:
 class ElasticsearchProductRepository:
     # Catalog facts used on every request change only when the index is rebuilt; cache them briefly.
     FILTER_CACHE_SECONDS = 300.0
+    FILTER_CACHE_SIZE = 4096
 
     def __init__(self, client: Any, index_alias: str = "products") -> None:
         self.client = client
         self.index_alias = index_alias
         self._exists: dict[tuple[str, str], tuple[float, bool]] = {}
-        self._mappings: dict[str, tuple[str, dict[str, Any]]] = {}
+        self._mappings: dict[str, tuple[float, str, dict[str, Any]]] = {}
+        self._identities: dict[str, dict[str, Any]] = {}
         self._cache_lock = threading.Lock()
 
     def _value_exists(self, exact: dict[str, Any]) -> bool:
@@ -138,26 +140,41 @@ class ElasticsearchProductRepository:
             return cached[1]
         exists = self.client.count(index=self.index_alias, query=exact)["count"] > 0
         with self._cache_lock:
+            if len(self._exists) >= self.FILTER_CACHE_SIZE:  # drop expired entries, then the oldest
+                for stale in [k for k, (expires, _) in self._exists.items() if expires <= now] or list(self._exists)[: self.FILTER_CACHE_SIZE // 4]:
+                    self._exists.pop(stale, None)
             self._exists[key] = (now + self.FILTER_CACHE_SECONDS, exists)
         return exists
 
+    MAPPING_CACHE_SECONDS = 30.0
+
     def _concrete_mapping(self) -> tuple[str, dict[str, Any]]:
-        """(physical index, mapping) behind ``index_alias``, fetched once per alias value."""
+        """(physical index, mapping) behind ``index_alias``, re-resolved every 30 s so an alias switch
+        (re-index) is followed; a new physical index is re-validated against the bound embedders."""
+        now = time.monotonic()
         with self._cache_lock:
             cached = self._mappings.get(self.index_alias)
-        if cached is not None:
-            return cached
+        if cached is not None and cached[0] > now:
+            return cached[1], cached[2]
         mappings = self.client.indices.get_mapping(index=self.index_alias)
         if len(mappings) != 1:
             raise ValueError("vector queries require one physical index")
-        resolved = next(iter(mappings.items()))
+        concrete, mapping = next(iter(mappings.items()))
+        if cached is not None and cached[1] != concrete:
+            meta = mapping["mappings"].get("_meta", {}).get("embedding_identity", {})
+            for field, expected in self._identities.items():
+                if meta.get(field) != expected:
+                    raise ValueError(f"incompatible embedding identity for {concrete}/{field}")
         with self._cache_lock:
-            self._mappings[self.index_alias] = resolved
-            self._mappings[resolved[0]] = resolved
-        return resolved
+            self._mappings[self.index_alias] = (now + self.MAPPING_CACHE_SECONDS, concrete, mapping)
+        return concrete, mapping
 
     def bind_embedding(self, embedder: Any, field: str = "text_vector", modality: str = "text") -> None:
-        self.index_alias = validate_index_identity(self.client, self.index_alias, embedding_identity(embedder, modality), field)
+        """Check that the index behind the alias was built with this embedder; remembered so a later
+        alias switch to a new physical index is re-validated before it is queried."""
+        expected = embedding_identity(embedder, modality)
+        validate_index_identity(self.client, self.index_alias, expected, field)
+        self._identities[field] = expected
 
     def exact_id_search(self, query: str, filters: dict[str, str | list[str]]) -> list[RawSearchHit]:
         clauses = self._resolved_filter_clauses(filters)
@@ -252,7 +269,7 @@ class ElasticsearchProductRepository:
             raise ValueError(f"unsupported vector field: {field}")
         if size <= 0 or num_candidates < size:
             raise ValueError("num_candidates must be >= positive size")
-        self.index_alias, mapping = self._concrete_mapping()
+        concrete, mapping = self._concrete_mapping()  # kNN goes to the validated physical index
         validate_vectors([vector], int(mapping["mappings"]["properties"][field]["dims"]))
         clauses = self._resolved_filter_clauses(filters)
 
@@ -264,7 +281,7 @@ class ElasticsearchProductRepository:
                 knn["filter"] = filter_clauses[0] if len(filter_clauses) == 1 else {"bool": {"filter": filter_clauses}}
             if debug is not None:
                 debug["query_dsl"] = _public_dsl({"knn": knn, "size": size})
-            response = self.client.search(index=self.index_alias, knn=knn, size=size, source_excludes=list(_HIT_SOURCE_EXCLUDES))
+            response = self.client.search(index=concrete, knn=knn, size=size, source_excludes=list(_HIT_SOURCE_EXCLUDES))
             return [_to_raw_hit(hit) for hit in response.get("hits", {}).get("hits", [])]
 
         return search_with(clauses)

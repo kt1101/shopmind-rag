@@ -141,7 +141,14 @@ class AuthService:
             claims = jwt.decode(token, self.secret, algorithms=[self.config.jwt_algorithm], issuer=ISSUER, options={"require": ["exp", "sub"]})
         except jwt.PyJWTError as exc:
             raise InvalidToken(type(exc).__name__) from exc
-        role = claims.get("role")
-        if role not in ROLES:
+        if claims.get("role") not in ROLES:
             raise InvalidToken("unknown role")
-        return {"username": str(claims["sub"]), "role": role}
+        # The token is only proof of a login: the account must still exist and be active, and the
+        # current role (not the one at login time) is what counts.
+        try:
+            user = self.get_user(str(claims["sub"]))
+        except Exception:  # database down: fall back to the signed claims
+            return {"username": str(claims["sub"]), "role": claims["role"]}
+        if user is None:
+            raise InvalidToken("user no longer exists or is inactive")
+        return {"username": user["username"], "role": user["role"]}

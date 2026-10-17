@@ -15,9 +15,9 @@ class TextSearchRequest(BaseModel):
     query: str | None = None
     # None = the storefront default: the pipeline in config ``defaults.search`` (chosen by admins).
     mode: str | None = None
-    top_k: int = Field(default=10, gt=0)
-    candidate_k: int | None = Field(default=None, gt=0)
-    offset: int = Field(default=0, ge=0)
+    top_k: int = Field(default=10, gt=0, le=100)
+    candidate_k: int | None = Field(default=None, gt=0, le=1000)
+    offset: int = Field(default=0, ge=0, le=900)
     filters: dict[str, str | list[str]] = Field(default_factory=dict)
     sort: Literal["relevance", "title"] = "relevance"
     explain: bool = False
@@ -44,7 +44,8 @@ class TextSearchRequest(BaseModel):
     def candidate_window_must_cover_top_k(self) -> "TextSearchRequest":
         if self.candidate_k is not None and self.candidate_k < self.top_k:
             raise ValueError("candidate_k must be >= top_k")
-        if self.offset + self.top_k > self._effective_candidate_k():
+        # Without an explicit candidate_k the window comes from config (checked in to_domain).
+        if self.candidate_k is not None and self.offset + self.top_k > self.candidate_k:
             raise ValueError("offset + top_k must be <= candidate_k")
         if self.query is None and not self.filters:
             raise ValueError("query or at least one filter is required")
@@ -59,8 +60,8 @@ class TextSearchRequest(BaseModel):
     def to_domain(self, default_pipeline: str | None = None, default_candidate_k: int | None = None) -> SearchRequest:
         if default_candidate_k is not None and self.candidate_k is None:
             self._default_candidate_k = default_candidate_k
-            if self.offset + self.top_k > self._effective_candidate_k():
-                raise InvalidPagination("offset + top_k must be <= candidate_k")
+        if self.candidate_k is None and self.offset + self.top_k > self._effective_candidate_k():
+            raise InvalidPagination("offset + top_k must be <= candidate_k")
         if self.mode is None:
             # Filter-only listings stay on BM25; text queries run the admin-configured default pipeline.
             mode = SearchMode.BM25 if self.query is None else SearchMode.HYBRID
@@ -221,7 +222,12 @@ class FilterOptionsResponse(BaseModel):
     options: list[FilterOption]
 
 
+MAX_FILTER_VALUES = 20
+MAX_FILTER_VALUE_LENGTH = 100
+
+
 def normalize_filters(value: Any) -> dict[str, str | list[str]]:
+    """Trim, de-duplicate and bound filter values (each value costs a catalog lookup)."""
     if value is None:
         return {}
     if not isinstance(value, dict):
@@ -234,17 +240,17 @@ def normalize_filters(value: Any) -> dict[str, str | list[str]]:
             continue
         if isinstance(raw, str):
             cleaned = raw.strip()
+            if len(cleaned) > MAX_FILTER_VALUE_LENGTH:
+                raise ValueError(f"filter {key} values must be at most {MAX_FILTER_VALUE_LENGTH} characters")
             if cleaned:
                 normalized[key] = cleaned
             continue
         if isinstance(raw, list):
-            values: list[str] = []
-            for item in raw:
-                if not isinstance(item, str):
-                    raise ValueError(f"filter {key} list must contain strings")
-                cleaned = item.strip()
-                if cleaned and cleaned not in values:
-                    values.append(cleaned)
+            values = list(dict.fromkeys(item.strip() for item in raw if isinstance(item, str) and item.strip()))
+            if any(not isinstance(item, str) for item in raw):
+                raise ValueError(f"filter {key} list must contain strings")
+            if len(values) > MAX_FILTER_VALUES or any(len(item) > MAX_FILTER_VALUE_LENGTH for item in values):
+                raise ValueError(f"filter {key} accepts at most {MAX_FILTER_VALUES} values of at most {MAX_FILTER_VALUE_LENGTH} characters")
             if values:
                 normalized[key] = values
             continue

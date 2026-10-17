@@ -14,7 +14,9 @@ class ElasticsearchKnowledgeRepository:
         self.source = source
 
     def bind_embedding(self, embedder: Any) -> None:
-        self.index_alias = validate_index_identity(self.client, self.index_alias, embedding_identity(embedder), "text_vector")
+        # Validate the index currently behind the alias; keep querying the alias, so a policy
+        # republish (new versioned index + alias switch) is picked up without a restart.
+        validate_index_identity(self.client, self.index_alias, embedding_identity(embedder), "text_vector")
 
     def ping(self) -> bool:
         return bool(self.client.ping())
@@ -38,7 +40,7 @@ class ElasticsearchKnowledgeRepository:
         mappings = self.client.indices.get_mapping(index=self.index_alias)
         if len(mappings) != 1:
             raise ValueError("vector queries require one physical index")
-        self.index_alias, mapping = next(iter(mappings.items()))
+        mapping = next(iter(mappings.values()))
         validate_vectors([vector], int(mapping["mappings"]["properties"]["text_vector"]["dims"]))
         knn: dict[str, Any] = {"field": "text_vector", "query_vector": vector, "k": size, "num_candidates": num_candidates}
         if self.source == "review" and product_id is not None:

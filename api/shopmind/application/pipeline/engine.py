@@ -144,13 +144,15 @@ class PipelineFactory:
         return [name for name, spec in self.specs.items() if spec.public or not public_only]
 
     def get(self, name: str) -> Pipeline:
-        if name not in self._cache:
+        pipeline = self._cache.get(name)
+        if pipeline is None:  # build into a local: invalidate() may clear the cache concurrently
             if name not in self.specs:
                 raise KeyError(f"unknown pipeline {name!r}")
             spec = self.specs[name]
             steps = [(step, resolve("step", f"{step.step}.{step.impl}")(step, self.services)) for step in spec.steps if step.enabled]
-            self._cache[name] = Pipeline(name, spec, steps)
-        return self._cache[name]
+            pipeline = Pipeline(name, spec, steps)
+            self._cache[name] = pipeline
+        return pipeline
 
     def invalidate(self) -> None:
         self._cache.clear()

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -12,6 +13,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 
 from shopmind.interfaces.http.errors import ERROR_MAP, lookup_error, register_error
 from shopmind.core.config import parse_origins
@@ -22,6 +24,7 @@ from shopmind.infrastructure.llm.base import InvalidLLMOutput, LLMProviderError
 from shopmind.application.rag.service import ContextConstructionError, KnowledgeRetrievalUnavailable, RAGGenerationError, RerankerUnavailable
 
 logger = logging.getLogger("shopmind")
+_REQUEST_ID = re.compile(r"[A-Za-z0-9-]{8,64}")
 
 
 def _error_body(request: Request, code: str, message: str) -> dict[str, Any]:
@@ -107,11 +110,19 @@ def create_app(*, search_service: Any | None = None, repository: Any | None = No
 
     @app.middleware("http")
     async def request_id_middleware(request: Request, call_next):
-        request.state.request_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex
+        # A client id is kept only if it is a plain token; it also becomes the trace id, so arbitrary
+        # values could overwrite someone else's trace or overflow the database column.
+        supplied = request.headers.get("X-Request-ID", "")
+        request.state.request_id = supplied if _REQUEST_ID.fullmatch(supplied) else uuid.uuid4().hex
         container = getattr(request.app.state, "container", None)
         if container is not None and container.get("config_service") is not None:
-            container.effective_config()  # cached; notifies hot-reload subscribers when a profile changed
-        response = await call_next(request)
+            # Cached; may query the database and rebuild services on a profile change: not on the loop.
+            await run_in_threadpool(container.effective_config)
+        try:
+            response = await call_next(request)
+        except Exception:  # unmapped error: same JSON body + request id as every other error
+            logger.exception("unhandled error")
+            response = JSONResponse(status_code=500, content=_error_body(request, "internal_error", "internal server error"))
         response.headers["X-Request-ID"] = request.state.request_id
         return response
 
