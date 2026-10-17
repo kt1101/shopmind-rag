@@ -64,6 +64,15 @@ Additive fields are allowed; renaming/removing requires updating this file.
 - RAG-specific step details: `build_context.details = {documents:[{id, source, chars, included, reason}], rendered_chars, budget}`,
   `generate.details = {model, prompt_id, prompt_version, attempt, usage: {input_tokens, output_tokens}, raw_output}`,
   `validate_citations.details = {attempts:[{attempt, valid, error}]}`.
+- Search-specific step details (all optional, the Search Inspector renders what is present):
+  - `query_understanding.details = {language: "vi"|"en", normalized_query, aliases:[{from, to, kind: category|color}], adaptive?:{mode, reason}, filters:{<field>:{requested:[str], resolved:[str], match: "exact"|"fallback"}}}`
+  - lexical `retrieve` step: `details = {query_dsl: {...ES request body...}}`; each item `details.matched_terms = {<field>: [term]}` (from ES highlight)
+  - dense `retrieve` step: `details = {field, embedder, query_vector: {dims, norm}}`
+  - `fuse` items: `details.contributions = {<ranking id>: {rank, score}}` plus `details.formula` (e.g. `"1/(60+1) + 1/(60+3)"`)
+  - `rerank` items: `details = {before_rank, after_rank, reranker_score}`
+- `chat` / `rag` traces are returned inline when the request body has `explain: true`
+  (`POST /chat`, `POST /chat/stream` `done` event, `POST /rag/ask`, `POST /rag/compare`). The shopper UI
+  uses the inline trace; `GET /traces/{id}` stays admin-only.
 
 ## Health
 
@@ -97,8 +106,10 @@ Additive fields are allowed; renaming/removing requires updating this file.
 
 ## Chat
 
-- `POST /chat` body `{message, history:[{role,content}], product_id?, session_id?, image_token?}` →
-  `{answer, sources, insufficient_evidence, standalone_question, session_id, intent, products?:[ProductResult], trace_id}`
+- `POST /chat` body `{message, history:[{role,content}], product_id?, session_id?, image_token?, explain?}` →
+  `{answer, sources, insufficient_evidence, standalone_question, session_id, intent, products?:[ProductResult], trace_id, trace?}`
+  (`intent` `product_search` answers with `products` and a short `answer`, no LLM call needed;
+  `chitchat` answers with a fixed help text.)
 - `POST /chat/stream` same body, SSE events: `meta {standalone_question, rewrite_fallback, session_id, intent, trace_id}`,
   `step {id, step, status: started|done, summary, duration_ms?}`, `products {items:[ProductResult]}`,
   `delta {text}`, `reset {reason}`, `done {...same as POST /chat}`, `error {code,message}`.
