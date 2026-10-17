@@ -19,14 +19,16 @@ function loadPipelines() {
 }
 
 // Renders any trace: the Search Inspector for search kinds, the RAG Inspector otherwise.
-export function TraceInspector({ trace, titles }) {
+// `view` forces 'search' or 'rag' (e.g. a chat trace whose intent was product_search).
+export function TraceInspector({ trace, titles, view }) {
   if (!trace) return null
-  return isSearchTrace(trace) ? <SearchInspector trace={trace} titles={titles} /> : <RagInspector trace={trace} />
+  const search = view === 'search' || (view !== 'rag' && isSearchTrace(trace))
+  return search ? <SearchInspector trace={trace} titles={titles} /> : <RagInspector trace={trace} />
 }
 
 // Reusable glass-box drawer. Controlled: the caller supplies the trace (or loading/error).
 // The admin Trace Explorer can mount it via InspectorHost (shopmind:open-inspector event).
-export default function InspectorDrawer({ open, onClose, trace, loading = false, error = null, onRetry, titles, title }) {
+export default function InspectorDrawer({ open, onClose, trace, loading = false, error = null, onRetry, titles, title, view }) {
   const { t } = useI18n()
   const [pipeline, setPipeline] = useState(null)
   const summary = traceSummary(trace)
@@ -55,7 +57,7 @@ export default function InspectorDrawer({ open, onClose, trace, loading = false,
     <Drawer
       open={open}
       onClose={onClose}
-      title={title || (trace && !isSearchTrace(trace) ? t('inspector.ragTitle') : t('inspector.title'))}
+      title={title || (trace && view !== 'search' && !isSearchTrace(trace) ? t('inspector.ragTitle') : t('inspector.title'))}
       subtitle={subtitle}
       closeLabel={t('inspector.close')}
       width={820}
@@ -73,7 +75,7 @@ export default function InspectorDrawer({ open, onClose, trace, loading = false,
           {onRetry && <button type="button" className="sm-button" onClick={onRetry}>{t('state.retry')}</button>}
         </div>
       )}
-      {trace && <TraceInspector trace={trace} titles={titles} />}
+      {trace && <TraceInspector trace={trace} titles={titles} view={view} />}
     </Drawer>
   )
 }

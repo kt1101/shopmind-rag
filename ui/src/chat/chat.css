@@ -32,8 +32,8 @@
   position: fixed;
   bottom: 24px;
   right: 24px;
-  width: 380px;
-  height: 560px;
+  width: 420px;
+  height: 640px;
   max-width: calc(100vw - 32px);
   max-height: calc(100vh - 32px);
   background: var(--surface, var(--color-surface));
@@ -525,3 +525,57 @@
   color: var(--accent, var(--color-accent));
   font: 700 10px monospace;
 }
+
+/* --- F2 assistant: explain toggle, intent, live progress, attachments, tools ---------- */
+.chat-header { gap: 8px; }
+.chat-header-info { flex: 1; min-width: 0; }
+.chat-explain { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; color: var(--color-text-muted); cursor: pointer; white-space: nowrap; }
+.chat-icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.chat-icon-button:disabled { opacity: .5; }
+.chat-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 6px; }
+.chat-intent { padding: 1px 8px; border-radius: 999px; background: var(--color-accent-soft); color: var(--color-accent); font-size: 11px; font-weight: 700; }
+.chat-intent.intent-policy_question { background: var(--color-warning-soft); color: var(--color-warning); }
+.chat-intent.intent-chitchat { background: var(--color-surface-3); color: var(--color-text-muted); }
+.chat-standalone { font-size: 11px; color: var(--color-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.chat-progress { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; margin: 0 0 8px; padding: 0; list-style: none; font-size: 12px; color: var(--color-text-muted); }
+.chat-progress-item { display: inline-flex; align-items: center; gap: 4px; }
+.chat-progress-item.is-started { color: var(--color-text); font-weight: 600; }
+.chat-progress-arrow { color: var(--color-border-strong); }
+.chat-progress-check { color: var(--color-success); font-weight: 700; }
+.chat-progress-spinner { width: 10px; height: 10px; border: 2px solid var(--color-border); border-top-color: var(--color-accent); border-radius: 50%; animation: chat-spin .7s linear infinite; }
+@keyframes chat-spin { to { transform: rotate(360deg); } }
+.chat-caret { display: inline-block; width: 7px; height: 1em; margin-left: 1px; vertical-align: -2px; background: var(--color-accent); animation: pulse .8s ease-in-out infinite alternate; }
+.chat-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--color-border); }
+.chat-tool-button { padding: 3px 8px; border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-surface); color: var(--color-text); font-size: 11.5px; font-weight: 600; }
+.chat-tool-button:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.chat-bubble--assistant .insp-rag { margin-top: 8px; padding: 8px; font-size: 12px; }
+.chat-bubble--assistant .answer-with-citations .answer-text { font-size: inherit; }
+.chat-user-image { display: block; max-width: 160px; max-height: 140px; margin-bottom: 6px; border-radius: 8px; object-fit: cover; }
+.chat-error-detail { margin: 2px 0 6px; font-size: 12px; opacity: .85; }
+.chat-attachment { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 6px 8px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface-2); font-size: 12px; }
+.chat-attachment img { width: 36px; height: 36px; object-fit: cover; border-radius: 6px; }
+.chat-attachment.is-error { border-color: var(--color-danger-border); color: var(--color-danger); }
+.chat-attachment-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-attachment button { border: 0; background: transparent; color: inherit; font-size: 16px; line-height: 1; }
+.chat-attach-button {
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+.chat-attach-button:hover:not(:disabled) { color: var(--color-accent); border-color: var(--color-accent); }
+.chat-bubble--assistant .fb { font-size: 11.5px; }
