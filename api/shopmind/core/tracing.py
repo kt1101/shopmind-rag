@@ -179,7 +179,7 @@ def start_trace(pipeline: str, *, kind: str, trace_id: str, input: Mapping[str, 
 
 
 @contextmanager
-def trace_step(step: str, *, impl: str | None = None, id: str | None = None, params: Mapping[str, Any] | None = None, trace: PipelineTrace | None = None) -> Iterator[StepTrace]:
+def trace_step(step: str, *, impl: str | None = None, id: str | None = None, params: Mapping[str, Any] | None = None, trace: PipelineTrace | None = None, attach: bool = True) -> Iterator[StepTrace]:
     """Record one step in ``trace`` (default: the trace bound to the current context).
 
     Pass ``trace`` explicitly from code that runs outside the request context, such as a
@@ -189,7 +189,8 @@ def trace_step(step: str, *, impl: str | None = None, id: str | None = None, par
         yield _NullStep(step)
         return
     record = StepTrace(step=step, impl=impl, id=id, params=dict(params or {}), started_ms=trace.elapsed_ms(), max_items=trace.max_items, verbose=trace.verbose)
-    trace.steps.append(record)
+    if attach:  # parallel runners attach records themselves, in declaration order
+        trace.steps.append(record)
     started = perf_counter()
     try:
         yield record

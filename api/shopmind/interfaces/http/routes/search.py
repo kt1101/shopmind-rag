@@ -81,7 +81,7 @@ def search_text(payload: TextSearchRequest, request: Request, service: SearchSer
     config = get_config(request)
     # Storefront requests carry no mode: run the admin-configured default (`defaults.search`).
     default_pipeline = config.defaults.get("search") if config is not None and getattr(service, "pipelines", None) is not None else None
-    domain_request = payload.to_domain(default_pipeline)
+    domain_request = payload.to_domain(default_pipeline, config.retrieval.candidate_k if config is not None else None)
     mode_label = payload.mode or ("default" if domain_request.query else "bm25")
     explain = wants_explain(request, payload.explain)
     pipeline = _pipeline_name(service, "text", domain_request)

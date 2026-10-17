@@ -1,0 +1,19 @@
+# Attribute words (materials, styles) -> catalog wording for lexical search. Unlike category
+# aliases they never become filters; they only make Vietnamese queries match English titles.
+bằng da: leather
+da thật: leather
+giả da: faux leather
+bằng gỗ: wood
+gỗ: wood
+kim loại: metal
+bằng vải: fabric
+vải: fabric
+nhựa: plastic
+thủy tinh: glass
+inox: stainless steel
+thép không gỉ: stainless steel
+len: wool
+lụa: silk
+chống nước: waterproof
+gấp gọn: folding
+không dây: wireless

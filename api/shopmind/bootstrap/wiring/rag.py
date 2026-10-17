@@ -26,6 +26,16 @@ class LazyComponent:
         return getattr(target, attribute)
 
 
+def build_understanding(config, rag_service, prompts, catalog_values):
+    """Chat/query understanding per ``features.query_understanding`` (rules | llm | off)."""
+    from shopmind.application.chat.intents import LLMQueryUnderstanding, RuleQueryUnderstanding
+
+    mode = config.features.query_understanding
+    if mode == "llm" and rag_service.llm is not None:
+        return LLMQueryUnderstanding(rag_service.llm, prompts.get("query_understanding").text, catalog_values)
+    return None if mode == "off" else RuleQueryUnderstanding(catalog_values)
+
+
 def wire(container) -> None:
     config = container.effective_config()
     from shopmind.application.chat.image_cache import ImageTokenCache
@@ -37,7 +47,6 @@ def wire(container) -> None:
         catalog.commerce = LazyComponent(container, "commerce")
     if not config.rag.enabled or container.get("rag_service") is not None or container.get("search_service") is None:
         return
-    from shopmind.application.chat.intents import LLMQueryUnderstanding, RuleQueryUnderstanding
     from shopmind.application.chat.service import ChatService
     from shopmind.application.rag.compare import CompareService
     from shopmind.application.rag.service import create_rag_service
@@ -79,12 +88,8 @@ def wire(container) -> None:
             catalog_cache[field] = repository.all_values(field) if hasattr(repository, "all_values") else []
         return catalog_cache[field]
 
-    mode = config.features.query_understanding
-    understanding = None
-    if mode == "llm" and rag_service.llm is not None:
-        understanding = LLMQueryUnderstanding(rag_service.llm, prompts.get("query_understanding").text, catalog_values)
-    elif mode != "off":
-        understanding = RuleQueryUnderstanding(catalog_values)
+    container.provide("catalog_values", catalog_values)
+    understanding = build_understanding(config, rag_service, prompts, catalog_values)
     if understanding is not None:
         container.provide("query_understanding", understanding)
     reviews = ElasticsearchKnowledgeRepository(client, config.index_alias("reviews"), source="review")

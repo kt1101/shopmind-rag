@@ -36,6 +36,13 @@ def apply_config(container, config) -> None:
             service = container.get(name)
             if service is not None:
                 setattr(service, attribute, rebuilt)
+    if container.get("catalog_values") is not None and container.get("rag_service") is not None:
+        from shopmind.bootstrap.wiring.rag import build_understanding
+
+        understanding = build_understanding(config, container.get("rag_service"), container.get("prompts"), container.get("catalog_values"))
+        container.provide("query_understanding", understanding)
+        if container.get("chat_service") is not None:
+            container.get("chat_service").understanding = understanding
     planner = container.get("planner")
     if planner is not None:
         planner.default_pipeline = config.defaults.get("search")

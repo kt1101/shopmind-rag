@@ -11,13 +11,15 @@ Conditions (``when:`` in YAML) are registered predicates of kind ``condition``.
 """
 from __future__ import annotations
 
+import contextvars
 from collections.abc import Callable, Mapping
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from shopmind.core.config import PipelineSpec, StepSpec
 from shopmind.core.registry import register, resolve
-from shopmind.core.tracing import StepTrace, trace_step
+from shopmind.core.tracing import StepTrace, current_trace, trace_step
 
 
 @dataclass
@@ -60,6 +62,45 @@ def _always(ctx: PipelineContext) -> bool:
     return True
 
 
+# Steps that only read the request/state and write their own ranking can run concurrently
+# (e.g. BM25 and dense retrieval of a hybrid pipeline: total latency = max, not sum).
+PARALLEL_STEPS = {"retrieve"}
+_POOL = ThreadPoolExecutor(max_workers=8, thread_name_prefix="pipeline-step")
+
+
+def _run_one(ctx: PipelineContext, spec: StepSpec, step: Step) -> None:
+    with trace_step(spec.step, impl=spec.impl, id=spec.key, params=spec.params) as record:
+        step(ctx, record)
+
+
+def _run_parallel(ctx: PipelineContext, group: list[tuple[StepSpec, Step]]) -> None:
+    """Run steps on private copies of the context, then merge them in declaration order, so
+    rankings, results, trace order and short-circuits (``stop``) match sequential execution."""
+    trace = current_trace()
+    children = [PipelineContext(request=ctx.request, rankings={}, results=list(ctx.results), state=dict(ctx.state)) for _ in group]
+    records: list[StepTrace | None] = [None] * len(group)
+
+    def work(position: int) -> None:
+        spec, step = group[position]
+        with trace_step(spec.step, impl=spec.impl, id=spec.key, params=spec.params, trace=trace, attach=False) as record:
+            records[position] = record
+            step(children[position], record)
+
+    futures = [_POOL.submit(contextvars.copy_context().run, work, position) for position in range(len(group))]
+    errors = [future.exception() for future in futures]
+    for position, child in enumerate(children):
+        if trace is not None and records[position] is not None:
+            trace.steps.append(records[position])
+        if errors[position] is not None:
+            raise errors[position]
+        ctx.rankings.update(child.rankings)
+        ctx.state.update(child.state)
+        ctx.results = child.results
+        if child.stopped:  # e.g. exact product-id hit: later rankings are discarded, as if never run
+            ctx.stop()
+            break
+
+
 class Pipeline:
     def __init__(self, name: str, spec: PipelineSpec, steps: list[tuple[StepSpec, Step]]) -> None:
         self.name = name
@@ -67,13 +108,24 @@ class Pipeline:
         self.steps = steps
 
     def run(self, ctx: PipelineContext) -> PipelineContext:
-        for spec, step in self.steps:
-            if ctx.stopped:
-                break
-            if spec.when and not resolve("condition", spec.when)(ctx):
+        index = 0
+        while index < len(self.steps) and not ctx.stopped:
+            end = index
+            while end < len(self.steps) and self.steps[end][0].step in PARALLEL_STEPS:
+                end += 1
+            if end - index > 1:  # a run of independent retrieve steps: execute them concurrently
+                group = [(spec, step) for spec, step in self.steps[index:end] if not spec.when or resolve("condition", spec.when)(ctx)]
+                if len(group) > 1:
+                    _run_parallel(ctx, group)
+                else:
+                    for spec, step in group:
+                        _run_one(ctx, spec, step)
+                index = end
                 continue
-            with trace_step(spec.step, impl=spec.impl, id=spec.key, params=spec.params) as record:
-                step(ctx, record)
+            spec, step = self.steps[index]
+            if not spec.when or resolve("condition", spec.when)(ctx):
+                _run_one(ctx, spec, step)
+            index += 1
         return ctx
 
     def describe(self) -> dict[str, Any]:

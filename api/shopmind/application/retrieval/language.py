@@ -10,14 +10,14 @@ from __future__ import annotations
 
 import re
 import threading
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import yaml
 
 DEFAULT_VOCAB_DIR = Path(__file__).resolve().parents[3] / "configs" / "vocab"
-DEFAULT_PATHS = {"category_aliases": DEFAULT_VOCAB_DIR / "category_aliases.yaml", "color_aliases": DEFAULT_VOCAB_DIR / "color_aliases.yaml"}
+DEFAULT_PATHS = {"category_aliases": DEFAULT_VOCAB_DIR / "category_aliases.yaml", "color_aliases": DEFAULT_VOCAB_DIR / "color_aliases.yaml", "term_aliases": DEFAULT_VOCAB_DIR / "term_aliases.yaml"}
 _VIETNAMESE = re.compile(r"[ăâđêôơưàảãáạằẳẵắặầẩẫấậèẻẽéẹềểễếệìỉĩíịòỏõóọồổỗốộờởỡớợùủũúụừửữứựỳỷỹýỵ]", re.IGNORECASE)
 _VIETNAMESE_WORDS = re.compile(r"(?<!\w)(tìm|của|màu|cho|giá|dưới|trên|và|có|không)(?!\w)", re.IGNORECASE)
 
@@ -26,15 +26,22 @@ _VIETNAMESE_WORDS = re.compile(r"(?<!\w)(tìm|của|màu|cho|giá|dưới|trên|
 class Vocabulary:
     categories: dict[str, str]
     colors: dict[str, tuple[str, ...]]
+    # Attribute words (materials, styles): translated for lexical matching, never turned into filters.
+    terms: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        translations = {**{key.casefold(): value for key, value in self.categories.items()}, **{alias.casefold(): color for color, aliases in self.colors.items() for alias in aliases}}
+        translations = {**{key.casefold(): value for key, value in self.terms.items()}, **{key.casefold(): value for key, value in self.categories.items()}, **{alias.casefold(): color for color, aliases in self.colors.items() for alias in aliases}}
         pattern = re.compile(r"(?<!\w)(" + "|".join(re.escape(word) for word in sorted(translations, key=len, reverse=True)) + r")(?!\w)", re.IGNORECASE) if translations else None
         object.__setattr__(self, "_translations", translations)
         object.__setattr__(self, "_pattern", pattern)
 
     def kind(self, phrase: str) -> str:
-        return "category" if phrase.casefold() in {key.casefold() for key in self.categories} else "color"
+        folded = phrase.casefold()
+        if folded in {key.casefold() for key in self.categories}:
+            return "category"
+        if any(folded in (alias.casefold() for alias in aliases) for aliases in self.colors.values()):
+            return "color"
+        return "term"
 
 
 def _read(path: str | Path) -> dict[str, Any]:
@@ -53,7 +60,9 @@ def load_vocabulary(paths: dict[str, str | Path] | None = None, *, base_dir: str
         resolved[name] = path
     categories = {str(key): str(value) for key, value in _read(resolved["category_aliases"]).items()}
     colors = {str(key): tuple(str(alias) for alias in (value or [])) for key, value in _read(resolved["color_aliases"]).items()}
-    return Vocabulary(categories, colors)
+    terms_path = resolved.get("term_aliases")
+    terms = {str(key): str(value) for key, value in _read(terms_path).items()} if terms_path and Path(terms_path).exists() else {}
+    return Vocabulary(categories, colors, terms)
 
 
 _lock = threading.Lock()

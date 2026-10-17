@@ -50,12 +50,9 @@ jobs:
 # Keys the Admin console may change at runtime (saved as config profiles, validated by the
 # same Pydantic models). `a.b` also allows keys below it; `*` matches one or more segments.
 hot_reloadable:
-  - retrieval.top_k
+  # Only keys that the running app actually reads. Search behaviour (fusion, weights, reranking)
+  # lives in pipelines.*.steps; the storefront pipeline is defaults.search.
   - retrieval.candidate_k
-  - retrieval.default_mode
-  - fusion.rrf_k
-  - fusion.method
-  - reranker.enabled
   - rag.fusion.*
   - rag.reranker.enabled
   - rag.reranker.top_k

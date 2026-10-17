@@ -15,6 +15,9 @@ embedding:
   model_name: google/siglip2-base-patch16-224
   model_revision: 75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2
   batch_size: 32
+# Legacy sections kept for config compatibility. Search behaviour is defined by the pipelines in
+# pipelines/search.yaml (fusion, weights, reranking) and defaults.search; only
+# retrieval.candidate_k (candidate pool of a text search) is read at runtime.
 retrieval:
   default_mode: hybrid
   top_k: 10

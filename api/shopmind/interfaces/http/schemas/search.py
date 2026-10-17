@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, PrivateAttr, field_validator, model_validator
 
-from shopmind.interfaces.http.errors import InvalidFilter, UnsupportedSearchMode
+from shopmind.interfaces.http.errors import InvalidFilter, InvalidPagination, UnsupportedSearchMode
 from shopmind.domain.search_query import SearchMode, SearchRequest
 from shopmind.domain.search_result import SearchResult
 
@@ -23,6 +23,7 @@ class TextSearchRequest(BaseModel):
     explain: bool = False
     # Run a named pipeline from config instead of the mode default (Lab comparisons).
     pipeline: str | None = Field(default=None, max_length=64)
+    _default_candidate_k: int = PrivateAttr(default=100)
 
     @field_validator("query", mode="before")
     @classmethod
@@ -50,9 +51,16 @@ class TextSearchRequest(BaseModel):
         return self
 
     def _effective_candidate_k(self) -> int:
-        return self.candidate_k if self.candidate_k is not None else max(100, self.top_k)
+        if self.candidate_k is not None:
+            return self.candidate_k
+        # Config retrieval.candidate_k (hot-reloadable) sizes the candidate pool fused by hybrid pipelines.
+        return max(self._default_candidate_k, self.top_k)
 
-    def to_domain(self, default_pipeline: str | None = None) -> SearchRequest:
+    def to_domain(self, default_pipeline: str | None = None, default_candidate_k: int | None = None) -> SearchRequest:
+        if default_candidate_k is not None and self.candidate_k is None:
+            self._default_candidate_k = default_candidate_k
+            if self.offset + self.top_k > self._effective_candidate_k():
+                raise InvalidPagination("offset + top_k must be <= candidate_k")
         if self.mode is None:
             # Filter-only listings stay on BM25; text queries run the admin-configured default pipeline.
             mode = SearchMode.BM25 if self.query is None else SearchMode.HYBRID

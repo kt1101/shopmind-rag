@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import copy
 import re
+import threading
+import time
 from typing import Any
 
 from shopmind.domain.catalog import ProductPage
@@ -14,6 +16,9 @@ _VECTOR_FIELDS = {"text_vector", "image_vector", "siglip_text_vector"}
 _FACET_FIELDS = set(_FILTER_FIELDS)
 _SOURCE_EXCLUDES = ["text_vector", "image_vector", "siglip_text_vector", "embedding_identities"]
 _CATALOG_SOURCE_EXCLUDES = [*_SOURCE_EXCLUDES, "search_text"]
+# Search hits need card fields + search_text (RAG evidence); long descriptions and the raw ABO
+# metadata are only read by the product page, so ranking requests do not ship them.
+_HIT_SOURCE_EXCLUDES = [*_SOURCE_EXCLUDES, "description", "metadata"]
 _CATEGORY_FACET_SIZE = 300
 _HIGHLIGHT_FIELDS = ("title", "brand", "category", "description", "attributes_text")
 _MARK = re.compile(r"<<(.+?)>>")
@@ -109,16 +114,54 @@ def _public_dsl(kwargs: dict[str, Any]) -> dict[str, Any]:
 
 
 class ElasticsearchProductRepository:
+    # Catalog facts used on every request change only when the index is rebuilt; cache them briefly.
+    FILTER_CACHE_SECONDS = 300.0
+
     def __init__(self, client: Any, index_alias: str = "products") -> None:
         self.client = client
         self.index_alias = index_alias
+        self._exists: dict[tuple[str, str], tuple[float, bool]] = {}
+        self._mappings: dict[str, tuple[str, dict[str, Any]]] = {}
+        self._cache_lock = threading.Lock()
+
+    def _value_exists(self, exact: dict[str, Any]) -> bool:
+        """Whether an exact filter value exists in the catalog (one ES count, cached per index)."""
+        try:
+            index = self._concrete_mapping()[0]  # alias and physical name share one cache entry
+        except Exception:
+            index = self.index_alias
+        key = (index, repr(exact))
+        now = time.monotonic()
+        with self._cache_lock:
+            cached = self._exists.get(key)
+        if cached is not None and cached[0] > now:
+            return cached[1]
+        exists = self.client.count(index=self.index_alias, query=exact)["count"] > 0
+        with self._cache_lock:
+            self._exists[key] = (now + self.FILTER_CACHE_SECONDS, exists)
+        return exists
+
+    def _concrete_mapping(self) -> tuple[str, dict[str, Any]]:
+        """(physical index, mapping) behind ``index_alias``, fetched once per alias value."""
+        with self._cache_lock:
+            cached = self._mappings.get(self.index_alias)
+        if cached is not None:
+            return cached
+        mappings = self.client.indices.get_mapping(index=self.index_alias)
+        if len(mappings) != 1:
+            raise ValueError("vector queries require one physical index")
+        resolved = next(iter(mappings.items()))
+        with self._cache_lock:
+            self._mappings[self.index_alias] = resolved
+            self._mappings[resolved[0]] = resolved
+        return resolved
 
     def bind_embedding(self, embedder: Any, field: str = "text_vector", modality: str = "text") -> None:
         self.index_alias = validate_index_identity(self.client, self.index_alias, embedding_identity(embedder, modality), field)
 
     def exact_id_search(self, query: str, filters: dict[str, str | list[str]]) -> list[RawSearchHit]:
         clauses = self._resolved_filter_clauses(filters)
-        response = self.client.search(index=self.index_alias, query={"bool": {"filter": clauses + [{"term": {"product_id": {"value": query.strip(), "case_insensitive": True}}}]}}, size=1, source_excludes=list(_SOURCE_EXCLUDES))
+        response = self.client.search(index=self.index_alias, query={"bool": {"filter": clauses + [{"term": {"product_id": {"value": query.strip(), "case_insensitive": True}}}]}}, size=1, source_excludes=list(_HIT_SOURCE_EXCLUDES))
         return [_to_raw_hit(hit) for hit in response.get("hits", {}).get("hits", [])]
 
     def ping(self) -> bool:
@@ -136,8 +179,7 @@ class ElasticsearchProductRepository:
             alternatives = []
             for item in _values(value, key):
                 exact = build_filter_clauses({key: item})[0]
-                exists = self.client.count(index=self.index_alias, query=exact)["count"] > 0
-                alternatives.append(exact if exists else build_partial_filter_clauses({key: item})[0])
+                alternatives.append(exact if self._value_exists(exact) else build_partial_filter_clauses({key: item})[0])
             clauses.append(alternatives[0] if len(alternatives) == 1 else {"bool": {"should": alternatives, "minimum_should_match": 1}})
         return clauses
 
@@ -187,7 +229,7 @@ class ElasticsearchProductRepository:
                 {"match_phrase": {"title": {"query": query, "boost": 4}}},
                 {"term": {"product_id": {"value": query.strip(), "case_insensitive": True, "boost": 100}}},
             ]}}
-        kwargs: dict[str, Any] = {"index": self.index_alias, "query": search_query, "size": size, "source_excludes": list(_SOURCE_EXCLUDES)}
+        kwargs: dict[str, Any] = {"index": self.index_alias, "query": search_query, "size": size, "source_excludes": list(_HIT_SOURCE_EXCLUDES)}
         if query is None:
             kwargs["sort"] = [{"product_id": "asc"}]
         if debug is not None:
@@ -210,10 +252,7 @@ class ElasticsearchProductRepository:
             raise ValueError(f"unsupported vector field: {field}")
         if size <= 0 or num_candidates < size:
             raise ValueError("num_candidates must be >= positive size")
-        mappings = self.client.indices.get_mapping(index=self.index_alias)
-        if len(mappings) != 1:
-            raise ValueError("vector queries require one physical index")
-        self.index_alias, mapping = next(iter(mappings.items()))
+        self.index_alias, mapping = self._concrete_mapping()
         validate_vectors([vector], int(mapping["mappings"]["properties"][field]["dims"]))
         clauses = self._resolved_filter_clauses(filters)
 
@@ -225,7 +264,7 @@ class ElasticsearchProductRepository:
                 knn["filter"] = filter_clauses[0] if len(filter_clauses) == 1 else {"bool": {"filter": filter_clauses}}
             if debug is not None:
                 debug["query_dsl"] = _public_dsl({"knn": knn, "size": size})
-            response = self.client.search(index=self.index_alias, knn=knn, size=size, source_excludes=list(_SOURCE_EXCLUDES))
+            response = self.client.search(index=self.index_alias, knn=knn, size=size, source_excludes=list(_HIT_SOURCE_EXCLUDES))
             return [_to_raw_hit(hit) for hit in response.get("hits", {}).get("hits", [])]
 
         return search_with(clauses)
