@@ -207,24 +207,33 @@ export async function chatStream(args = {}) {
     onEvent?.(evt)
   })
   const reader = response.body?.getReader?.()
-  if (reader) {
-    const decoder = new TextDecoder()
-    for (;;) {
-      const { value, done: finished } = await reader.read()
-      if (finished) break
-      parser.push(decoder.decode(value, { stream: true }))
-      if (streamError) break
+  try {
+    if (reader) {
+      const decoder = new TextDecoder()
+      for (;;) {
+        const { value, done: finished } = await reader.read()
+        if (finished) break
+        parser.push(decoder.decode(value, { stream: true }))
+        if (streamError) break
+      }
+      parser.push(decoder.decode())
+    } else {
+      parser.push(await response.text())
     }
-    parser.push(decoder.decode())
-  } else {
-    parser.push(await response.text())
+  } catch (error) {
+    // The connection dropped mid-answer (not a user abort): report it as an incomplete stream.
+    signal?.throwIfAborted()
+    if (error?.name === 'AbortError') throw error
+    throw Object.assign(new Error(error?.message || 'The assistant stream was interrupted'), { code: 'stream_incomplete', cause: error })
+  } finally {
+    if (streamError) reader?.cancel?.().catch?.(() => {})
   }
   parser.flush()
   signal?.throwIfAborted()
   if (streamError) {
-    throw Object.assign(new Error(streamError?.message || 'Assistant stream failed'), { code: streamError?.code })
+    throw Object.assign(new Error(streamError?.message || 'Assistant stream failed'), { code: streamError?.code, status: streamError?.status })
   }
-  if (!done) throw new Error('The assistant stream ended before the answer was complete')
+  if (!done) throw Object.assign(new Error('The assistant stream ended before the answer was complete'), { code: 'stream_incomplete' })
   return { data: done, durationMs: Math.round(performance.now() - started), requestId: response.headers?.get?.('x-request-id') ?? null }
 }
 

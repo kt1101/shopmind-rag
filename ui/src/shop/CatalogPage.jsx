@@ -6,7 +6,7 @@ import { useI18n } from '../shared/ui/I18nProvider.jsx'
 import { buildCatalogUrl, parseFilters } from '../lib/urlState.js'
 import FilterSidebar from './FilterSidebar.jsx'
 import ProductGrid from './ProductGrid.jsx'
-import StatusBlock from './StatusBlock.jsx'
+import StatusBlock, { ErrorBlock } from './StatusBlock.jsx'
 
 export const PAGE_SIZE = 24
 
@@ -202,12 +202,7 @@ export default function CatalogPage() {
         {loading && items.length === 0 ? (
           <ProductGrid products={[]} loading={true} skeletonCount={8} />
         ) : error ? (
-          <StatusBlock
-            tone="error"
-            title={t('catalog.failed')}
-            message={error.message || t('state.error')}
-            action={{ label: t('state.retry'), onClick: reload }}
-          />
+          <ErrorBlock error={error} context={t('catalog.failed')} onRetry={reload} />
         ) : total === 0 || items.length === 0 ? (
           <StatusBlock
             tone="empty"

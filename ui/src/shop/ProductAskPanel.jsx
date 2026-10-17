@@ -4,6 +4,7 @@ import { AnswerTurn } from '../components/ProductAnswer.jsx'
 import { readJSON, writeJSON } from '../shared/lib/storage.js'
 import { explainFor } from '../shared/lib/staffMode.js'
 import { useStaffMode } from '../shared/lib/useStaffMode.js'
+import { describeError } from '../shared/api/errors.js'
 import { useI18n } from '../shared/ui/I18nProvider.jsx'
 import '../entities/citation/citation.css'
 
@@ -11,6 +12,19 @@ const EXPLAIN_KEY = 'shopmind.explain'
 const SUGGESTED = {
   vi: ['Có chống nước không?', 'Chất liệu là gì?', 'Review nói gì về size?', 'Đổi trả thế nào?'],
   en: ['Is it waterproof?', 'What material is it?', 'What do reviews say about the fit?', 'What is the return policy?'],
+}
+
+function AskError({ error, onRetry }) {
+  const { t } = useI18n()
+  const info = describeError(error, t)
+  return (
+    <div className={`ask-error ask-error--${info.kind}`} role="alert">
+      <p>
+        <strong>{info.title}.</strong> {info.message}
+      </p>
+      {onRetry && info.retryable && <button type="button" onClick={onRetry}>{t('state.retry')}</button>}
+    </div>
+  )
 }
 
 // Mount with key={product.product_id} so the conversation resets per product.
@@ -57,7 +71,7 @@ export default function ProductAskPanel({ product }) {
       setStatus('idle')
     } catch (err) {
       if (controller.current !== requestController || err.name === 'AbortError') return
-      setError(err.message)
+      setError(err)
       setStatus('idle')
     }
   }
@@ -134,12 +148,7 @@ export default function ProductAskPanel({ product }) {
       </form>
 
       {loading && <p className="ask-status" role="status">{t('ask.loadingLong')}</p>}
-      {error && (
-        <p className="ask-error" role="alert">
-          {error}
-          {lastAsk && <button type="button" onClick={() => ask(lastAsk)}>{t('state.retry')}</button>}
-        </p>
-      )}
+      {error && <AskError error={error} onRetry={lastAsk ? () => ask(lastAsk) : null} />}
     </section>
   )
 }

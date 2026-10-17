@@ -13,7 +13,7 @@ import { useI18n } from '../shared/ui/I18nProvider.jsx'
 import FilterSidebar from './FilterSidebar.jsx'
 import { useImageSearch } from './ImageSearchContext.jsx'
 import ProductGrid from './ProductGrid.jsx'
-import StatusBlock from './StatusBlock.jsx'
+import StatusBlock, { ErrorBlock } from './StatusBlock.jsx'
 import '../features/feedback/feedback.css'
 
 const API = { text: searchText, image: searchImage, compose: searchCompose }
@@ -162,7 +162,7 @@ export default function SearchPage() {
         if (controller.signal.aborted) return
         const trace = res?.data?.trace || null
         if (trace) traceCache.current.set(key, trace)
-        setInspector((s) => ({ ...s, trace, loading: false, error: trace ? null : new Error('No trace in response') }))
+        setInspector((s) => ({ ...s, trace, loading: false, error: trace ? null : new Error(t('inspector.noTrace')) }))
       })
       .catch((err) => {
         if (!controller.signal.aborted && err.name !== 'AbortError') setInspector((s) => ({ ...s, loading: false, error: err }))
@@ -288,7 +288,7 @@ export default function SearchPage() {
             {loading && !items.length ? (
               <ProductGrid products={[]} loading skeletonCount={8} />
             ) : error ? (
-              <StatusBlock tone="error" title={t('results.failed')} message={error.message} action={{ label: t('results.retry'), onClick: () => setReloadIndex((i) => i + 1) }} />
+              <ErrorBlock error={error} context={t('results.failed')} onRetry={() => setReloadIndex((i) => i + 1)} />
             ) : !loading && items.length === 0 ? (
               <div className="search-empty">
                 <StatusBlock

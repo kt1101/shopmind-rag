@@ -26,7 +26,7 @@ export function normalizeChatPayload(data, question) {
 // F2 assistant: POST /chat/stream (SSE). `onEvent` receives every event; unknown events are
 // ignored by the reducer. Without the chat endpoint (older backend, or a test api without
 // chatStream) the A3 endpoint answers scoped questions and A1 search answers the rest.
-export async function fetchReply({ question, scope, history = [], sessionId, imageToken, explain = false, signal, onEvent, api = defaultApi }) {
+export async function fetchReply({ question, scope, history = [], sessionId, imageToken, explain = false, signal, onEvent, api = defaultApi, t = englishFallback }) {
   if (typeof api.chatStream === 'function') {
     try {
       const { data } = await api.chatStream({ message: question, history, productId: scope?.product_id, sessionId, imageToken, explain, signal, onEvent })
@@ -35,10 +35,16 @@ export async function fetchReply({ question, scope, history = [], sessionId, ima
       if (!MISSING_ENDPOINT.has(error?.status)) throw error
     }
   }
-  return legacyReply({ question, scope, signal, api })
+  return legacyReply({ question, scope, signal, api, t })
 }
 
-async function legacyReply({ question, scope, signal, api }) {
+function englishFallback(key, { query } = {}) {
+  return key === 'chat.legacyFound'
+    ? `Here are the closest matches for "${query}". Choose "Ask about this product" to ask about one of them.`
+    : `I couldn't find products matching "${query}". Try different words.`
+}
+
+async function legacyReply({ question, scope, signal, api, t }) {
   if (scope) {
     const { data } = await api.askProduct({ question, productId: scope.product_id, sources: ['product'], debug: true, signal })
     return {
@@ -53,9 +59,7 @@ async function legacyReply({ question, scope, signal, api }) {
   const results = data?.results ?? []
   return {
     kind: 'search',
-    answer: results.length
-      ? `Here are the closest matches for "${question}". Choose "Ask about this" to get answers about one of them.`
-      : `I couldn't find products matching "${question}". Try different words.`,
+    answer: t(results.length ? 'chat.legacyFound' : 'chat.legacyNone', { query: question }),
     sources: results,
   }
 }

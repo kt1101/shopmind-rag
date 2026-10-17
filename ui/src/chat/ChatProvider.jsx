@@ -3,6 +3,7 @@ import { getChatSession } from '../api.js'
 import { readJSON, removeKey, writeJSON } from '../shared/lib/storage.js'
 import { explainFor } from '../shared/lib/staffMode.js'
 import { useStaffMode } from '../shared/lib/useStaffMode.js'
+import { useI18n } from '../shared/ui/I18nProvider.jsx'
 import { chatReducer, historyFor, initialChatState } from './chatState.js'
 import { fetchReply } from './chatReply.js'
 
@@ -27,6 +28,9 @@ export function ChatProvider({ children, initial = initialChatState }) {
   const [state, dispatch] = useReducer(chatReducer, initial)
   const [explain, setExplainState] = useState(() => readJSON(EXPLAIN_KEY, true) !== false)
   const staff = useStaffMode()
+  const { t } = useI18n()
+  const tRef = useRef(t)
+  tRef.current = t
   const stateRef = useRef(state)
   stateRef.current = state
   // Glass-box data is requested only in staff mode (and when the staff toggle is on).
@@ -70,6 +74,7 @@ export function ChatProvider({ children, initial = initialChatState }) {
       imageToken: question.image?.token,
       explain: explainRef.current,
       signal: controller.signal,
+      t: (key, vars) => tRef.current(key, vars),
       onEvent: (evt) => {
         if (controller.signal.aborted) return
         const action = eventToAction(evt)
@@ -81,7 +86,7 @@ export function ChatProvider({ children, initial = initialChatState }) {
       })
       .catch((err) => {
         if (!controller.signal.aborted && err?.name !== 'AbortError') {
-          dispatch({ type: 'fail', message: err?.message || 'Request failed' })
+          dispatch({ type: 'fail', message: err?.message || '', code: err?.code ?? null, status: err?.status ?? null, name: err?.name ?? null })
         }
       })
 
