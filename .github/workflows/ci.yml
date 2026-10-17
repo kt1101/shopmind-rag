@@ -46,7 +46,7 @@ jobs:
         # These two tests read data/a1_abo_1500/products.jsonl, a generated (git-ignored)
         # dataset built by scripts.prepare_a1_abo_subset. It is not available in CI.
         run: >-
-          pytest tests/unit tests/api tests/evaluation tests/a3 -q
+          pytest tests/unit tests/api tests/evaluation tests/a3 tests/platform -q
           --deselect tests/evaluation/test_accuracy_benchmark.py::test_benchmark_is_complete_disjoint_and_reproducible
           --deselect tests/a3/test_a3_storage.py::test_review_matches_only_exact_catalog_asin_or_parent_asin
 

@@ -1,3 +1,11 @@
-# Offline evaluation runs (no auth, no tracing persistence).
+# Offline evaluation runs (no auth, no tracing persistence, no database).
+# Platform components fall back to a private in-memory SQLite database.
 tracing:
   enabled: false
+  store: memory
+database:
+  enabled: false
+auth:
+  enabled: false
+jobs:
+  import_runs_on_startup: false

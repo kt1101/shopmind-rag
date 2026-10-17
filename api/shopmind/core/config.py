@@ -115,6 +115,12 @@ class DatabaseConfig(BaseModel):
     enabled: bool = True
     url: str = "sqlite:///./data/shopmind.db"
     echo: bool = False
+    # Create missing tables with ``metadata.create_all`` (and stamp Alembic head) at startup.
+    # Dev/tests only; docker runs ``alembic upgrade head`` in the entrypoint instead.
+    auto_create: bool = False
+    connect_timeout_seconds: int = Field(default=5, gt=0)
+    # Seed the policy CMS from ``jobs.policies_source`` when the table is empty.
+    seed_policies: bool = True
 
 
 class AuthConfig(BaseModel):
@@ -184,6 +190,26 @@ class FeaturesConfig(BaseModel):
     rate_limit_per_minute: int = Field(default=30, ge=0)
 
 
+class JobsConfig(BaseModel):
+    """In-process admin jobs (reindex policies, run eval, build embedding map)."""
+    model_config = ConfigDict(extra="forbid")
+    enabled: bool = True
+    max_workers: int = Field(default=2, gt=0)
+    # Writable directory for job artifacts (policy exports, embeddings); relative to the API cwd.
+    work_dir: str = "data/jobs"
+    log_tail_chars: int = Field(default=20000, gt=0)
+    timeout_seconds: int = Field(default=3600, gt=0)
+    runs_dir: str = "runs"
+    import_runs_on_startup: bool = True
+    policies_source: str = "data/policies"
+    # New physical policy indexes are named ``<policy_index_prefix><N>`` (N = previous + 1).
+    policy_index_prefix: str = "policies_a3_v"
+    eval_config: str = "configs/experiments/hybrid_rrf.yaml"
+    eval_queries: str = "evaluation/benchmarks/a1/queries.jsonl"
+    eval_qrels: str = "evaluation/benchmarks/a1/qrels.jsonl"
+    embedding_map_output: str = "data/embedding_map"
+
+
 class AppConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     elasticsearch: ElasticsearchConfig
@@ -205,6 +231,7 @@ class AppConfig(BaseModel):
     features: FeaturesConfig = Field(default_factory=FeaturesConfig)
     plugins: list[str] = Field(default_factory=list)
     hot_reloadable: list[str] = Field(default_factory=list)
+    jobs: JobsConfig = Field(default_factory=JobsConfig)
 
     def index_alias(self, name: str) -> str:
         return self.indexes[name].alias if name in self.indexes else name

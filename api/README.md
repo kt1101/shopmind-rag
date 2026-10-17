@@ -363,7 +363,7 @@ Representative failure records use evidence-based categories such as lexical mis
 Fast tests do not require Elasticsearch or a real model:
 
 ```bash
-pytest tests/unit tests/api tests/evaluation tests/a3 -q
+pytest tests/unit tests/api tests/evaluation tests/a3 tests/platform -q
 ```
 
 With Elasticsearch running:
@@ -377,6 +377,42 @@ Real SigLIP2 smoke testing is opt-in because it can download a large model:
 ```bash
 RUN_SLOW_MODEL_TESTS=1 pytest -m slow -q
 ```
+
+## Database, auth and admin API
+
+PostgreSQL is the system of record ([ADR 0002](../docs/adr/0002-postgresql-system-of-record.md)); Elasticsearch stays the search store. Models are in `shopmind/infrastructure/db/models.py` (users, chat sessions/messages, search and click events, pipeline traces, feedback, relevance judgments, config profiles, policies, synthetic `products_overlay`, jobs, eval runs). No vectors or image bytes are stored.
+
+- URL: `database.url` in `configs/components/platform.yaml` (default `sqlite:///./data/shopmind.db`), overridden by `DATABASE_URL` (docker compose: PostgreSQL). `database.enabled: false` (eval profile, `create_app(auto_wire=False)` tests) runs every platform feature on a private in-memory SQLite database.
+- Migrations: `alembic upgrade head` from `api/` (`alembic.ini` → `shopmind/infrastructure/db/migrations/`). The API image runs it in its entrypoint. With `database.auto_create: true` (dev profile) missing tables are created at startup and the database is stamped at Alembic head.
+- If the database is down, search keeps working: event, trace and chat-history writes are queued off the request path and dropped while a short circuit breaker is open; admin endpoints answer `503 database_unavailable`.
+- Seed demo data (idempotent): `python -m scripts.seed_demo` (`make seed` in docker). It creates the admin from `ADMIN_USERNAME`/`ADMIN_PASSWORD`, an `annotator` user (`ANNOTATOR_PASSWORD`, default `annotator`), imports `data/policies/*.jsonl` into the policy CMS, writes deterministic synthetic price/stock rows (flagged `synthetic`) for `data/a1_abo_1500/products.jsonl`, and imports `runs/**/metrics.json`.
+
+Auth: routes guarded by `deps.require_auth` (`/api/v1/admin/*`, `GET /traces/*`; the contract adds `/debug/*`) need `Authorization: Bearer <jwt>` when `auth.enabled` is true. Tokens are HS256 JWTs signed with `JWT_SECRET` (login is refused with `503 auth_not_configured` without it); passwords are bcrypt hashes. Roles: `admin` (everything) and `annotator` (read + relevance judgments; config, jobs and policy changes return `403 forbidden`). The `dev` profile ships a dev-only secret and `admin`/`admin`.
+
+```bash
+TOKEN=$(curl -s -X POST localhost:8000/api/v1/admin/auth/login -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"admin"}' | python -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')
+curl -s localhost:8000/api/v1/admin/stats?days=7 -H "Authorization: Bearer $TOKEN"
+```
+
+Admin endpoints (shapes in [docs/API_CONTRACT.md](../docs/API_CONTRACT.md) "Admin (JWT)"):
+
+| Endpoint | Notes |
+| --- | --- |
+| `POST /admin/auth/login`, `GET /admin/auth/me` | `401 invalid_credentials` on a bad login |
+| `GET /admin/stats?days=7` | totals, p50/p95 latency per pipeline, daily series, top and zero-result queries, abstain rate, CTR |
+| `GET/PUT /admin/config`, `GET /admin/config/profiles`, `POST /admin/config/profiles/{id}/activate` | effective config (secrets redacted); `PUT` saves + activates a profile of hot-reloadable overrides (`422` with `error.details: [{field, message}]`); activating an older profile is the rollback |
+| `GET /admin/traces?q=&kind=&limit=&offset=` | trace list (`tracing.store: database` keeps traces for `tracing.retention_days`) |
+| `GET /admin/indexes` | alias → physical index, doc count, vector dims, embedder ids (`status: unavailable` when ES is down) |
+| `GET/POST /admin/jobs`, `GET /admin/jobs/{id}` | job types `reindex_policies`, `run_eval`, `build_embedding_map` (in-process, logs tail-limited) |
+| `GET/POST /admin/policies`, `PUT /admin/policies/{id}`, `POST /admin/policies/publish` | policy CMS; publish starts a `reindex_policies` job → new `policies_a3_v<N>` index + alias switch |
+| `GET /admin/eval-runs`, `GET /admin/eval-runs/{id}`, `POST /admin/eval-runs/import` | runs imported from `runs/**/metrics.json` (A1 and A3) |
+| `GET /admin/feedback` | thumbs up/down from `POST /feedback` |
+| `GET/POST /admin/judgments`, `GET /admin/judgments/export`, `GET /admin/judgments/agreement` | per-annotator grades 0/1/2, qrels JSONL export (benchmark `query_id` reused when the query matches), Cohen's kappa |
+
+Public: `POST /feedback` (`201 {id}`) and `POST /events/click` (`204`). `/rag/*` and `/chat/*` can use the `shopmind.interfaces.http.ratelimit.rate_limit` dependency (`features.rate_limit_per_minute` per client IP, `429 rate_limited`).
+
+Runtime config: `config.hot_reloadable` lists the keys admins may change (`a.b` also covers keys below it, `*` matches one or more segments, e.g. `pipelines.*.steps`). Overrides are validated with the same Pydantic models; `config_service.effective()` (what `deps.get_config` returns) merges the active profile, and `config_service.subscribe(callback)` notifies subsystems on change.
 
 ## Storefront API
 

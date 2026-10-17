@@ -1,2 +1,68 @@
-# Owner: platform: database/auth/tracing/features
-{}
+# Owner: platform: database, auth, tracing, features, jobs, hot_reloadable
+# Secrets never live here: JWT_SECRET, ADMIN_PASSWORD, DATABASE_URL come from the environment.
+
+database:
+  enabled: true
+  # DATABASE_URL overrides this (docker compose: postgresql+psycopg://...@postgres:5432/shopmind).
+  url: sqlite:///./data/shopmind.db
+  echo: false
+  # true = create missing tables at startup (and stamp Alembic head). Docker runs `alembic upgrade head`.
+  auto_create: false
+  connect_timeout_seconds: 5
+  # Import data/policies/*.jsonl into the policy CMS when the table is empty.
+  seed_policies: true
+
+auth:
+  enabled: true
+  jwt_algorithm: HS256
+  token_ttl_minutes: 480
+  admin_username: admin
+
+tracing:
+  enabled: true
+  store: database          # memory | database (pipeline_traces table, purged after retention_days)
+  memory_capacity: 500
+  max_items_per_step: 20
+  retention_days: 7
+
+features:
+  compose_default_alpha: 0.7
+  query_understanding: rules
+  synthetic_commerce: true
+  chat_image_ttl_seconds: 900
+  rate_limit_per_minute: 30   # per client IP on /rag/* and /chat/*; 0 disables
+
+jobs:
+  enabled: true
+  max_workers: 2
+  work_dir: data/jobs
+  log_tail_chars: 20000
+  timeout_seconds: 3600
+  runs_dir: runs
+  import_runs_on_startup: true
+  policies_source: data/policies
+  policy_index_prefix: policies_a3_v
+  eval_config: configs/experiments/hybrid_rrf.yaml
+  eval_queries: evaluation/benchmarks/a1/queries.jsonl
+  eval_qrels: evaluation/benchmarks/a1/qrels.jsonl
+  embedding_map_output: data/embedding_map
+
+# Keys the Admin console may change at runtime (saved as config profiles, validated by the
+# same Pydantic models). `a.b` also allows keys below it; `*` matches one or more segments.
+hot_reloadable:
+  - retrieval.top_k
+  - retrieval.candidate_k
+  - retrieval.default_mode
+  - fusion.rrf_k
+  - fusion.method
+  - reranker.enabled
+  - rag.fusion.*
+  - rag.reranker.enabled
+  - rag.reranker.top_k
+  - rag.context.*
+  - rag.llm.model
+  - defaults.*
+  - features.compose_default_alpha
+  - features.query_understanding
+  - features.rate_limit_per_minute
+  - pipelines.*.steps

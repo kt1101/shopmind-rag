@@ -46,6 +46,9 @@ viz = ["scikit-learn>=1.5,<2", "umap-learn>=0.5,<1"]
 [tool.setuptools.packages.find]
 include = ["shopmind*", "evaluation*", "scripts*"]
 
+[tool.setuptools.package-data]
+"shopmind.infrastructure.db.migrations" = ["script.py.mako"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
