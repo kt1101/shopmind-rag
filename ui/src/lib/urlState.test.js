@@ -1,7 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  DEFAULT_ALPHA,
   SEARCH_MODES,
+  hasActiveFilters,
+  parseAlpha,
   parseFilters,
   parseSearch,
   buildCatalogUrl,
@@ -21,12 +24,12 @@ test('SEARCH_MODES keys, labels, and order match constraints', () => {
 
 test('parseFilters reads repeated params, trims and dedupes', () => {
   const p = new URLSearchParams('category=shoes&category=%20shoes%20&category=&brand=Acme&x=1')
-  assert.deepEqual(parseFilters(p), { category: ['shoes'], brand: ['Acme'] })
+  assert.deepEqual(parseFilters(p), { category: ['shoes'], brand: ['Acme'], color: [] })
 })
 
 test('parseSearch detects text, image and empty searches', () => {
   assert.deepEqual(parseSearch(new URLSearchParams('q=%20boots%20&mode=bm25')),
-    { type: 'text', query: 'boots', mode: 'bm25', filters: { category: [], brand: [] } })
+    { type: 'text', query: 'boots', mode: 'bm25', filters: { category: [], brand: [], color: [] } })
   assert.equal(parseSearch(new URLSearchParams('type=image&q=ignored')).type, 'image')
   assert.equal(parseSearch(new URLSearchParams('q=%20%20')).type, null)
 })
@@ -48,7 +51,7 @@ test('buildSearchUrl builds text and image URLs', () => {
 })
 
 test('filter values with reserved characters round-trip', () => {
-  const filters = { category: ['Shoes & Gear'], brand: ['Café+Co'] }
+  const filters = { category: ['Shoes & Gear'], brand: ['Café+Co'], color: ['black'] }
   const url = buildSearchUrl({ type: 'text', query: 'a', mode: 'hybrid', filters })
   assert.deepEqual(parseFilters(new URLSearchParams(url.split('?')[1])), filters)
 })
@@ -56,4 +59,22 @@ test('filter values with reserved characters round-trip', () => {
 test('productPath encodes ids', () => {
   assert.equal(productPath('P1'), '/products/P1')
   assert.equal(productPath('A/B #1?'), '/products/A%2FB%20%231%3F')
+})
+
+test('compose searches carry the query and a clamped alpha', () => {
+  const url = buildSearchUrl({ type: 'compose', query: ' màu đen ', alpha: 0.35, filters: { color: ['black'] } })
+  assert.equal(url, '/search?type=compose&q=m%C3%A0u+%C4%91en&alpha=0.35&color=black')
+  assert.deepEqual(parseSearch(new URLSearchParams(url.split('?')[1])),
+    { type: 'compose', query: 'màu đen', mode: 'hybrid', filters: { category: [], brand: [], color: ['black'] }, alpha: 0.35 })
+  assert.equal(parseSearch(new URLSearchParams('type=compose&q=')).type, 'image', 'no text degrades to image search')
+  assert.equal(parseAlpha('7'), 1)
+  assert.equal(parseAlpha('-1'), 0)
+  assert.equal(parseAlpha('abc'), DEFAULT_ALPHA)
+  assert.equal(parseAlpha(null), DEFAULT_ALPHA)
+})
+
+test('catalog URLs drop the search-only colour filter; hasActiveFilters sees every field', () => {
+  assert.equal(buildCatalogUrl({ category: ['a'], color: ['black'] }), '/?category=a')
+  assert.equal(hasActiveFilters({ category: [], brand: [], color: ['red'] }), true)
+  assert.equal(hasActiveFilters({ category: [], brand: [] }), false)
 })

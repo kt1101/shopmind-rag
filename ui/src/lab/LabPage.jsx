@@ -282,9 +282,11 @@ export default function LabPage() {
   }
 
   return (
+    <div className="lab-root">
     <main className="lab">
       <header className="site-header">
         <Link className="brand" to="/" aria-label="ShopMind home"><span>SM</span><strong>ShopMind</strong><small>Retrieval Lab / A1 + A3</small></Link>
+        <Link className="lab-map-link" to="/lab/embeddings">Embedding map →</Link>
         <div className={`readiness ${ready}`} role="status" aria-live="polite"><span />{ready === 'checking' ? 'Checking API' : ready === 'ready' ? 'System ready' : 'API unavailable'}</div>
       </header>
 
@@ -338,5 +340,6 @@ export default function LabPage() {
       </>}
       <AnswerPanel product={selectedProduct} question={question} onQuestionChange={setQuestion} onSubmit={askQuestion} sources={selectedSources} onToggleSource={toggleSource} answers={answers} status={answerStatus} error={answerError} />
     </main>
+    </div>
   )
 }

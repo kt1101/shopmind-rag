@@ -1,198 +1,182 @@
-import { useEffect, useState } from 'react'
-import { getFilterOptions } from '../api.js'
+import { useEffect, useMemo, useState } from 'react'
+import { getFacets, getFilterOptions } from '../api.js'
 import FilterField from '../components/FilterField.jsx'
 import { useFilterOptions } from '../components/useFilterOptions.js'
-import { humanizeCategory } from '../lib/format.js'
+import { categoryLabel, colorLabel } from '../shared/i18n.js'
+import { useI18n } from '../shared/ui/I18nProvider.jsx'
+import { mergeFacet } from '../features/facets/facets.js'
 
-export default function FilterSidebar({ filters = {}, onChange }) {
+const COLOR_SWATCH = {
+  black: '#22252b', brown: '#8a5a3b', blue: '#3b6fd8', green: '#3f8f5a', white: '#f4f5f7', grey: '#8b93a1', red: '#c8423b', beige: '#cdb68f',
+}
+
+function asList(value) {
+  return Array.isArray(value) ? value : value ? [value] : []
+}
+
+// Facet counts come from POST /search/facets (ES aggregations). If that endpoint fails,
+// the sidebar falls back to filter-options (categories) and the brand autocomplete.
+export default function FilterSidebar({ filters = {}, onChange, query = null, showColor = false }) {
+  const { t, lang } = useI18n()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [facets, setFacets] = useState(null)
+  const [facetsFailed, setFacetsFailed] = useState(false)
   const [categoryOptions, setCategoryOptions] = useState([])
-  const [categoryLoading, setCategoryLoading] = useState(true)
+  const [categoryLoading, setCategoryLoading] = useState(false)
   const [categoryError, setCategoryError] = useState(null)
   const [categoryReloadIndex, setCategoryReloadIndex] = useState(0)
-
   const [brandDraft, setBrandDraft] = useState('')
   const [brandFocused, setBrandFocused] = useState(false)
-  const {
-    options: brandOptions,
-    loading: brandLoading,
-    error: brandError,
-  } = useFilterOptions('brand', brandDraft, brandFocused)
 
-  const selectedCategories = Array.isArray(filters?.category)
-    ? filters.category
-    : filters?.category
-      ? [filters.category]
-      : []
-
-  const selectedBrands = Array.isArray(filters?.brand)
-    ? filters.brand
-    : filters?.brand
-      ? [filters.brand]
-      : []
-
-  const activeCount = selectedCategories.length + selectedBrands.length
+  const selected = {
+    category: asList(filters?.category),
+    brand: asList(filters?.brand),
+    color: asList(filters?.color),
+  }
+  const activeCount = selected.category.length + selected.brand.length + (showColor ? selected.color.length : 0)
+  const facetKey = JSON.stringify({ query, category: selected.category, brand: selected.brand, color: showColor ? selected.color : [] })
 
   useEffect(() => {
     const controller = new AbortController()
+    const timer = setTimeout(() => {
+      const body = { category: selected.category, brand: selected.brand, ...(showColor ? { color: selected.color } : {}) }
+      getFacets({ query: query || undefined, filters: body, signal: controller.signal })
+        .then((res) => {
+          if (controller.signal.aborted) return
+          setFacets(res?.data?.facets || null)
+          setFacetsFailed(!res?.data?.facets)
+        })
+        .catch((err) => {
+          if (!controller.signal.aborted && err?.name !== 'AbortError') setFacetsFailed(true)
+        })
+    }, 120)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+    // facetKey captures every input
+  }, [facetKey])
+
+  // Fallback path: categories from filter-options.
+  useEffect(() => {
+    if (!facetsFailed) return undefined
+    const controller = new AbortController()
     setCategoryLoading(true)
     setCategoryError(null)
-
     getFilterOptions({ field: 'category', limit: 50, signal: controller.signal })
       .then((res) => {
         if (!controller.signal.aborted) {
-          setCategoryOptions(res?.data?.options || [])
+          setCategoryOptions((res?.data?.options || []).map((opt) => (typeof opt === 'string' ? { value: opt, count: null } : opt)))
         }
       })
       .catch((err) => {
-        if (err.name !== 'AbortError') {
-          setCategoryError(err.message || "Couldn't load categories")
-        }
+        if (err.name !== 'AbortError') setCategoryError(err.message || t('filters.error'))
       })
       .finally(() => {
-        if (!controller.signal.aborted) {
-          setCategoryLoading(false)
-        }
+        if (!controller.signal.aborted) setCategoryLoading(false)
       })
+    return () => controller.abort()
+  }, [facetsFailed, categoryReloadIndex, t])
 
-    return () => {
-      controller.abort()
-    }
-  }, [categoryReloadIndex])
+  const { options: brandOptions, loading: brandLoading, error: brandError } = useFilterOptions('brand', brandDraft, facetsFailed && brandFocused)
 
   useEffect(() => {
     if (!drawerOpen) return undefined
     function handleKeyDown(event) {
-      if (event.key === 'Escape') {
-        setDrawerOpen(false)
-      }
+      if (event.key === 'Escape') setDrawerOpen(false)
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [drawerOpen])
 
-  function handleCategoryToggle(value) {
-    const nextCategories = selectedCategories.includes(value)
-      ? selectedCategories.filter((cat) => cat !== value)
-      : [...selectedCategories, value]
-
-    onChange?.({
-      ...filters,
-      category: nextCategories,
-    })
+  function toggle(field, value) {
+    const list = selected[field]
+    const next = list.includes(value) ? list.filter((v) => v !== value) : [...list, value]
+    onChange?.({ ...filters, [field]: next })
   }
 
-  function handleBrandSelect(_, value) {
-    setBrandDraft('')
-    if (!selectedBrands.includes(value)) {
-      onChange?.({
-        ...filters,
-        brand: [...selectedBrands, value],
-      })
-    }
-  }
+  const categoryList = useMemo(
+    () => (facets ? mergeFacet(facets.category, selected.category) : mergeFacet(categoryOptions, selected.category)),
+    [facets, categoryOptions, facetKey],
+  )
+  const brandList = useMemo(() => (facets ? mergeFacet(facets.brand, selected.brand) : []), [facets, facetKey])
+  const colorList = useMemo(() => (facets ? mergeFacet(facets.color, selected.color) : []), [facets, facetKey])
 
-  function handleBrandRemove(_, value) {
-    onChange?.({
-      ...filters,
-      brand: selectedBrands.filter((item) => item !== value),
-    })
+  function checkboxList(field, list, labelFor, groupLabel) {
+    return (
+      <div className="filter-category-list" role="group" aria-label={groupLabel}>
+        {list.map((opt) => (
+          <label key={opt.value} className={`filter-checkbox-label ${opt.count === 0 ? 'is-zero' : ''}`}>
+            <input type="checkbox" checked={selected[field].includes(opt.value)} onChange={() => toggle(field, opt.value)} />
+            {field === 'color' && <span className="filter-swatch" style={{ background: COLOR_SWATCH[opt.value] || 'var(--color-surface-3)' }} aria-hidden="true" />}
+            <span className="filter-checkbox-name">{labelFor(opt.value)}</span>
+            {opt.count != null && <span className="filter-count">{opt.count}</span>}
+          </label>
+        ))}
+      </div>
+    )
   }
-
-  const knownCategoryValues = new Set((categoryOptions || []).map((opt) => opt.value))
-  const extraSelected = selectedCategories.filter((val) => !knownCategoryValues.has(val))
-  const displayedCategories = [
-    ...extraSelected.map((val) => ({ value: val, count: null })),
-    ...(categoryOptions || []),
-  ]
 
   return (
     <aside className="filter-sidebar">
-      <button
-        type="button"
-        className="filter-drawer-toggle"
-        aria-expanded={drawerOpen}
-        aria-controls="shop-filter-drawer"
-        onClick={() => setDrawerOpen((prev) => !prev)}
-      >
-        Filters{activeCount > 0 ? ` (${activeCount})` : ''}
+      <button type="button" className="filter-drawer-toggle" aria-expanded={drawerOpen} aria-controls="shop-filter-drawer" onClick={() => setDrawerOpen((prev) => !prev)}>
+        {t('filters.title')}{activeCount > 0 ? ` (${activeCount})` : ''}
       </button>
 
-      {drawerOpen && (
-        <div
-          className="filter-drawer-backdrop"
-          onClick={() => setDrawerOpen(false)}
-          aria-hidden="true"
-        />
-      )}
+      {drawerOpen && <div className="filter-drawer-backdrop" onClick={() => setDrawerOpen(false)} aria-hidden="true" />}
 
-      <div
-        className={`filter-drawer-panel ${drawerOpen ? 'open' : ''}`}
-        id="shop-filter-drawer"
-        aria-label="Filter products"
-      >
+      <div className={`filter-drawer-panel ${drawerOpen ? 'open' : ''}`} id="shop-filter-drawer" aria-label={t('filters.title')}>
         <div className="filter-drawer-header">
-          <h3 className="filter-drawer-title">Filters</h3>
-          <button
-            type="button"
-            className="filter-drawer-close"
-            aria-label="Close filters"
-            onClick={() => setDrawerOpen(false)}
-          >
-            ×
-          </button>
+          <h3 className="filter-drawer-title">{t('filters.title')}</h3>
+          <button type="button" className="filter-drawer-close" aria-label={t('filters.close')} onClick={() => setDrawerOpen(false)}>×</button>
         </div>
+        {facets && <p className="filter-facets-hint">{t('filters.facetsHint')}</p>}
 
         <div className="filter-section filter-section-category">
-          <span className="filter-section-title">Category</span>
-          {categoryLoading && categoryOptions.length === 0 && (
-            <span className="filter-loading">Loading categories…</span>
-          )}
-          {categoryError && (
+          <span className="filter-section-title">{t('filters.category')}</span>
+          {!facets && !facetsFailed && <span className="filter-loading">{t('filters.loading')}</span>}
+          {facetsFailed && categoryLoading && categoryOptions.length === 0 && <span className="filter-loading">{t('filters.loading')}</span>}
+          {facetsFailed && categoryError && (
             <div className="filter-inline-error">
-              <span>Couldn't load categories</span>
-              <button
-                type="button"
-                className="filter-retry-button"
-                onClick={() => setCategoryReloadIndex((i) => i + 1)}
-              >
-                Retry
-              </button>
+              <span>{t('filters.error')}</span>
+              <button type="button" className="filter-retry-button" onClick={() => setCategoryReloadIndex((i) => i + 1)}>{t('state.retry')}</button>
             </div>
           )}
-          <div className="filter-category-list" role="group" aria-label="Category filters">
-            {displayedCategories.map((opt) => {
-              const checked = selectedCategories.includes(opt.value)
-              return (
-                <label key={opt.value} className="filter-checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => handleCategoryToggle(opt.value)}
-                  />
-                  <span className="filter-checkbox-name">{humanizeCategory(opt.value)}</span>
-                  {opt.count != null && <span className="filter-count">{opt.count}</span>}
-                </label>
-              )
-            })}
-          </div>
+          {checkboxList('category', categoryList, (v) => categoryLabel(lang, v), t('filters.category'))}
         </div>
 
         <div className="filter-section filter-section-brand">
-          <FilterField
-            field="brand"
-            config={{ label: 'Brand', placeholder: 'Any brand', multiple: true }}
-            value={selectedBrands}
-            draft={brandDraft}
-            options={brandOptions}
-            loading={brandLoading}
-            error={brandError}
-            onFocus={() => setBrandFocused(true)}
-            onDraftChange={(_, val) => setBrandDraft(val)}
-            onSelect={handleBrandSelect}
-            onRemove={handleBrandRemove}
-          />
+          {facets ? (
+            <>
+              <span className="filter-section-title">{t('filters.brand')}</span>
+              {checkboxList('brand', brandList, (v) => v, t('filters.brand'))}
+            </>
+          ) : facetsFailed ? (
+            <FilterField
+              field="brand"
+              config={{ label: t('filters.brand'), placeholder: t('filters.anyBrand'), multiple: true }}
+              value={selected.brand}
+              draft={brandDraft}
+              options={brandOptions}
+              loading={brandLoading}
+              error={brandError}
+              onFocus={() => setBrandFocused(true)}
+              onDraftChange={(_, val) => setBrandDraft(val)}
+              onSelect={(_, value) => {
+                setBrandDraft('')
+                if (!selected.brand.includes(value)) onChange?.({ ...filters, brand: [...selected.brand, value] })
+              }}
+              onRemove={(_, value) => onChange?.({ ...filters, brand: selected.brand.filter((item) => item !== value) })}
+            />
+          ) : null}
         </div>
+
+        {showColor && facets && colorList.length > 0 && (
+          <div className="filter-section filter-section-color">
+            <span className="filter-section-title">{t('filters.color')}</span>
+            {checkboxList('color', colorList, (v) => colorLabel(lang, v), t('filters.color'))}
+          </div>
+        )}
       </div>
     </aside>
   )

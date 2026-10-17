@@ -1,0 +1,43 @@
+.answer-with-citations { display: grid; gap: 8px; }
+.answer-with-citations .answer-text { white-space: pre-wrap; line-height: 1.55; }
+.citation-chip {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 18px;
+  margin: 0 2px;
+  padding: 0 5px;
+  border: 1px solid var(--color-accent);
+  border-radius: 999px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: 2px;
+}
+.citation-chip:hover, .citation-chip.is-open { background: var(--color-accent); color: var(--color-on-accent); }
+.citation-chip.src-review { border-color: var(--viz-series-3); color: var(--viz-series-3); background: color-mix(in srgb, var(--viz-series-3) 14%, transparent); }
+.citation-chip.src-policy { border-color: var(--viz-series-4); color: var(--viz-series-4); background: color-mix(in srgb, var(--viz-series-4) 14%, transparent); }
+.citation-chip.src-review:hover, .citation-chip.src-review.is-open { background: var(--viz-series-3); color: var(--color-on-accent); }
+.citation-chip.src-policy:hover, .citation-chip.src-policy.is-open { background: var(--viz-series-4); color: var(--color-on-accent); }
+.citation-extra { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.evidence-card {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font-size: 13px;
+}
+.evidence-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.evidence-title { flex: 1; min-width: 120px; }
+.evidence-source { padding: 1px 7px; border-radius: 999px; background: var(--color-surface-3); font-size: 11px; font-weight: 700; }
+.evidence-source.src-product { background: color-mix(in srgb, var(--viz-series-1) 18%, transparent); }
+.evidence-source.src-review { background: color-mix(in srgb, var(--viz-series-3) 20%, transparent); }
+.evidence-source.src-policy { background: color-mix(in srgb, var(--viz-series-4) 22%, transparent); }
+.evidence-close { border: 0; background: transparent; color: var(--color-text-muted); font-size: 18px; line-height: 1; }
+.evidence-snippet { margin: 8px 0 4px; padding-left: 10px; border-left: 2px solid var(--color-border-strong); font-style: italic; white-space: pre-wrap; }
+.evidence-meta { margin: 0; overflow-wrap: anywhere; }
+.evidence-meta a { color: var(--color-accent); }

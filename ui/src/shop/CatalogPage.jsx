@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { getProducts } from '../api.js'
-import { humanizeCategory } from '../lib/format.js'
+import { categoryLabel } from '../shared/i18n.js'
+import { useI18n } from '../shared/ui/I18nProvider.jsx'
 import { buildCatalogUrl, parseFilters } from '../lib/urlState.js'
 import FilterSidebar from './FilterSidebar.jsx'
 import ProductGrid from './ProductGrid.jsx'
@@ -9,14 +10,11 @@ import StatusBlock from './StatusBlock.jsx'
 
 export const PAGE_SIZE = 24
 
-function formatResultCount(total) {
-  if (total === 1) return '1 product'
-  return `${total} products`
-}
 
 export default function CatalogPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const { t, lang } = useI18n()
 
   const filters = useMemo(() => parseFilters(searchParams), [searchParams])
   const serializedFilters = useMemo(() => buildCatalogUrl(filters), [filters])
@@ -134,7 +132,7 @@ export default function CatalogPage() {
       }
     } catch (err) {
       if (!controller.signal.aborted && err.name !== 'AbortError') {
-        setLoadMoreError(err.message || "Couldn't load more products")
+        setLoadMoreError(err.message || t('state.error'))
         loadMoreAbortRef.current = null
         setLoadMoreLoading(false)
       }
@@ -143,8 +141,8 @@ export default function CatalogPage() {
 
   const title =
     filters.category.length > 0
-      ? filters.category.map(humanizeCategory).join(', ')
-      : 'All products'
+      ? filters.category.map((c) => categoryLabel(lang, c)).join(', ')
+      : t('catalog.all')
 
   const hasActiveFilters = filters.category.length > 0 || filters.brand.length > 0
   const canLoadMore = !loading && total != null && items.length < total
@@ -158,19 +156,19 @@ export default function CatalogPage() {
           <div className="catalog-toolbar-main">
             <h1 className="catalog-title">{title}</h1>
             {total != null && !error && (
-              <span className="catalog-total">{formatResultCount(total)}</span>
+              <span className="catalog-total">{t('results.count', { count: total })}</span>
             )}
           </div>
 
           {hasActiveFilters && (
-            <div className="catalog-active-filters" aria-label="Active filters">
+            <div className="catalog-active-filters" aria-label={t('results.activeFilters')}>
               {filters.category.map((cat) => (
                 <span key={`cat-${cat}`} className="catalog-chip">
-                  <span className="catalog-chip-label">{humanizeCategory(cat)}</span>
+                  <span className="catalog-chip-label">{categoryLabel(lang, cat)}</span>
                   <button
                     type="button"
                     className="catalog-chip-remove"
-                    aria-label={`Remove ${humanizeCategory(cat)} filter`}
+                    aria-label={t('results.removeFilter', { value: categoryLabel(lang, cat) })}
                     onClick={() => handleRemoveCategory(cat)}
                   >
                     ×
@@ -183,7 +181,7 @@ export default function CatalogPage() {
                   <button
                     type="button"
                     className="catalog-chip-remove"
-                    aria-label={`Remove ${brand} filter`}
+                    aria-label={t('results.removeFilter', { value: brand })}
                     onClick={() => handleRemoveBrand(brand)}
                   >
                     ×
@@ -195,7 +193,7 @@ export default function CatalogPage() {
                 className="catalog-clear-all"
                 onClick={handleClearAll}
               >
-                Clear all
+                {t('catalog.clearAll')}
               </button>
             </div>
           )}
@@ -206,16 +204,16 @@ export default function CatalogPage() {
         ) : error ? (
           <StatusBlock
             tone="error"
-            title="Couldn't load products"
-            message={error.message || 'Request failed'}
-            action={{ label: 'Retry', onClick: reload }}
+            title={t('catalog.failed')}
+            message={error.message || t('state.error')}
+            action={{ label: t('state.retry'), onClick: reload }}
           />
         ) : total === 0 || items.length === 0 ? (
           <StatusBlock
             tone="empty"
-            title="No products found"
-            message="Try clearing some filters to see more products."
-            action={{ label: 'Clear filters', onClick: () => navigate('/') }}
+            title={t('catalog.empty')}
+            message={t('catalog.emptyHint')}
+            action={{ label: t('results.clearFilters'), onClick: () => navigate('/') }}
           />
         ) : (
           <>
@@ -228,7 +226,7 @@ export default function CatalogPage() {
                   disabled={loadMoreLoading}
                   onClick={handleLoadMore}
                 >
-                  {loadMoreLoading ? 'Loading...' : 'Load more'}
+                  {loadMoreLoading ? t('state.loading') : t('catalog.loadMore')}
                 </button>
                 {loadMoreError && (
                   <div className="catalog-load-more-error-wrap">
@@ -238,7 +236,7 @@ export default function CatalogPage() {
                       className="catalog-load-more-retry"
                       onClick={handleLoadMore}
                     >
-                      Retry
+                      {t('state.retry')}
                     </button>
                   </div>
                 )}
