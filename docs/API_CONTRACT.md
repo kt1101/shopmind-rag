@@ -24,7 +24,7 @@ Additive fields are allowed; renaming/removing requires updating this file.
 {
   "trace_id": "9f2c...",
   "pipeline": "search.hybrid",
-  "kind": "search | image_search | compose_search | rag | chat | compare",
+  "kind": "search | image_search | compose_search | rag | chat | compare | plan",
   "created_at": "2026-10-16T10:00:00Z",
   "duration_ms": 63.1,
   "input": {"query": "giày bốt da nâu", "filters": {}, "mode": "hybrid"},
@@ -200,8 +200,10 @@ Intents: `product_search | product_question | policy_question | compare | chitch
 ```
 
 `PlanItem = {product_id, title, brand, category, image_url, price: {amount, currency, synthetic: true} | null, in_stock: bool | null, score, rank}`.
-Steps in the trace: `decompose` (impl `llm` or `rules`), one `retrieve` per need (id = need id),
-`optimize_budget`, `build_context`, `generate` + `validate_citations` (LLM mode) or `justify` (rules mode).
+Steps in the trace: `decompose` (impl `llm` or `rules`), one `retrieve` per need (id = need id; the
+search pipeline's own steps — `query_understanding`, `lexical`, `semantic`, `fuse` — follow it inline),
+`optimize_budget` (`details.choices = {need_id: product_id|null}`, `details.total`), `build_context`,
+`generate` + `validate_citations` (LLM mode) or `justify` (rules mode).
 Without an LLM the planner still works (occasion templates from `configs/vocab/occasions.yaml`, extractive
 reasons that cite product/policy evidence). Prices are the synthetic overlay; `budget` may also be parsed
 from the request text ("ngân sách 800 đô", "under $500").

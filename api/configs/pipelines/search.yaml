@@ -68,6 +68,7 @@ pipelines:
 
   search.hybrid_rerank:
     kind: search
+    public: false   # bge-reranker-v2-m3 on CPU takes > 100 s per query; playground/eval only
     description: Hybrid RRF followed by a multilingual cross-encoder on the top 50 (A-5)
     steps:
       - { step: query_understanding, impl: rules }
