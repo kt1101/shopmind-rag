@@ -112,7 +112,12 @@ function RankingTab({ trace, titles }) {
   const table = useMemo(() => rankingTable(trace, { titles }), [trace, titles])
   const [selectedId, setSelectedId] = useState(() => table.rows[0]?.id ?? null)
   const selected = table.rows.find((r) => r.id === selectedId) || null
-  const rrf = selected ? rrfBreakdown(selected, fuseK(trace)) : null
+  const fuseStep = (trace?.steps || []).find((step) => step.step === 'fuse')
+  const fuseImpl = fuseStep?.impl || 'rrf'
+  const weights = fuseStep?.params?.weights
+  // Plain RRF is recomputed client-side; weighted RRF and linear fusion show the server's formula.
+  const plainRrf = fuseImpl === 'rrf' && !(Array.isArray(weights) && weights.some((w) => Number(w) !== 1))
+  const rrf = selected && plainRrf ? rrfBreakdown(selected, fuseK(trace)) : null
   if (!table.rows.length) return <p className="sm-muted">{t('inspector.empty')}</p>
 
   return (
@@ -165,6 +170,18 @@ function RankingTab({ trace, titles }) {
                 <p>= {rrf.denominators}</p>
                 <p>= {rrf.values}</p>
                 <p><strong>= {rrf.total.toFixed(6)}</strong></p>
+              </div>
+            ) : selected.formula ? (
+              <div className="insp-formula-lines">
+                <p><span className="sm-muted">{fuseImpl === 'linear'
+                  ? 'Linear(d) = Σ wᵢ · minmax(scoreᵢ(d))'
+                  : `Weighted RRF(d) = Σ wᵢ/(k + rankᵢ(d))`}{Array.isArray(weights) ? `, w = [${weights.join(', ')}]` : ''}</span></p>
+                {selected.contributions && (
+                  <p>{Object.entries(selected.contributions).map(([name, c], i) => (
+                    <span key={name}>{i > 0 && ' + '}<span className="insp-term"><small>{name} #{c.rank}</small>{Number(c.score).toFixed(4)}</span></span>
+                  ))}</p>
+                )}
+                <p><strong>{selected.formula}</strong></p>
               </div>
             ) : <p className="sm-muted">{t('inspector.empty')}</p>}
             {selected.rerank && (

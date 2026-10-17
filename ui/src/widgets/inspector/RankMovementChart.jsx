@@ -3,7 +3,7 @@ import { rankMovementLayout } from '../../entities/trace/searchTrace.js'
 const SERIES = Array.from({ length: 8 }, (_, i) => `var(--viz-series-${i + 1})`)
 
 export function columnLabel(column, t) {
-  if (column.kind === 'fuse') return t('inspector.fused')
+  if (column.kind === 'fuse') return column.impl && column.impl !== 'rrf' ? `${t('inspector.fusedGeneric')} (${column.impl})` : t('inspector.fused')
   if (column.kind === 'final') return t('inspector.final')
   return column.impl ? `${column.id} (${column.impl})` : column.id
 }
