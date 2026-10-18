@@ -24,9 +24,14 @@ class ProductFacets(BaseModel):
 class ProductListResponse(BaseModel):
     items: list[ProductSummary]
     total: int
-    page: int
-    page_size: int
+    limit: int
+    offset: int
     facets: ProductFacets
+
+
+class ProductAttribute(BaseModel):
+    name: str
+    value: str
 
 
 class ProductDetailResponse(BaseModel):
@@ -36,7 +41,7 @@ class ProductDetailResponse(BaseModel):
     category: str | None = None
     category_label: str | None = None
     description: str = ""
-    attributes: dict[str, str]
+    attributes: list[ProductAttribute]
     bullet_points: list[str]
     category_path: list[str]
     image_url: str | None = None

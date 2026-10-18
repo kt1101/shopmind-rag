@@ -17,8 +17,8 @@ def get_catalog_service(request: Request) -> CatalogService:
 
 
 @router.get("", response_model=ProductListResponse)
-def list_products(page: int = Query(1, ge=1), page_size: int = Query(24, ge=1, le=60), category: list[str] | None = Query(None), brand: list[str] | None = Query(None), service: CatalogService = Depends(get_catalog_service)) -> ProductListResponse:
-    result = service.list_products(categories=category or [], brands=brand or [], page=page, page_size=page_size)
+def list_products(limit: int = Query(24, ge=1, le=60), offset: int = Query(0, ge=0), category: list[str] | None = Query(None), brand: list[str] | None = Query(None), service: CatalogService = Depends(get_catalog_service)) -> ProductListResponse:
+    result = service.list_products(categories=category or [], brands=brand or [], limit=limit, offset=offset)
     return ProductListResponse(**result)
 
 

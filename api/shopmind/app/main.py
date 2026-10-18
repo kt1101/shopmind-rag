@@ -28,6 +28,14 @@ from shopmind.app.rag.service import ContextConstructionError, KnowledgeRetrieva
 logger = logging.getLogger("shopmind")
 
 
+class ProductImageFiles(StaticFiles):
+    # A missing image directory means no images yet: answer 404 per file instead of a 500.
+    async def check_config(self) -> None:
+        if self.directory is not None and not os.path.isdir(self.directory):
+            return
+        await super().check_config()
+
+
 def _error_body(request: Request, code: str, message: str) -> dict[str, Any]:
     return {"error": {"code": code, "message": message}, "request_id": getattr(request.state, "request_id", "unknown")}
 
@@ -120,7 +128,7 @@ def create_app(*, search_service: Any | None = None, repository: Any | None = No
     app.state.rag_runtime_error = None
     app.state.catalog_service = catalog_service
     app.state.chat_service = chat_service
-    app.mount("/media/products", StaticFiles(directory=product_image_dir or os.getenv("PRODUCT_IMAGE_DIR", "data/raw/images"), check_dir=False), name="product-images")
+    app.mount("/media/products", ProductImageFiles(directory=product_image_dir or os.getenv("PRODUCT_IMAGE_DIR", "data/raw/images"), check_dir=False), name="product-images")
 
     @app.middleware("http")
     async def request_id_middleware(request: Request, call_next):

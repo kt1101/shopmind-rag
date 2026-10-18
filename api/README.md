@@ -384,8 +384,8 @@ The storefront UI uses a catalog API and a history-aware chat API over the A3 RA
 
 | Endpoint | Purpose |
 | --- | --- |
-| `GET /products` | Paginated catalog (`page`, `page_size` 1-60, default 24, repeatable `category` / `brand` filters) with category facets. `503` when Elasticsearch or the `products` alias is unavailable. |
-| `GET /products/{product_id}` | Product detail; `404 product_not_found` for an unknown ID. |
+| `GET /products` | Paginated catalog (`limit` 1-60, default 24; `offset` default 0; `offset + limit` <= 10000; repeatable `category` / `brand` filters) with category facets. `503` when Elasticsearch or the `products` alias is unavailable. |
+| `GET /products/{product_id}` | Product detail; `attributes` is a list of `{name, value}` pairs. `404 product_not_found` for an unknown ID. |
 | `POST /chat` | One JSON answer: `answer`, `sources`, `insufficient_evidence`, `standalone_question`. |
 | `POST /chat/stream` | The same answer as a Server-Sent Events stream. |
 

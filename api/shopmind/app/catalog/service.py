@@ -26,12 +26,12 @@ class CatalogService:
     def __init__(self, repository: Any) -> None:
         self.repository = repository
 
-    def list_products(self, *, categories: list[str], brands: list[str], page: int, page_size: int) -> dict[str, Any]:
-        if page * page_size > MAX_RESULT_WINDOW:
-            raise InvalidPagination(f"page * page_size must be <= {MAX_RESULT_WINDOW}")
+    def list_products(self, *, categories: list[str], brands: list[str], limit: int, offset: int) -> dict[str, Any]:
+        if offset + limit > MAX_RESULT_WINDOW:
+            raise InvalidPagination(f"offset + limit must be <= {MAX_RESULT_WINDOW}")
         filters = {key: values for key, values in (("category", _clean(categories)), ("brand", _clean(brands))) if values}
         try:
-            result = self.repository.list_products(filters, (page - 1) * page_size, page_size)
+            result = self.repository.list_products(filters, offset, limit)
         except ValueError as exc:
             raise InvalidFilter(str(exc)) from exc
         except (ProductIndexMissing, elasticsearch.ApiError, elasticsearch.TransportError) as exc:
@@ -42,8 +42,8 @@ class CatalogService:
                 for item in result.items
             ],
             "total": result.total,
-            "page": page,
-            "page_size": page_size,
+            "limit": limit,
+            "offset": offset,
             "facets": {"category": [{"value": value, "label": humanize_category(value), "count": count} for value, count in result.category_facets]},
         }
 
@@ -67,7 +67,7 @@ class CatalogService:
             "category": category,
             "category_label": humanize_category(category) if category else None,
             "description": str(source.get("description") or ""),
-            "attributes": {str(key): str(value) for key, value in attributes.items()},
+            "attributes": [{"name": humanize_category(str(key)), "value": str(value)} for key, value in attributes.items()],
             "bullet_points": [item for item in bullet_points if isinstance(item, str)],
             "category_path": [segment for segment in first_path.split("/") if segment],
             "image_url": _optional_str(source.get("image_url")),

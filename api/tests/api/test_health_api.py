@@ -41,6 +41,11 @@ def test_product_media_returns_404_for_missing_image(tmp_path):
     assert response.status_code == 404
 
 
+def test_product_media_returns_404_when_image_dir_is_missing(tmp_path):
+    response = _media_client(tmp_path / "absent").get("/media/products/missing.jpg")
+    assert response.status_code == 404
+
+
 def test_product_media_rejects_path_traversal(tmp_path):
     image_dir = tmp_path / "images"
     image_dir.mkdir()

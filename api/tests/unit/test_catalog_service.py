@@ -31,7 +31,7 @@ class FakeRepo:
 
 
 def _list(service, **overrides):
-    kwargs = {"categories": [], "brands": [], "page": 1, "page_size": 24}
+    kwargs = {"categories": [], "brands": [], "limit": 24, "offset": 0}
     kwargs.update(overrides)
     return service.list_products(**kwargs)
 
@@ -47,8 +47,8 @@ def test_list_maps_summaries_and_facets():
         total=2,
         category_facets=(("SHOES", 5), ("HOME_BED_AND_BATH", 2)),
     )
-    result = _list(CatalogService(FakeRepo(page=page)), page=3, page_size=2)
-    assert result["total"] == 2 and result["page"] == 3 and result["page_size"] == 2
+    result = _list(CatalogService(FakeRepo(page=page)), limit=2, offset=4)
+    assert result["total"] == 2 and result["limit"] == 2 and result["offset"] == 4
     assert result["items"][0] == {"product_id": "P1", "title": "T", "image_url": "/media/p1.jpg", "brand": "B", "category": "SHOES"}
     assert result["items"][1] == {"product_id": "P2", "title": "U", "image_url": None, "brand": None, "category": None}
     assert result["facets"] == {"category": [{"value": "SHOES", "label": "Shoes", "count": 5}, {"value": "HOME_BED_AND_BATH", "label": "Home Bed And Bath", "count": 2}]}
@@ -56,15 +56,15 @@ def test_list_maps_summaries_and_facets():
 
 def test_detail_maps_metadata_and_tolerates_missing_fields():
     d = CatalogService(FakeRepo(source={"product_id": "P1", "title": "T", "brand": None, "category": "HOME_BED_AND_BATH",
-        "description": "", "attributes": {"color": "Black", "size": 9}, "metadata": {"bullet_points": ["Soft", 3], "node_paths": ["/Home/Bedding//Sheets"]}})).get_product("P1")
+        "description": "", "attributes": {"product_type": "SHOES", "color": "Black", "size": 9}, "metadata": {"bullet_points": ["Soft", 3], "node_paths": ["/Home/Bedding//Sheets"]}})).get_product("P1")
     assert d["category_label"] == "Home Bed And Bath" and d["brand"] is None and d["image_url"] is None
-    assert d["attributes"] == {"color": "Black", "size": "9"} and d["bullet_points"] == ["Soft"] and d["category_path"] == ["Home", "Bedding", "Sheets"]
+    assert d["attributes"] == [{"name": "Product Type", "value": "SHOES"}, {"name": "Color", "value": "Black"}, {"name": "Size", "value": "9"}] and d["bullet_points"] == ["Soft"] and d["category_path"] == ["Home", "Bedding", "Sheets"]
     assert set(d) == {"product_id", "title", "brand", "category", "category_label", "description", "attributes", "bullet_points", "category_path", "image_url"}
 
 
 def test_detail_without_metadata_has_empty_lists():
     d = CatalogService(FakeRepo(source={"product_id": "P1", "title": "T"})).get_product("P1")
-    assert d["bullet_points"] == [] and d["category_path"] == [] and d["attributes"] == {} and d["description"] == ""
+    assert d["bullet_points"] == [] and d["category_path"] == [] and d["attributes"] == [] and d["description"] == ""
     assert d["category"] is None and d["category_label"] is None and d["image_url"] is None
 
 
@@ -78,14 +78,20 @@ def test_blank_filters_are_dropped():
     assert repo.list_calls[-1][0] == {}
 
 
+def test_offset_and_limit_pass_through_to_repository():
+    repo = FakeRepo()
+    _list(CatalogService(repo), limit=24, offset=48)
+    assert repo.list_calls[-1][1:] == (48, 24)
+
+
 def test_paging_window_over_10000_raises_invalid_pagination():
     repo = FakeRepo()
     service = CatalogService(repo)
     with pytest.raises(InvalidPagination):
-        _list(service, page=418, page_size=24)
+        _list(service, limit=24, offset=9980)
     assert repo.list_calls == []
-    _list(service, page=416, page_size=24)
-    assert repo.list_calls[-1][1:] == (415 * 24, 24)
+    _list(service, limit=24, offset=9976)
+    assert repo.list_calls[-1][1:] == (9976, 24)
 
 
 def test_errors_are_mapped():

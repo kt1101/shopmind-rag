@@ -14,13 +14,13 @@ class FakeCatalogService:
     def __init__(self):
         self.calls = []
         self.error = None
-        self.detail = {"product_id": "P1", "title": "T", "brand": None, "category": "SHOES", "category_label": "Shoes", "description": "", "attributes": {"color": "Black"}, "bullet_points": ["Soft"], "category_path": ["Home"], "image_url": None, "search_text": "secret", "text_vector": [0.1, 0.2]}
+        self.detail = {"product_id": "P1", "title": "T", "brand": None, "category": "SHOES", "category_label": "Shoes", "description": "", "attributes": [{"name": "Color", "value": "Black"}], "bullet_points": ["Soft"], "category_path": ["Home"], "image_url": None, "search_text": "secret", "text_vector": [0.1, 0.2]}
 
-    def list_products(self, *, categories, brands, page, page_size):
-        self.calls.append({"categories": categories, "brands": brands, "page": page, "page_size": page_size})
+    def list_products(self, *, categories, brands, limit, offset):
+        self.calls.append({"categories": categories, "brands": brands, "limit": limit, "offset": offset})
         if self.error:
             raise self.error
-        return {"items": [{"product_id": "P1", "title": "T", "image_url": None, "brand": "Klepe", "category": "SHOES", "search_text": "secret"}], "total": 1, "page": page, "page_size": page_size, "facets": {"category": [{"value": "SHOES", "label": "Shoes", "count": 1}]}}
+        return {"items": [{"product_id": "P1", "title": "T", "image_url": None, "brand": "Klepe", "category": "SHOES", "search_text": "secret"}], "total": 1, "limit": limit, "offset": offset, "facets": {"category": [{"value": "SHOES", "label": "Shoes", "count": 1}]}}
 
     def get_product(self, product_id):
         if self.error:
@@ -40,16 +40,16 @@ def client(fake):
 
 
 def test_list_products_response_shape(client, fake):
-    r = client.get("/api/v1/products?category=SHOES&category=BOOT&brand=Klepe&page=2&page_size=12")
-    assert r.status_code == 200 and fake.calls[-1] == {"categories": ["SHOES", "BOOT"], "brands": ["Klepe"], "page": 2, "page_size": 12}
-    assert set(r.json()) == {"items", "total", "page", "page_size", "facets"}
+    r = client.get("/api/v1/products?category=SHOES&category=BOOT&brand=Klepe&limit=12&offset=24")
+    assert r.status_code == 200 and fake.calls[-1] == {"categories": ["SHOES", "BOOT"], "brands": ["Klepe"], "limit": 12, "offset": 24}
+    assert set(r.json()) == {"items", "total", "limit", "offset", "facets"}
     assert set(r.json()["items"][0]) == {"product_id", "title", "image_url", "brand", "category"}
     assert r.json()["facets"] == {"category": [{"value": "SHOES", "label": "Shoes", "count": 1}]}
 
 
 def test_list_products_defaults(client, fake):
     assert client.get("/api/v1/products").status_code == 200
-    assert fake.calls[-1] == {"categories": [], "brands": [], "page": 1, "page_size": 24}
+    assert fake.calls[-1] == {"categories": [], "brands": [], "limit": 24, "offset": 0}
 
 
 def test_list_products_passes_blank_category_through_to_service(client, fake):
@@ -57,7 +57,7 @@ def test_list_products_passes_blank_category_through_to_service(client, fake):
     assert fake.calls[-1]["categories"] == [""]
 
 
-@pytest.mark.parametrize("query", ["page_size=61", "page_size=0", "page=0"])
+@pytest.mark.parametrize("query", ["limit=61", "limit=0", "offset=-1"])
 def test_list_products_validation(client, query):
     r = client.get(f"/api/v1/products?{query}")
     assert r.status_code == 422 and r.json()["error"]["code"] == "validation_error"
@@ -65,7 +65,7 @@ def test_list_products_validation(client, query):
 
 def test_list_products_invalid_pagination(client, fake):
     fake.error = InvalidPagination("window")
-    r = client.get("/api/v1/products?page=500&page_size=60")
+    r = client.get("/api/v1/products?offset=9990&limit=60")
     assert r.status_code == 422 and r.json()["error"]["code"] == "invalid_pagination"
 
 
@@ -74,6 +74,10 @@ def test_product_detail_has_only_whitelisted_fields(client):
     assert r.status_code == 200
     assert set(r.json()) == {"product_id", "title", "brand", "category", "category_label", "description", "attributes", "bullet_points", "category_path", "image_url"}
     assert "search_text" not in r.text and "text_vector" not in r.text
+
+
+def test_product_detail_attributes_are_name_value_pairs(client):
+    assert client.get("/api/v1/products/P1").json()["attributes"] == [{"name": "Color", "value": "Black"}]
 
 
 def test_product_detail_404(client, fake):
