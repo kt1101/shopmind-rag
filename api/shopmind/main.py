@@ -27,6 +27,15 @@ logger = logging.getLogger("shopmind")
 _REQUEST_ID = re.compile(r"[A-Za-z0-9-]{8,64}")
 
 
+class ProductImageFiles(StaticFiles):
+    """A missing image directory means no images yet: 404 per file instead of a 500."""
+
+    async def check_config(self) -> None:
+        if self.directory is not None and not os.path.isdir(self.directory):
+            return
+        await super().check_config()
+
+
 def _error_body(request: Request, code: str, message: str) -> dict[str, Any]:
     return {"error": {"code": code, "message": message}, "request_id": getattr(request.state, "request_id", "unknown")}
 
@@ -106,7 +115,7 @@ def create_app(*, search_service: Any | None = None, repository: Any | None = No
         injected = {name: value for name, value in {"search_service": search_service, "repository": repository, "embedder": embedder, "rag_service": rag_service, "catalog_service": catalog_service, "chat_service": chat_service}.items() if value is not None}
         app.state.config = config or _default_config(False)
         _apply_container(app, build_container(app.state.config, overrides={**injected, **(components or {})}, lightweight_only=True))
-    app.mount("/media/products", StaticFiles(directory=product_image_dir or os.getenv("PRODUCT_IMAGE_DIR", "data/raw/images"), check_dir=False), name="product-images")
+    app.mount("/media/products", ProductImageFiles(directory=product_image_dir or os.getenv("PRODUCT_IMAGE_DIR", "data/raw/images"), check_dir=False), name="product-images")
 
     @app.middleware("http")
     async def request_id_middleware(request: Request, call_next):
