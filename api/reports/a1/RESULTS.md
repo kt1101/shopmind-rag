@@ -67,6 +67,36 @@ Holdout nDCG@10 of the selected pipeline improves on the previously frozen winne
 0.6075) by **+0.0886**. Adaptive scores higher on holdout but lower on DEV; it was not selected because
 choosing it would use the holdout for selection.
 
+## Vocabulary extension (2026-10-17, after the selection above)
+
+General Vietnamese shopping vocabulary was added (`configs/vocab/`: common product nouns, materials as
+lexical-only `term_aliases`, colours brown/yellow/purple/orange/silver/gold); it was written from the
+catalog's categories, not from benchmark queries. DEV results are unchanged for every run
+(`runs/accuracy_v2_vocab/`), so the pipeline selection stands. Holdout, read again after this general
+change (it had been read once before):
+
+| Run | Holdout nDCG@10 before | after | Vietnamese nDCG@10 before | after |
+|---|---:|---:|---:|---:|
+| BM25 | 0.6075 | 0.6631 | 0.5382 | 0.5659 |
+| Hybrid linear (default) | 0.6961 | **0.7381** | 0.6073 | 0.6283 |
+
+The A1 seed benchmark is unchanged (`runs/a1_vocab/`): its Vietnamese queries are templated brand
+queries ("tìm AmazonBasics sản phẩm…") that the new nouns do not touch.
+
+## Serving latency (2026-10-17)
+
+Median of repeated requests against the local API (laptop CPU, ES on the same machine), before → after
+the runtime optimizations (query-embedding LRU cache, image-embedding cache keyed by pixels, cached
+catalog-filter resolution and index mapping, concurrent retrieve steps, lighter `_source` for hits):
+
+| Request | Before | After |
+|---|---:|---:|
+| Text search, new query (E5 encoding needed) | 179 ms | 179 ms |
+| Text search, repeated query / inspector re-run | 136 ms | 64 ms |
+| Text search with brand + category filters | 70 ms | 16 ms |
+| Compose search while moving the α slider | 334 ms | 68 ms |
+| Shopping planner (6 needs) | 614 ms | 213 ms |
+
 ## Image search (20 transformed image queries)
 
 Image kNN on `image_vector`: Recall@10 1.0000, nDCG@10 1.0000, MRR@10 1.0000 (p50 1221 ms, p95 2071 ms

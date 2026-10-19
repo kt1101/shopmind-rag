@@ -89,7 +89,7 @@ Additive fields are allowed; renaming/removing requires updating this file.
 - `POST /search/image` multipart `image` + query `top_k, offset, candidate_k, brand, category, product_id, explain` → `{results, trace_id, trace?}`
 - `POST /search/compose` multipart `image` (required), form `text` (required), `alpha` (0..1, image weight, default `features.compose_default_alpha`), `top_k`, `candidate_k`, `brand` / `category` (repeatable), query `explain` → `{mode: "compose", text, alpha, results, trace_id, trace?}`
 - `GET /search/suggest?q=&limit=8` → `{query, suggestions:[{type: product|brand|category, value, label, count?, product_id?, image_url?}]}`
-- `GET /search/filter-options?field=brand|category|product_id&prefix=&limit=` (unchanged) → `{field, options:[str]}`
+- `GET /search/filter-options?field=brand|category|product_id&prefix=&limit=` (`limit` 1–50, default 20) → `{field, options:[{value, count}]}`
 - `POST /search/facets` body `{query?, filters: {brand?, category?, color?}}` → `{facets: {brand:[{value,count}], category:[{value,count}], color:[{value,count}]}}`.
   Counts use the BM25 match of `query` (all products when absent); each facet ignores its own filter
   and applies the others (multi-select menus). `color` is the canonical catalog colour (vocabulary-normalized).

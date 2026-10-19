@@ -118,7 +118,8 @@ def test_text_search_offset_returns_absolute_ranks(client_with_results, fake_30)
 
 def test_text_search_offset_beyond_candidate_window_is_422(client):
     r = client.post("/api/v1/search/text", json={"query": "shoe", "top_k": 10, "offset": 95})
-    assert r.status_code == 422 and r.json()["error"]["code"] == "validation_error"
+    # The default window comes from config (retrieval.candidate_k), so it is checked after parsing.
+    assert r.status_code == 422 and r.json()["error"]["code"] == "invalid_pagination"
 
 
 def test_text_search_negative_offset_is_422(client):

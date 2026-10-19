@@ -158,6 +158,37 @@ test('chatStream rejects on an error event or a stream without done', async () =
   )
 })
 
+test('chatStream marks a stream that ends or drops mid-answer as stream_incomplete', async () => {
+  await assert.rejects(chatStream({ message: 'x', fetchImpl: async () => streamResponse('event: delta\ndata: {"text":"a"}\n\n') }), { code: 'stream_incomplete' })
+  const encoder = new TextEncoder()
+  let pulls = 0
+  const dropped = new ReadableStream({
+    pull(controller) {
+      pulls += 1
+      if (pulls === 1) controller.enqueue(encoder.encode('event: delta\ndata: {"text":"half"}\n\n'))
+      else controller.error(new TypeError('network error'))
+    },
+  })
+  const seen = []
+  await assert.rejects(
+    chatStream({ message: 'x', onEvent: (e) => seen.push(e.event), fetchImpl: async () => new Response(dropped, { status: 200 }) }),
+    { code: 'stream_incomplete', message: 'network error' },
+  )
+  assert.deepEqual(seen, ['delta'])
+  // A user abort stays an AbortError (callers ignore it).
+  const controller = new AbortController()
+  // Like fetch(), the body errors with an AbortError when the request signal aborts.
+  const hanging = new ReadableStream({
+    start(c) {
+      c.enqueue(encoder.encode(': ping\n\n'))
+      controller.signal.addEventListener('abort', () => c.error(new DOMException('aborted', 'AbortError')))
+    },
+  })
+  const pending = chatStream({ message: 'x', signal: controller.signal, fetchImpl: async () => new Response(hanging, { status: 200 }) })
+  controller.abort()
+  await assert.rejects(pending, (error) => error.name === 'AbortError')
+})
+
 test('resolveImageUrl accepts inline image data URIs but not other schemes', () => {
   assert.ok(resolveImageUrl('data:image/svg+xml;charset=utf-8,%3Csvg%3E'))
   assert.ok(resolveImageUrl('data:image/png;base64,AAAA'))

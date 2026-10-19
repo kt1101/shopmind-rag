@@ -22,6 +22,14 @@ from shopmind.main import create_app
     ("quà khoảng 150$", 150.0),
     ("set up a home office for 1,200 dollars", 1200.0),
     ("đồ cho chó con", None),
+    ("setting up a home office, budget $1,234.50", 1234.5),
+    ("ngân sách 2.500 đô", 2500.0),
+    ("ngân sách 1.000.000 đồng cho đồ bếp", 40.0),
+    ("ngân sách 2 triệu", 80.0),
+    ("chuẩn bị đi biển khoảng 5 ngày", None),
+    ("packing for a beach trip of about 5 days", None),
+    ("đi biển khoảng 5 ngày, ngân sách 300$", 300.0),
+    ("budget " + "9" * 400 + " for a desk", None),
 ])
 def test_parse_budget(text, budget):
     assert parse_budget(text) == budget

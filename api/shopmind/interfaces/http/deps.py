@@ -55,6 +55,15 @@ def require_auth(request: Request) -> dict[str, Any]:
         raise NotAuthenticated("invalid or expired token") from exc
 
 
+def is_staff(request: Request) -> bool:
+    """True when the request carries a valid admin token (never raises)."""
+    try:
+        require_auth(request)  # auth disabled (dev/tests) counts as staff, like for /admin
+    except Exception:
+        return False
+    return True
+
+
 def wants_explain(request: Request, explicit: bool | None = None) -> bool:
     if explicit:
         return True

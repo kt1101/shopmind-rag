@@ -51,7 +51,7 @@ class SearchService:
 
         try:
             pipeline = self.pipelines.get(name)
-        except KeyError as exc:
+        except LookupError as exc:  # KeyError (unknown name) or UnknownComponent (unknown step impl)
             raise UnsupportedSearchMode(f"unknown search pipeline: {name}") from exc
         try:
             ctx = pipeline.run(PipelineContext(request=request, state=dict(state or {})))
@@ -64,6 +64,12 @@ class SearchService:
         return [replace(result, rank=rank, source=request.mode.value if relabel else result.source) for rank, result in enumerate(ctx.results[: request.top_k], start=1)]
 
     # --- public API ----------------------------------------------------------------------------
+
+    def check_requested_pipeline(self, name: str, *, allow_hidden: bool = False) -> None:
+        """A pipeline named by a caller must be a text-search pipeline, and public unless staff."""
+        spec = getattr(self.pipelines, "specs", {}).get(name) if self.pipelines is not None else None
+        if spec is None or spec.kind != "search" or (not spec.public and not allow_hidden):
+            raise UnsupportedSearchMode(f"unknown search pipeline: {name}")
 
     def search_text(self, request: SearchRequest) -> list[SearchResult]:
         if self.pipelines is not None:

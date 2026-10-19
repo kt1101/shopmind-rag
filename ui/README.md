@@ -23,9 +23,16 @@ HTTP shapes follow [`docs/API_CONTRACT.md`](../docs/API_CONTRACT.md) (source of 
 | `/admin/*` | Admin console (lazy loaded, JWT) |
 | `/lab`, `/lab/embeddings` | Redirect to `/admin/playground` and `/admin/embedding-map` (the Retrieval Lab was removed) |
 
-Admin console groups: **Operate** (Dashboard, Pipeline & Config, Indexes & Jobs, Policies,
-Feedback) and **Glass-box & lab** (Traces, Search Playground, Embedding Map, Evaluation,
-Annotation).
+Admin console groups: **Vận hành / Operate** (Dashboard, Pipeline & Config, Indexes & Jobs,
+Policies, Feedback) and **Glass-box & lab** (Traces, Search Playground, Embedding Map,
+Evaluation, Annotation). The console is Vietnamese by default and uses the same i18n dictionary
+and vi/en setting as the storefront (toggle in its top bar); pipeline names, config keys,
+metrics and job types are never translated.
+
+Errors are shown in plain words (`shared/api/errors.js`): `503 llm_unavailable` says AI answers
+are switched off and that search, compare and the planner still work, instead of the raw
+backend message (kept under "Chi tiết kỹ thuật"). See [`docs/QUALITY_AUDIT.md`](docs/QUALITY_AUDIT.md)
+for the 2026-10 quality pass.
 
 - **Pipeline & Config** starts with the card "Thuật toán tìm kiếm của cửa hàng": the public
   search pipelines from `/meta/pipelines` (name + description), bound to the hot-reloadable
@@ -60,9 +67,11 @@ exact evidence snippet are shopper features and always on.
 ```text
 src/
   App.jsx, main.jsx          router + providers (i18n, toast, shopper lists)
-  shared/api/                http.js (request), storefront.js (public API), admin.js, sse.js, filters.js
+  shared/api/                http.js (request), storefront.js (public API), admin.js, sse.js, filters.js,
+                             errors.js (error -> plain-language message)
   shared/ui/                 Drawer, Tabs, Toast, Skeleton, I18nProvider, ui.css
-  shared/i18n.js             vi (default) / en dictionary; header toggle persisted in localStorage
+  shared/i18n.js             vi (default) / en dictionary (+ i18n.more.js, i18n.admin.js); header toggle
+                             persisted in localStorage; catalogLabels.js = category/colour/attribute names
   shared/lib/                storage (never-throwing localStorage), inspectorBridge,
                              staffMode (pure) + useStaffMode (hook)
   entities/trace/            pure trace -> view-model logic (search, RAG and planner inspectors)

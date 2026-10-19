@@ -372,3 +372,6 @@
 @media (prefers-reduced-motion: reduce) {
   .adm-root *, .adm-root *::before, .adm-root *::after { animation: none !important; transition: none !important; }
 }
+
+/* Language toggle in the top bar (same vi/en setting as the storefront header). */
+.adm-lang { min-width: 40px; font-weight: 700; font-size: 12px; letter-spacing: .04em; }

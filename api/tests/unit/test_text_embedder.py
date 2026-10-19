@@ -102,3 +102,12 @@ def test_vocabulary_is_loaded_from_yaml_and_reports_applied_aliases(tmp_path):
         language.configure_vocabulary()
     assert language.CATEGORY_ALIASES["giày bốt"] == "boot"
     assert language.detect_language("giày bốt da màu nâu") == "vi" and language.detect_language("brown leather boots") == "en"
+
+
+def test_shipped_vocabulary_covers_common_vietnamese_shopping_words():
+    language.configure_vocabulary()
+    normalized, applied = language.explain_lexical_query("ba lô bằng da chống nước màu nâu")
+    assert normalized.split() == ["backpack", "leather", "waterproof", "brown"]
+    assert [alias["kind"] for alias in applied] == ["category", "term", "term", "color"]
+    assert language.explain_lexical_query("bàn chải")[0] == "brush"  # longest phrase wins over "bàn"
+    assert language.canonical_color("Multi-Colored") == "multicolor" and language.canonical_color("Marrón") == "brown"

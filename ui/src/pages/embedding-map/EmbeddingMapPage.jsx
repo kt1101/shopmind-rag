@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { getEmbeddingMap, projectEmbedding, searchText } from '../../api.js'
 import { productPath } from '../../lib/urlState.js'
@@ -21,6 +21,25 @@ function Star({ x, y, r = 11 }) {
   return <polygon points={pts.join(' ')} className="emap-query" />
 }
 
+// The 1,500 dots only change with the data, the category focus or the top-k: memoized so
+// hovering (which re-renders the page on every mouse move) does not rebuild them.
+const MapDots = memo(function MapDots({ projected, colors, focusCategory, topSet }) {
+  return projected.map((p) => {
+    const top = topSet.has(p.product_id)
+    const dim = (focusCategory && p.category !== focusCategory) || (topSet.size > 0 && !top)
+    return (
+      <circle
+        key={p.product_id}
+        cx={p.sx}
+        cy={p.sy}
+        r={top ? 6 : 3.6}
+        fill={colors[p.category || 'other']}
+        className={`emap-dot ${dim ? 'is-dim' : ''} ${top ? 'is-top' : ''}`}
+      />
+    )
+  })
+})
+
 export default function EmbeddingMapPage() {
   const { t, lang } = useI18n()
   const [params, setParams] = useSearchParams()
@@ -30,10 +49,15 @@ export default function EmbeddingMapPage() {
   const [map, setMap] = useState({ data: null, loading: true, error: null })
   const [reload, setReload] = useState(0)
   const [draft, setDraft] = useState(activeQuery)
-  const [query, setQuery] = useState({ point: null, ids: [], results: [], loading: false, error: null })
+  const [projection, setProjection] = useState({ point: null, loading: false, error: null })
+  const [neighbours, setNeighbours] = useState({ ids: [], results: [], loading: false })
   const [hover, setHover] = useState(null)
   const [focusCategory, setFocusCategory] = useState(null)
   const svgRef = useRef(null)
+  const frame = useRef(0)
+  const query = { point: projection.point, ids: neighbours.ids, results: neighbours.results, loading: projection.loading || neighbours.loading, error: projection.error }
+
+  useEffect(() => () => cancelAnimationFrame(frame.current), [])
 
   useEffect(() => setDraft(activeQuery), [activeQuery])
 
@@ -50,28 +74,43 @@ export default function EmbeddingMapPage() {
     return () => controller.abort()
   }, [space, reload])
 
-  // Project the query into the current space and fetch the top-k of a text search.
+  // Project the query into the current space (re-runs when the space changes).
   useEffect(() => {
     if (!activeQuery) {
-      setQuery({ point: null, ids: [], results: [], loading: false, error: null })
+      setProjection({ point: null, loading: false, error: null })
       return undefined
     }
     const controller = new AbortController()
-    setQuery((q) => ({ ...q, loading: true, error: null }))
-    Promise.all([
-      projectEmbedding({ space, query: activeQuery, signal: controller.signal }),
-      searchText({ query: activeQuery, topK: TOP_K, filters: {}, signal: controller.signal }).catch(() => ({ data: { results: [] } })),
-    ])
-      .then(([proj, search]) => {
-        if (controller.signal.aborted) return
-        const results = search?.data?.results || []
-        setQuery({ point: proj?.data && Number.isFinite(proj.data.x) ? proj.data : null, ids: results.map((r) => r.product_id), results, loading: false, error: null })
+    setProjection((p) => ({ ...p, loading: true, error: null }))
+    projectEmbedding({ space, query: activeQuery, signal: controller.signal })
+      .then((proj) => {
+        if (!controller.signal.aborted) setProjection({ point: proj?.data && Number.isFinite(proj.data.x) ? proj.data : null, loading: false, error: null })
       })
       .catch((error) => {
-        if (!controller.signal.aborted && error.name !== 'AbortError') setQuery({ point: null, ids: [], results: [], loading: false, error })
+        if (!controller.signal.aborted && error.name !== 'AbortError') setProjection({ point: null, loading: false, error })
       })
     return () => controller.abort()
   }, [space, activeQuery])
+
+  // The text-search top-k does not depend on the space: fetched once per query.
+  useEffect(() => {
+    if (!activeQuery) {
+      setNeighbours({ ids: [], results: [], loading: false })
+      return undefined
+    }
+    const controller = new AbortController()
+    setNeighbours((n) => ({ ...n, loading: true }))
+    searchText({ query: activeQuery, topK: TOP_K, filters: {}, signal: controller.signal })
+      .then((search) => {
+        if (controller.signal.aborted) return
+        const results = search?.data?.results || []
+        setNeighbours({ ids: results.map((r) => r.product_id), results, loading: false })
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setNeighbours({ ids: [], results: [], loading: false })
+      })
+    return () => controller.abort()
+  }, [activeQuery])
 
   const points = map.data?.points
   const view = useMemo(() => {
@@ -87,9 +126,10 @@ export default function EmbeddingMapPage() {
     }
   }, [points, query.point])
 
-  const topSet = useMemo(() => new Set(query.ids), [query.ids])
-  const topPoints = view.projected.filter((p) => topSet.has(p.product_id))
-  const ratio = neighbourhoodRatio(points, query.point, query.ids)
+  const topSet = useMemo(() => new Set(neighbours.ids), [neighbours.ids])
+  const topPoints = useMemo(() => view.projected.filter((p) => topSet.has(p.product_id)), [view.projected, topSet])
+  const onMap = useMemo(() => new Set(view.projected.map((p) => p.product_id)), [view.projected])
+  const ratio = useMemo(() => neighbourhoodRatio(points, projection.point, neighbours.ids), [points, projection.point, neighbours.ids])
 
   function setSpace(next) {
     const p = new URLSearchParams(params)
@@ -105,16 +145,22 @@ export default function EmbeddingMapPage() {
     setParams(p)
   }
 
+  // Nearest-point lookup at most once per animation frame.
   function onMove(event) {
-    const svg = svgRef.current
-    if (!svg?.getScreenCTM || !svg.createSVGPoint) return
-    const pt = svg.createSVGPoint()
-    pt.x = event.clientX
-    pt.y = event.clientY
-    const ctm = svg.getScreenCTM()
-    if (!ctm) return
-    const local = pt.matrixTransform(ctm.inverse())
-    setHover(nearestPoint(view.projected, local.x, local.y, 12))
+    const { clientX, clientY } = event
+    cancelAnimationFrame(frame.current)
+    frame.current = requestAnimationFrame(() => {
+      const svg = svgRef.current
+      if (!svg?.getScreenCTM || !svg.createSVGPoint) return
+      const pt = svg.createSVGPoint()
+      pt.x = clientX
+      pt.y = clientY
+      const ctm = svg.getScreenCTM()
+      if (!ctm) return
+      const local = pt.matrixTransform(ctm.inverse())
+      const next = nearestPoint(view.projected, local.x, local.y, 12)
+      setHover((current) => (current?.product_id === next?.product_id ? current : next))
+    })
   }
 
   return (
@@ -124,7 +170,7 @@ export default function EmbeddingMapPage() {
           <h1>{t('map.title')}</h1>
           <p className="sm-muted">{t('map.intro')}</p>
         </div>
-        <Link to="/admin/playground" className="sm-button sm-button--small">Search Playground →</Link>
+        <Link to="/admin/playground" className="sm-button sm-button--small">{t('map.toPlayground')}</Link>
       </header>
 
       <div className="emap-controls">
@@ -145,7 +191,7 @@ export default function EmbeddingMapPage() {
       {map.error ? (
         <div className="adm-state adm-state-error" role="alert">
           <p className="adm-state-title">{t('map.failed')}</p>
-          <p className="adm-muted">{map.error.message}{map.error.code === 'embedding_map_not_built' ? ' (run the build_embedding_map job on Indexes & Jobs)' : ''}</p>
+          <p className="adm-muted">{map.error.code === 'embedding_map_not_built' ? t('map.notBuilt') : map.error.message}</p>
           <button type="button" className="adm-btn" onClick={() => setReload((n) => n + 1)}>{t('state.retry')}</button>
         </div>
       ) : map.loading && !map.data ? (
@@ -160,22 +206,10 @@ export default function EmbeddingMapPage() {
               role="img"
               aria-label={t('map.ariaLabel', { count: view.projected.length })}
               onMouseMove={onMove}
-              onMouseLeave={() => setHover(null)}
+              onMouseLeave={() => { cancelAnimationFrame(frame.current); setHover(null) }}
             >
               <rect x="0" y="0" width={WIDTH} height={HEIGHT} className="emap-bg" />
-              {view.projected.map((p) => {
-                const dim = (focusCategory && p.category !== focusCategory) || (topSet.size > 0 && !topSet.has(p.product_id))
-                return (
-                  <circle
-                    key={p.product_id}
-                    cx={p.sx}
-                    cy={p.sy}
-                    r={topSet.has(p.product_id) ? 6 : 3.6}
-                    fill={view.colors[p.category || 'other']}
-                    className={`emap-dot ${dim ? 'is-dim' : ''} ${topSet.has(p.product_id) ? 'is-top' : ''}`}
-                  />
-                )
-              })}
+              <MapDots projected={view.projected} colors={view.colors} focusCategory={focusCategory} topSet={topSet} />
               {view.queryXY && topPoints.map((p) => (
                 <line key={`l-${p.product_id}`} x1={view.queryXY.sx} y1={view.queryXY.sy} x2={p.sx} y2={p.sy} className="emap-link" />
               ))}
@@ -216,7 +250,7 @@ export default function EmbeddingMapPage() {
                 {query.error && <p className="sm-small" role="alert">{query.error.message}</p>}
                 <ol className="emap-results">
                   {query.results.map((r) => (
-                    <li key={r.product_id} className={topSet.has(r.product_id) && view.projected.some((p) => p.product_id === r.product_id) ? '' : 'is-off-map'}>
+                    <li key={r.product_id} className={onMap.has(r.product_id) ? '' : 'is-off-map'}>
                       <Link to={productPath(r.product_id)}>{r.title}</Link>
                     </li>
                   ))}

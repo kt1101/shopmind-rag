@@ -3,16 +3,19 @@
 // Vietnamese, then to the key itself, so a typo never renders blank.
 
 import { readJSON, writeJSON } from './lib/storage.js'
+import { ADMIN } from './i18n.admin.js'
+import { MORE } from './i18n.more.js'
+import { ATTRIBUTE_LABELS, CATEGORY_LABELS, COLOR_LABELS, catalogKey, humanizeKey, humanizeValue } from './catalogLabels.js'
 
 export const LANGS = ['vi', 'en']
 export const DEFAULT_LANG = 'vi'
 export const LANG_STORAGE_KEY = 'shopmind.lang'
 
-export const DICT = {
+export const BASE = {
   vi: {
     'nav.catalog': 'Danh mục',
     'nav.plan': 'Lên kế hoạch mua sắm',
-    'nav.planHint': 'Kể cho ShopMind dịp của bạn và ngân sách, nhận danh sách đồ cần mua',
+    'nav.planHint': 'Cho ShopMind biết bạn chuẩn bị cho dịp gì và ngân sách bao nhiêu, mình gợi ý danh sách đồ cần mua',
     'nav.compare': 'So sánh',
     'nav.wishlist': 'Yêu thích',
     'nav.cart': 'Giỏ hàng',
@@ -20,7 +23,7 @@ export const DICT = {
     'nav.language': 'Ngôn ngữ',
     'nav.switchTo': 'English',
     'nav.home': 'Trang chủ ShopMind',
-    'footer.note': 'Giá và tồn kho là dữ liệu tổng hợp (synthetic) phục vụ demo.',
+    'footer.note': 'Giá và tồn kho là dữ liệu giả lập để demo, không phải giá bán thật.',
 
     'catalog.all': 'Tất cả sản phẩm',
     'catalog.failed': 'Không tải được sản phẩm',
@@ -102,11 +105,11 @@ export const DICT = {
     'product.attribute': 'Thuộc tính',
     'product.value': 'Giá trị',
     'product.similarVisual': 'Sản phẩm tương tự về hình ảnh',
-    'product.similarVisualHint': 'Tìm bằng kNN trên vector ảnh SigLIP2.',
+    'product.similarVisualHint': 'Những sản phẩm có hình ảnh giống sản phẩm này nhất.',
     'product.inStock': 'Còn hàng ({quantity})',
     'product.outOfStock': 'Hết hàng',
-    'product.synthetic': 'dữ liệu tổng hợp',
-    'product.syntheticNote': 'Giá và tồn kho là dữ liệu tổng hợp (synthetic) phục vụ demo, không phải giá thật.',
+    'product.synthetic': 'dữ liệu giả lập',
+    'product.syntheticNote': 'Giá và tồn kho là dữ liệu giả lập để demo, không phải giá bán thật.',
     'product.addToCart': 'Thêm vào giỏ',
     'product.inCart': 'Đã có trong giỏ ({count})',
     'product.notFound': 'Không tìm thấy sản phẩm',
@@ -134,8 +137,8 @@ export const DICT = {
     'ask.question': 'Câu hỏi {n}',
     'ask.suggested': 'Câu hỏi gợi ý',
 
-    'answer.insufficient': 'Các nguồn đã lập chỉ mục không đủ bằng chứng để trả lời chắc chắn.',
-    'answer.missing': 'Không có bằng chứng dùng được từ: {sources}.',
+    'answer.insufficient': 'Mình chưa tìm đủ thông tin để trả lời chắc chắn câu này.',
+    'answer.missing': 'Không tìm thấy thông tin phù hợp trong: {sources}.',
     'answer.truncated': 'Một số bằng chứng đã được rút gọn thành trích đoạn.',
     'answer.cited': 'Nguồn trích dẫn',
     'answer.relevance': 'Liên quan {score}',
@@ -172,11 +175,11 @@ export const DICT = {
     'compare.added': 'Đã thêm vào so sánh',
     'compare.needTwo': 'Chọn ít nhất 2 sản phẩm để so sánh.',
     'compare.attributes': 'Bảng thuộc tính',
-    'compare.attributesHint': 'Lấy thẳng từ dữ liệu, không qua LLM.',
+    'compare.attributesHint': 'Lấy trực tiếp từ thông tin sản phẩm, không qua AI.',
     'compare.noData': 'Không có dữ liệu',
-    'compare.summary': 'Nhận xét (RAG, có trích dẫn)',
+    'compare.summary': 'Nhận xét có trích dẫn (RAG)',
     'compare.insufficient': 'Không đủ bằng chứng để so sánh. Hệ thống không suy đoán khi thiếu dữ liệu.',
-    'compare.noLlm': 'Chưa cấu hình LLM (OPENAI_API_KEY) nên chỉ hiển thị bảng thuộc tính; phần nhận xét có trích dẫn cần LLM.',
+    'compare.noLlm': 'Phần nhận xét bằng AI đang tắt trên máy chủ này. Bảng thuộc tính ở trên vẫn đủ để bạn so sánh.',
     'compare.question': 'Câu hỏi so sánh (không bắt buộc)',
     'compare.questionPlaceholder': 'vd: cái nào nhẹ hơn, cái nào chống nước?',
     'compare.ask': 'So sánh lại',
@@ -340,7 +343,7 @@ export const DICT = {
     'state.error': 'Đã xảy ra lỗi',
     'state.retry': 'Thử lại',
     'common.close': 'Đóng',
-    'common.synthetic': 'tổng hợp',
+    'common.synthetic': 'giả lập',
     'plan.kicker': 'Trợ lý lên kế hoạch',
     'plan.title': 'Lên kế hoạch mua sắm',
     'plan.intro': 'Kể cho ShopMind bạn đang chuẩn bị cho dịp gì (và ngân sách nếu có). Mình chia thành từng nhu cầu, chọn một món cho mỗi nhu cầu vừa túi tiền và giải thích vì sao, kèm dẫn chứng.',
@@ -361,8 +364,8 @@ export const DICT = {
     'plan.overBudgetShort': 'vượt ngân sách',
     'plan.noBudget': 'không giới hạn ngân sách',
     'plan.meter': 'Đã dùng {total} trên ngân sách {budget}',
-    'plan.synthetic': '(giá tổng hợp)',
-    'plan.syntheticNote': 'Giá và tồn kho là dữ liệu tổng hợp (synthetic) phục vụ demo.',
+    'plan.synthetic': '(giá giả lập)',
+    'plan.syntheticNote': 'Giá và tồn kho là dữ liệu giả lập để demo.',
     'plan.noPrice': 'Chưa có giá',
     'plan.inStock': 'Còn hàng',
     'plan.priority.must': 'Cần thiết',
@@ -486,7 +489,7 @@ export const DICT = {
     'product.attribute': 'Attribute',
     'product.value': 'Value',
     'product.similarVisual': 'Visually similar products',
-    'product.similarVisualHint': 'kNN over SigLIP2 image vectors.',
+    'product.similarVisualHint': 'Products whose photos look most like this one.',
     'product.inStock': 'In stock ({quantity})',
     'product.outOfStock': 'Out of stock',
     'product.synthetic': 'synthetic data',
@@ -560,7 +563,7 @@ export const DICT = {
     'compare.noData': 'No data',
     'compare.summary': 'Summary (RAG, cited)',
     'compare.insufficient': 'Not enough evidence to compare. The system does not guess when data is missing.',
-    'compare.noLlm': 'No LLM is configured (OPENAI_API_KEY), so only the attribute table is shown; the cited comparison needs an LLM.',
+    'compare.noLlm': 'AI-written comparisons are switched off on this server. The attribute table above still has everything you need to compare.',
     'compare.question': 'Comparison question (optional)',
     'compare.questionPlaceholder': 'e.g. which one is lighter, which is waterproof?',
     'compare.ask': 'Compare again',
@@ -779,12 +782,21 @@ export const DICT = {
   },
 }
 
+// One dictionary for the whole app: storefront, assistant, inspector and admin console.
+export const DICT = {
+  vi: { ...BASE.vi, ...MORE.vi, ...ADMIN.vi },
+  en: { ...BASE.en, ...MORE.en, ...ADMIN.en },
+}
+
 export function normalizeLang(lang) {
   return LANGS.includes(lang) ? lang : DEFAULT_LANG
 }
 
+// `{count}` of exactly 1 picks the `<key>.one` variant when one exists ("1 product").
 export function translate(lang, key, vars) {
-  const template = DICT[normalizeLang(lang)][key] ?? DICT[DEFAULT_LANG][key] ?? key
+  const dict = DICT[normalizeLang(lang)]
+  const one = vars && Number(vars.count) === 1 ? `${key}.one` : null
+  const template = (one && (dict[one] ?? DICT[DEFAULT_LANG][one])) ?? dict[key] ?? DICT[DEFAULT_LANG][key] ?? key
   if (!vars) return template
   return template.replace(/\{(\w+)\}/g, (match, name) => (vars[name] === undefined || vars[name] === null ? match : String(vars[name])))
 }
@@ -797,26 +809,22 @@ export function writeLang(lang, storage) {
   return writeJSON(LANG_STORAGE_KEY, normalizeLang(lang), storage)
 }
 
-// Human label for a catalog category value, localized when known.
-const CATEGORY_LABELS = {
-  vi: { running_shoes: 'Giày chạy bộ', hiking_boots: 'Giày leo núi', backpacks: 'Ba lô', jackets: 'Áo khoác' },
-  en: {},
-}
-const COLOR_LABELS = {
-  vi: { black: 'Đen', brown: 'Nâu', blue: 'Xanh dương', green: 'Xanh lá', white: 'Trắng', grey: 'Xám', red: 'Đỏ', beige: 'Be' },
-  en: {},
-}
-
-function titleCase(value) {
-  return String(value || '').replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
-}
-
+// Human labels for catalog values (category, colour, attribute name), localized when known,
+// otherwise humanized ("CELLULAR_PHONE_CASE" -> "Cellular Phone Case").
 export function categoryLabel(lang, value) {
   if (!value) return ''
-  return CATEGORY_LABELS[normalizeLang(lang)][value] ?? titleCase(value)
+  const key = catalogKey(value).replace(/\s+/g, '_')
+  return CATEGORY_LABELS[normalizeLang(lang)][key] ?? humanizeValue(value)
 }
 
 export function colorLabel(lang, value) {
   if (!value) return ''
-  return COLOR_LABELS[normalizeLang(lang)][value] ?? titleCase(value)
+  return COLOR_LABELS[normalizeLang(lang)][catalogKey(value)] ?? humanizeValue(value)
+}
+
+export function attributeLabel(lang, name) {
+  if (!name) return ''
+  const key = catalogKey(name).replace(/\s+/g, '_')
+  const labels = ATTRIBUTE_LABELS[normalizeLang(lang)]
+  return labels[key] ?? labels[catalogKey(name)] ?? humanizeKey(name)
 }

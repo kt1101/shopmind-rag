@@ -13,7 +13,7 @@ from typing import Any
 from shopmind.application.rag.citations import CitationResolver, CitationValidationError
 from shopmind.core.tracing import trace_step
 from shopmind.domain.search_result import RetrievedDocument
-from shopmind.infrastructure.llm.base import InvalidLLMOutput, LLMProviderError
+from shopmind.infrastructure.llm.base import InvalidLLMOutput
 
 _SKIP_ATTRIBUTES = {"product_type"}
 _POLICY_QUERY = {"vi": "chính sách đổi trả bảo hành giao hàng", "en": "return policy warranty shipping"}
@@ -116,7 +116,9 @@ class CompareService:
             from shopmind.application.chat.service import citation_payload
 
             return {"products": cards, "attributes": table, "summary": raw["summary"], "points": points, "sources": [citation_payload(source) for source in sources], "insufficient_evidence": bool(raw.get("insufficient_evidence")), "llm_available": True}
-        raise LLMProviderError("comparison output failed citation validation twice")
+        from shopmind.application.rag.service import RAGGenerationError
+
+        raise RAGGenerationError("comparison output failed citation validation twice")
 
     @staticmethod
     def _validate(raw: Any, allowed: set[str]) -> list[dict[str, Any]]:

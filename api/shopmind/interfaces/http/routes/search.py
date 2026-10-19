@@ -6,15 +6,18 @@ from time import perf_counter
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
+from starlette.concurrency import run_in_threadpool
 from PIL import Image, UnidentifiedImageError
 
-from shopmind.interfaces.http.deps import component, get_config, traced, wants_explain
+from shopmind.interfaces.http.deps import component, get_config, is_staff, traced, wants_explain
 from shopmind.interfaces.http.errors import ImageTooLarge, InvalidFilter, InvalidImage, InvalidPagination, SearchInfrastructureError
 from shopmind.interfaces.http.schemas.search import ComposeSearchResponse, FacetsRequest, FacetsResponse, FilterOptionsResponse, ImageSearchResponse, ProductSearchResult, SuggestResponse, TextSearchRequest, TextSearchResponse, UnderstandRequest, UnderstandResponse, normalize_filters
 from shopmind.core.logging import log_search_event
 from shopmind.application.search.service import SearchService
 
 router = APIRouter(prefix="/api/v1/search", tags=["search"])
+MAX_IMAGE_PIXELS = 40_000_000  # ~6300 x 6300
+MAX_IMAGE_SIDE = 1024
 logger = logging.getLogger("shopmind.search")
 
 
@@ -46,8 +49,16 @@ async def read_image(request: Request, image: UploadFile) -> Image.Image:
         raise ImageTooLarge(f"image exceeds configured maximum of {max_bytes} bytes")
     try:
         with Image.open(BytesIO(raw)) as decoded:
-            return decoded.convert("RGB").copy()
-    except (UnidentifiedImageError, OSError, ValueError) as exc:
+            # Header-only size check before decoding: a tiny PNG can expand to gigabytes of pixels.
+            if decoded.width * decoded.height > MAX_IMAGE_PIXELS:
+                raise InvalidImage(f"image is too large ({decoded.width}x{decoded.height}); at most {MAX_IMAGE_PIXELS:,} pixels")
+            decoded.draft("RGB", (MAX_IMAGE_SIDE, MAX_IMAGE_SIDE))  # JPEG: decode directly at reduced size
+            rgb = decoded.convert("RGB")
+            rgb.thumbnail((MAX_IMAGE_SIDE, MAX_IMAGE_SIDE))  # the models see 224-384 px; keep memory flat
+            return rgb.copy()
+    except InvalidImage:
+        raise
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError) as exc:
         raise InvalidImage("uploaded bytes are not a valid image") from exc
 
 
@@ -81,7 +92,9 @@ def search_text(payload: TextSearchRequest, request: Request, service: SearchSer
     config = get_config(request)
     # Storefront requests carry no mode: run the admin-configured default (`defaults.search`).
     default_pipeline = config.defaults.get("search") if config is not None and getattr(service, "pipelines", None) is not None else None
-    domain_request = payload.to_domain(default_pipeline)
+    if payload.pipeline and hasattr(service, "check_requested_pipeline"):
+        service.check_requested_pipeline(payload.pipeline, allow_hidden=is_staff(request))
+    domain_request = payload.to_domain(default_pipeline, config.retrieval.candidate_k if config is not None else None)
     mode_label = payload.mode or ("default" if domain_request.query else "bm25")
     explain = wants_explain(request, payload.explain)
     pipeline = _pipeline_name(service, "text", domain_request)
@@ -116,7 +129,8 @@ async def search_image(request: Request, image: UploadFile = File(...), top_k: i
     started = perf_counter()
     pipeline = _pipeline_name(service, "image")
     with traced(request, pipeline, kind="image_search", input={"image": {"size": list(rgb.size)}, "filters": filters, "top_k": top_k}, verbose=explain) as trace:
-        results = service.search_image(rgb, top_k=offset + top_k, candidate_k=candidate_k, filters=filters)[offset:]
+        # Model inference blocks: run it off the event loop so other requests and SSE streams keep flowing.
+        results = (await run_in_threadpool(service.search_image, rgb, top_k=offset + top_k, candidate_k=candidate_k, filters=filters))[offset:]
         trace.set_output(result_ids=[result.product_id for result in results])
     latency_ms = round((perf_counter() - started) * 1000, 3)
     log_search_event(logger, request_id=request.state.request_id, mode="image_dense", latency_ms=latency_ms, candidate_k=candidate_k, result_count=len(results), index_alias=getattr(request.app.state, "index_alias", None), embedding_model=getattr(request.app.state, "embedding_model", None), embedding_version=getattr(request.app.state, "embedding_version", None))
@@ -136,7 +150,7 @@ async def search_compose(request: Request, image: UploadFile = File(...), text: 
     pipeline = _pipeline_name(service, "compose")
     with traced(request, pipeline, kind="compose_search", input={"text": text, "alpha": weight, "image": {"size": list(rgb.size)}, "top_k": top_k}, verbose=explain or wants_explain(request)) as trace:
         filters = _collapse_singleton_filters(normalize_filters({"brand": brand, "category": category}))
-        results = service.search_compose(rgb, text, alpha=weight, top_k=top_k, candidate_k=candidate_k, filters=filters)
+        results = await run_in_threadpool(service.search_compose, rgb, text, alpha=weight, top_k=top_k, candidate_k=candidate_k, filters=filters)
         trace.set_output(result_ids=[result.product_id for result in results])
     latency_ms = round((perf_counter() - started) * 1000, 3)
     _record(request, trace_id=trace.trace_id, query=text, mode="compose", pipeline=pipeline, latency_ms=latency_ms, result_count=len(results))

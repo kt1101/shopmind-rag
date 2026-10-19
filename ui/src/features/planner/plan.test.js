@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   budgetStatus, buildPlanUrl, canPlan, chosenProducts, citationsFor, normalizePlan, parseBudget, parsePlanParams, planTotal, priorityOrder,
-  removeChoice, swapChoice,
+  isEdited, removeChoice, swapChoice,
 } from './plan.js'
 
 const item = (id, amount, extra = {}) => ({ product_id: id, title: `T ${id}`, brand: 'B', category: 'backpacks', image_url: null, price: amount == null ? null : { amount, currency: 'USD', synthetic: true }, in_stock: true, score: 1, rank: 1, ...extra })
@@ -84,6 +84,17 @@ test('swapping an alternative recomputes the total client-side', () => {
   assert.equal(removed.total, 210)
   assert.equal(removed.needs[2].status, 'skipped_budget')
   assert.equal(removed.needs[2].alternatives[0].product_id, 'M-023')
+})
+
+test('isEdited tells when the server summary no longer matches the picks', () => {
+  const plan = normalizePlan(RESPONSE)
+  assert.equal(isEdited(plan), false)
+  const swapped = swapChoice(plan, 'n1', 'M-017')
+  assert.equal(isEdited(swapped), true)
+  assert.equal(isEdited(swapChoice(swapped, 'n1', 'M-013')), false, 'swapping back restores the suggestion')
+  assert.equal(isEdited(swapChoice(plan, 'n3', 'M-021')), true, 'picking a skipped need')
+  assert.equal(isEdited(removeChoice(plan, 'n1')), true)
+  assert.equal(isEdited(null), false)
 })
 
 test('budget bar, totals, citations, cart items, priority order', () => {

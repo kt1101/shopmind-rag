@@ -12,4 +12,5 @@ prompts:
 vocabularies:
   category_aliases: vocab/category_aliases.yaml
   color_aliases: vocab/color_aliases.yaml
+  term_aliases: vocab/term_aliases.yaml       # materials / attributes (lexical only)
   occasions: vocab/occasions.yaml          # shopping planner templates (F6)

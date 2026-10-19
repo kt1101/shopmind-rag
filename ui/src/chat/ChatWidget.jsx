@@ -5,8 +5,10 @@ import { planHref, progressItems, sourceCount } from './chatReply.js'
 import { resolveImageUrl, uploadChatImage } from '../api.js'
 import { formatPrice } from '../lib/format.js'
 import { productPath } from '../lib/urlState.js'
+import { displayTitle } from '../entities/product/product.js'
 import AnswerText from '../entities/citation/AnswerText.jsx'
 import FeedbackWidget from '../features/feedback/FeedbackWidget.jsx'
+import { describeError } from '../shared/api/errors.js'
 import { useI18n } from '../shared/ui/I18nProvider.jsx'
 import InspectorDrawer from '../widgets/inspector/InspectorDrawer.jsx'
 import RagInspector from '../widgets/inspector/RagInspector.jsx'
@@ -38,16 +40,16 @@ function ChatProductCard({ product, onAsk }) {
   const { t } = useI18n()
   const [broken, setBroken] = useState(false)
   const image = resolveImageUrl(product?.image_url)
-  const title = product?.title || 'Product'
+  const title = displayTitle(product?.title) || t('chat.productFallback')
   return (
     <div className="chat-source">
       <Link to={productPath(product?.product_id)} className="chat-source-card">
         <div className="chat-source-thumb">
-          {image && !broken ? <img src={image} alt={title} loading="lazy" onError={() => setBroken(true)} /> : <span aria-hidden="true" className="chat-source-placeholder">◇</span>}
+          {image && !broken ? <img src={image} alt="" loading="lazy" onError={() => setBroken(true)} /> : <span aria-hidden="true" className="chat-source-placeholder">◇</span>}
         </div>
         <span className="chat-source-title">{title}</span>
       </Link>
-      <button type="button" className="chat-source-ask" onClick={() => onAsk(product)}>{t('chat.askAbout')}</button>
+      <button type="button" className="chat-source-ask" onClick={() => onAsk(product)} aria-label={`${t('chat.askAbout')}: ${title}`}>{t('chat.askAbout')}</button>
     </div>
   )
 }
@@ -87,6 +89,28 @@ function PlanSummary({ plan, message }) {
   )
 }
 
+// Failed reply in plain words: an LLM that is switched off is not a connection problem, and
+// retrying cannot help, so it points at what still works instead.
+function ChatError({ msg, onRetry }) {
+  const { t } = useI18n()
+  const info = describeError({ ...msg.error, message: msg.content }, t)
+  return (
+    <div className="chat-message chat-message--error">
+      <div className={`chat-bubble chat-bubble--error chat-error--${info.kind}`}>
+        <p className="chat-bubble-text"><strong>{info.title}</strong></p>
+        <p className="chat-error-detail">{info.message}</p>
+        {info.kind === 'llm_unavailable' ? (
+          <p className="chat-error-links">
+            <Link to="/plan">{t('error.tryPlan')}</Link>
+          </p>
+        ) : info.retryable ? (
+          <button type="button" className="chat-retry-button" onClick={onRetry}>{t('chat.retry')}</button>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
 function IntentBadge({ intent }) {
   const { t } = useI18n()
   if (!intent) return null
@@ -98,7 +122,7 @@ function Progress({ steps }) {
   const items = progressItems(steps)
   if (!items.length) return null
   return (
-    <ol className="chat-progress" aria-label="progress">
+    <ol className="chat-progress" aria-label={t('a11y.progress')}>
       {items.map((item, i) => {
         const n = item.step === 'multi_source_retrieve' ? sourceCount(item.summary) : null
         const label = item.step === 'multi_source_retrieve' && !n ? t('step.multi_source_retrieveAny') : t(`step.${item.step}`, { n })
@@ -106,7 +130,7 @@ function Progress({ steps }) {
           <li key={`${item.step}-${i}`} className={`chat-progress-item is-${item.status}`}>
             {i > 0 && <span className="chat-progress-arrow" aria-hidden="true">→</span>}
             <span>{label === `step.${item.step}` ? item.step : label}</span>
-            {item.status === 'done' ? <span className="chat-progress-check" aria-label="done">✓</span> : <span className="chat-progress-spinner" aria-hidden="true" />}
+            {item.status === 'done' ? <span className="chat-progress-check" role="img" aria-label={t('a11y.done')}>✓</span> : <span className="chat-progress-spinner" aria-hidden="true" />}
           </li>
         )
       })}
@@ -160,9 +184,14 @@ export default function ChatWidget() {
   const inputRef = useRef(null)
   const fileRef = useRef(null)
   const messagesEndRef = useRef(null)
+  const launcherRef = useRef(null)
+  const wasOpen = useRef(open)
 
+  // Focus moves into the panel on open and back to the launcher on close (Escape or ×).
   useEffect(() => {
     if (open) inputRef.current?.focus()
+    else if (wasOpen.current) launcherRef.current?.focus()
+    wasOpen.current = open
   }, [open])
 
   useEffect(() => {
@@ -174,9 +203,14 @@ export default function ChatWidget() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [open, closeChat, inspected])
 
+  // Keep the newest message in view. Streaming tokens scroll instantly (smooth scrolling on
+  // every token stutters and fights the user); new messages scroll smoothly.
   useEffect(() => {
-    if (open) messagesEndRef.current?.scrollIntoView?.({ behavior: 'smooth' })
-  }, [open, messages, pending, live])
+    if (open) messagesEndRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'end' })
+  }, [open, messages, pending])
+  useEffect(() => {
+    if (open && live) messagesEndRef.current?.scrollIntoView?.({ block: 'end' })
+  }, [open, live])
 
   async function attach(event) {
     const file = event.target.files?.[0]
@@ -222,7 +256,7 @@ export default function ChatWidget() {
 
   return (
     <>
-      <button type="button" className={`chat-launcher ${open ? 'chat-launcher--hidden' : ''}`} aria-label={t('chat.open')} aria-expanded={open} onClick={openChat}>
+      <button ref={launcherRef} type="button" className={`chat-launcher ${open ? 'chat-launcher--hidden' : ''}`} aria-label={t('chat.open')} aria-expanded={open} onClick={openChat}>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
@@ -254,12 +288,12 @@ export default function ChatWidget() {
 
           {scope && (
             <div className="chat-scope">
-              <span>{t('chat.askingAbout')} <strong>{scope.title}</strong></span>
+              <span>{t('chat.askingAbout')} <strong>{displayTitle(scope.title)}</strong></span>
               <button type="button" aria-label={t('chat.stopScope')} onClick={() => setScope(null)}>×</button>
             </div>
           )}
 
-          <div className="chat-messages" aria-live="polite">
+          <div className="chat-messages" role="log" aria-live="polite" aria-relevant="additions" aria-busy={pending}>
             {messages.length === 0 && (
               <div className="chat-empty-state">
                 <p className="chat-greeting">{scope ? t('chat.greetingScoped', { title: scope.title }) : t('chat.greeting')}</p>
@@ -286,15 +320,7 @@ export default function ChatWidget() {
                 return <p key={msg.id} className="chat-scope-divider">{msg.product ? t('chat.nowAbout', { title: msg.product.title }) : t('chat.backToCatalog')}</p>
               }
               if (msg.role === 'error') {
-                return (
-                  <div key={msg.id} className="chat-message chat-message--error">
-                    <div className="chat-bubble chat-bubble--error">
-                      <p className="chat-bubble-text">{t('chat.error')}</p>
-                      {msg.content && <p className="chat-error-detail">{msg.content}</p>}
-                      <button type="button" className="chat-retry-button" onClick={retry}>{t('chat.retry')}</button>
-                    </div>
-                  </div>
-                )
+                return <ChatError key={msg.id} msg={msg} onRetry={retry} />
               }
               return <AssistantMessage key={msg.id} msg={msg} onAsk={setScope} onInspect={setInspected} staff={staff} />
             })}

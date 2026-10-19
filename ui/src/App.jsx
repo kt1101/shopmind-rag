@@ -5,7 +5,7 @@ import CatalogPage from './shop/CatalogPage.jsx'
 import SearchPage from './shop/SearchPage.jsx'
 import ProductPage from './shop/ProductPage.jsx'
 import NotFoundPage from './shop/NotFoundPage.jsx'
-import { I18nProvider } from './shared/ui/I18nProvider.jsx'
+import { I18nProvider, useI18n } from './shared/ui/I18nProvider.jsx'
 import { ToastProvider } from './shared/ui/Toast.jsx'
 import { ShopListsProvider } from './features/shop-lists/ShopListsProvider.jsx'
 
@@ -20,8 +20,13 @@ function Moved({ to }) {
   return <Navigate to={`${to}${search}`} replace />
 }
 
+function LoadingFallback() {
+  const { t } = useI18n()
+  return <p role="status" style={{ padding: 24 }}>{t('common.loading')}</p>
+}
+
 function Lazy({ children }) {
-  return <Suspense fallback={<p role="status" style={{ padding: 24 }}>…</p>}>{children}</Suspense>
+  return <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
 }
 
 export default function App() {
@@ -32,7 +37,7 @@ export default function App() {
           <Routes>
             <Route path="/lab" element={<Moved to="/admin/playground" />} />
             <Route path="/lab/embeddings" element={<Moved to="/admin/embedding-map" />} />
-            <Route path="/admin/*" element={<Suspense fallback={<p role="status" style={{ padding: 24 }}>Loading admin…</p>}><AdminApp /></Suspense>} />
+            <Route path="/admin/*" element={<Lazy><AdminApp /></Lazy>} />
             <Route element={<ShopLayout />}>
               <Route path="/" element={<CatalogPage />} />
               <Route path="/search" element={<SearchPage />} />

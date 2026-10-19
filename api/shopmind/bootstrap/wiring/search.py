@@ -25,6 +25,7 @@ def wire(container) -> None:
     from shopmind.application.search.service import SearchService
     from shopmind.infrastructure.elasticsearch.client import create_elasticsearch_client
     from shopmind.infrastructure.elasticsearch.repository import ElasticsearchProductRepository
+    from shopmind.infrastructure.embedding.cache import CachingEmbedder
     from shopmind.infrastructure.embedding.factory import build_embedders, field_embedder_ids
 
     config = container.effective_config()
@@ -34,7 +35,8 @@ def wire(container) -> None:
     alias = config.index_alias("products") if "products" in config.indexes else config.elasticsearch.index_alias
     repository = ElasticsearchProductRepository(client, alias)
     field_embedders = field_embedder_ids(config, "products")
-    embedders = build_embedders(config, list(dict.fromkeys(field_embedders.values())))
+    # Query-time LRU cache in front of every model (repeat queries, inspector re-runs, compose α slider).
+    embedders = {embedder_id: CachingEmbedder(embedder) for embedder_id, embedder in build_embedders(config, list(dict.fromkeys(field_embedders.values()))).items()}
     present = _index_vector_fields(client, alias)
     bound = {}
     for field, embedder_id in field_embedders.items():

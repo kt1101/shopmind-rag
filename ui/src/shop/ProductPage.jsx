@@ -3,14 +3,14 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { getProduct, getSimilarProducts, resolveImageUrl } from '../api.js'
 import { formatPrice } from '../lib/format.js'
 import { buildCatalogUrl } from '../lib/urlState.js'
-import { galleryImages, isSyntheticPrice, normalizeAttributes, stockBadge } from '../entities/product/product.js'
+import { displayTitle, galleryImages, isSyntheticPrice, normalizeAttributes, stockBadge } from '../entities/product/product.js'
 import { useShopLists } from '../features/shop-lists/ShopListsProvider.jsx'
-import { categoryLabel } from '../shared/i18n.js'
+import { attributeLabel, categoryLabel } from '../shared/i18n.js'
 import { useI18n } from '../shared/ui/I18nProvider.jsx'
 import { useChat } from '../chat/ChatProvider.jsx'
 import ProductAskPanel from './ProductAskPanel.jsx'
 import ProductCard from './ProductCard.jsx'
-import StatusBlock from './StatusBlock.jsx'
+import StatusBlock, { ErrorBlock } from './StatusBlock.jsx'
 
 function Gallery({ images, title }) {
   const { t } = useI18n()
@@ -65,7 +65,7 @@ export default function ProductPage() {
     if (!productId) {
       setLoading(false)
       setProduct(null)
-      setError(Object.assign(new Error('Product not found'), { status: 404 }))
+      setError(Object.assign(new Error(t('product.notFoundError')), { status: 404 }))
       return undefined
     }
     setProduct(null)
@@ -132,7 +132,7 @@ export default function ProductPage() {
         {error.status === 404 ? (
           <StatusBlock tone="empty" title={t('product.notFound')} message={t('product.notFoundHint')} action={{ label: t('product.backHome'), onClick: () => navigate('/') }} />
         ) : (
-          <StatusBlock tone="error" title={t('product.loadFailed')} message={error.message} action={{ label: t('state.retry'), onClick: () => setReloadIndex((i) => i + 1) }} />
+          <ErrorBlock error={error} context={t('product.loadFailed')} onRetry={() => setReloadIndex((i) => i + 1)} />
         )}
       </div>
     )
@@ -165,11 +165,11 @@ export default function ProductPage() {
       </nav>
 
       <div className="product-layout">
-        <Gallery key={product.product_id} images={images} title={product.title} />
+        <Gallery key={product.product_id} images={images} title={displayTitle(product.title)} />
 
         <div className="product-summary">
           {category && <p className="product-eyebrow eyebrow">{category}</p>}
-          <h1 className="product-title">{product.title}</h1>
+          <h1 className="product-title">{displayTitle(product.title)}</h1>
           {product.brand && <p className="product-brand">{product.brand}</p>}
 
           {(priceLabel || stock) && (
@@ -221,8 +221,8 @@ export default function ProductPage() {
             <tbody>
               {attributes.map((attr) => (
                 <tr key={attr.name}>
-                  <td className="product-attr-name">{attr.name}</td>
-                  <td className="product-attr-value">{attr.value}</td>
+                  <th scope="row" className="product-attr-name">{attributeLabel(lang, attr.name)}</th>
+                  <td className="product-attr-value">{/^product[ _]type$/i.test(attr.name) ? categoryLabel(lang, attr.value) : attr.value}</td>
                 </tr>
               ))}
             </tbody>

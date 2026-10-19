@@ -20,7 +20,7 @@ export default function SiteHeader() {
         <strong>ShopMind</strong>
       </Link>
       <SearchBar />
-      <nav className="header-nav" aria-label="ShopMind">
+      <nav className="header-nav" aria-label={t('a11y.mainNav')}>
         <NavLink to="/plan" className="header-plan-link" title={t('nav.planHint')} aria-label={t('nav.plan')}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />

@@ -111,13 +111,35 @@ def test_exact_product_id_short_circuits_the_pipeline():
     with start_trace("p", kind="search", trace_id="t") as trace:
         results = service.search_text(SearchRequest("B0ABC12345", SearchMode.HYBRID, top_k=5, candidate_k=10))
     assert [r.product_id for r in results] == ["B0ABC12345"]
+    # Dense retrieval runs concurrently with BM25 and its ranking is discarded after the exact hit:
+    # results and trace are exactly what sequential execution would produce.
     assert [step.id for step in trace.steps] == ["query_understanding", "lexical"]
-    assert not any(call[0] == "vector" for call in repository.calls)
 
 
 @pytest.mark.parametrize("query,mode", [("B07PH3GSND", "bm25"), ("brown leather boots for winter hiking", "dense"), ("sofa", "hybrid"), ("iphone 12 case with card holder", "hybrid")])
 def test_adaptive_rule_router(query, mode):
     assert adaptive_search_mode(query)[0] == mode
+
+
+def test_retrieve_steps_run_concurrently_but_merge_in_declaration_order():
+    import time
+
+    class SlowLexical(FakeRepository):
+        def lexical_search(self, query, size, filters, debug=None):
+            time.sleep(0.2)
+            return super().lexical_search(query, size, filters, debug)
+
+        def vector_search(self, *args, **kwargs):
+            time.sleep(0.2)
+            return super().vector_search(*args, **kwargs)
+
+    service, _, _ = make(SlowLexical())
+    started = time.perf_counter()
+    with start_trace("p", kind="search", trace_id="t") as trace:
+        results = service.search_text(SearchRequest("sofa", SearchMode.HYBRID, top_k=3, candidate_k=10, pipeline="search.hybrid"))
+    assert time.perf_counter() - started < 0.38  # not 0.4 s: both retrievers ran at once
+    assert [step.id for step in trace.steps] == ["query_understanding", "lexical", "semantic", "fuse", "rerank"]
+    assert [r.product_id for r in results] == ["A", "C", "B"]
 
 
 def test_adaptive_pipeline_runs_only_the_chosen_retriever():

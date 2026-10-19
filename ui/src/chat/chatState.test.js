@@ -31,6 +31,13 @@ test('fail appends an error message; retry removes it and re-pends', () => {
   assert.deepEqual(s.messages.map((m) => m.role), ['user'])
 })
 
+test('fail keeps the error code and status so the widget can explain llm_unavailable', () => {
+  let s = chatReducer(initialChatState, { type: 'send', content: 'a' })
+  s = chatReducer(s, { type: 'fail', message: 'OPENAI_API_KEY is not configured', code: 'llm_unavailable', status: 503 })
+  assert.deepEqual(s.messages.at(-1).error, { code: 'llm_unavailable', status: 503, name: null })
+  assert.equal(s.messages.at(-1).content, 'OPENAI_API_KEY is not configured')
+})
+
 test('retry is ignored unless the last message is an error', () => {
   assert.equal(chatReducer(initialChatState, { type: 'retry' }), initialChatState)
 })

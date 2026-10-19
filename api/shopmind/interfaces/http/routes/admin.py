@@ -14,6 +14,7 @@ from shopmind.infrastructure.db.eval_runs import EvalRunRepository
 from shopmind.infrastructure.db.trace_store import input_summary
 from shopmind.interfaces.http.admin_support import database, error_response, need, require_admin
 from shopmind.interfaces.http.deps import component, get_config, require_auth
+from shopmind.interfaces.http.ratelimit import rate_limit
 
 logger = logging.getLogger("shopmind.admin")
 
@@ -27,7 +28,7 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1, max_length=256)
 
 
-@router.post("/auth/login")
+@router.post("/auth/login", dependencies=[Depends(rate_limit)])
 def login(payload: LoginRequest, request: Request) -> dict[str, Any]:
     return need(request, "auth_service").login(payload.username.strip(), payload.password)
 

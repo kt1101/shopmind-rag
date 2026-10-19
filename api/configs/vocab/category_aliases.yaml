@@ -49,3 +49,44 @@ hành lý: luggage
 va li: suitcase
 suitcases: suitcase
 giày: shoes
+# Common product nouns (added 2026-10-17; general shopping vocabulary, not tuned on benchmarks).
+vali: suitcase
+ba lô: backpack
+balo: backpack
+đèn bàn: lamp
+đèn ngủ: lamp
+đèn: lamp
+bàn làm việc: desk
+bàn: table
+ghế: chair
+mũ: hat
+nón: hat
+kính râm: sunglasses
+kính mát: sunglasses
+bình nước: bottle
+ốp điện thoại: cellular_phone_case
+ốp lưng: cellular_phone_case
+tai nghe: headphones
+nhẫn: ring
+bông tai: earring
+khuyên tai: earring
+vòng cổ: necklace
+dây chuyền: necklace
+vòng tay: bracelet
+ví: wallet
+dép: sandal
+giày thể thao: sneakers
+giày chạy bộ: running shoes
+chảo: pan
+dao: knife
+gương: mirror
+tủ: cabinet
+chăn: blanket
+rèm: curtain
+thảm tập: exercise mat
+đồ chơi: toy
+# Longer phrases win over the short nouns above (bàn chải is not a table).
+bàn chải: brush
+bàn phím: keyboard
+bàn ủi: iron
+ghế văn phòng: office chair

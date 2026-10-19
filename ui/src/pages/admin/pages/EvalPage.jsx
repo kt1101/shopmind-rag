@@ -6,28 +6,30 @@ import { MAX_COMPARE, MIN_COMPARE, compareChartData, compareMetricKeys, metricLa
 import { formatDateTime, formatDelta, formatMetric } from '../lib/format.js'
 import { BarChart } from '../charts/index.js'
 import { Banner, Card, EmptyState, ErrorState, PageHeader, Pill, TableSkeleton } from '../components/ui.jsx'
+import { useI18n } from '../../../shared/ui/I18nProvider.jsx'
 
 function CompareView({ runs }) {
+  const { t } = useI18n()
   const chart = useMemo(() => compareChartData(runs), [runs])
   const keys = useMemo(() => compareMetricKeys(runs), [runs])
   const [base, ...others] = runs
   const baseMetrics = numericMetrics(base.metrics)
   return (
-    <Card title={`Compare ${runs.length} runs`}>
+    <Card title={t('adm.ev.compare', { count: runs.length })}>
       <BarChart
-        title="Metric comparison"
-        description={`Grouped bars of ${chart.categories.join(', ')} for runs ${runs.map((r) => r.name).join(', ')}.`}
+        title={t('adm.ev.chart')}
+        description={t('adm.ev.chartDesc', { metrics: chart.categories.join(', '), runs: runs.map((r) => r.name).join(', ') })}
         categories={chart.categories}
         series={chart.series}
         formatValue={formatMetric}
         height={260}
       />
-      <h3>Delta vs baseline <span className="adm-muted">({base.name})</span></h3>
+      <h3>{t('adm.ev.delta')} <span className="adm-muted">({base.name})</span></h3>
       <div className="adm-table-wrap">
         <table className="adm-table adm-table-compact">
           <thead>
             <tr>
-              <th scope="col">Metric</th>
+              <th scope="col">{t('adm.ev.metric')}</th>
               <th scope="col" className="num">{base.name}</th>
               {others.map((r) => <th key={r.id} scope="col" className="num">{r.name}</th>)}
             </tr>
@@ -63,6 +65,7 @@ export default function EvalPage() {
   const [selected, setSelected] = useState([])
   const [kind, setKind] = useState('')
   const [jobNotice, setJobNotice] = useState(null)
+  const { t } = useI18n()
 
   const items = data?.items || []
   const visible = kind ? items.filter((r) => r.kind === kind) : items
@@ -81,36 +84,36 @@ export default function EvalPage() {
   return (
     <>
       <PageHeader
-        title="Evaluation Center"
-        description="Runs recorded from runs/*/metrics.json. Select 2–4 runs to compare."
-        actions={<button type="button" className="adm-btn adm-btn-primary" onClick={runEval}>Run evaluation</button>}
+        title={t('adm.ev.title')}
+        description={t('adm.ev.intro')}
+        actions={<button type="button" className="adm-btn adm-btn-primary" onClick={runEval}>{t('adm.ev.run')}</button>}
       />
-      <Banner tone="info">Qrels still need human review before results are reported; A3 seed cases are placeholders. Use the Annotation page to review judgments.</Banner>
+      <Banner tone="info">{t('adm.ev.note')}</Banner>
       {jobNotice && (
         <Banner tone={jobNotice.tone}>
-          {jobNotice.job ? <>Started <Link to={`/admin/jobs/${encodeURIComponent(jobNotice.job.id)}`}><code>{jobNotice.job.id}</code></Link>. The run appears here when it finishes.</> : `Could not start evaluation: ${jobNotice.text}`}
+          {jobNotice.job ? <Link to={`/admin/jobs/${encodeURIComponent(jobNotice.job.id)}`}>{t('adm.ev.started', { job: jobNotice.job.id })}</Link> : t('adm.ev.startFailed', { message: jobNotice.text })}
         </Banner>
       )}
       <Card
-        title="Runs"
+        title={t('adm.ev.runs')}
         actions={(
           <label className="adm-field adm-field-inline">
-            <span className="adm-sr-only">Kind</span>
+            <span className="adm-sr-only">{t('adm.kind')}</span>
             <select value={kind} onChange={(e) => setKind(e.target.value)}>
-              <option value="">All kinds</option>
-              <option value="a1">A1 retrieval</option>
-              <option value="a3">A3 RAG</option>
+              <option value="">{t('adm.allKinds')}</option>
+              <option value="a1">{t('adm.ev.a1')}</option>
+              <option value="a3">{t('adm.ev.a3')}</option>
             </select>
           </label>
         )}
       >
-        {loading && !data ? <TableSkeleton cols={6} /> : error && !data ? <ErrorState error={error} onRetry={reload} /> : visible.length === 0 ? <EmptyState title="No eval runs yet" message="Run an evaluation job to record one." /> : (
+        {loading && !data ? <TableSkeleton cols={6} /> : error && !data ? <ErrorState error={error} onRetry={reload} /> : visible.length === 0 ? <EmptyState title={t('adm.ev.empty')} message={t('adm.ev.emptyText')} /> : (
           <div className="adm-table-wrap">
             <table className="adm-table">
               <thead>
                 <tr>
-                  <th scope="col"><span className="adm-sr-only">Select</span></th>
-                  <th scope="col">Run</th><th scope="col">Kind</th><th scope="col">Created</th>
+                  <th scope="col"><span className="adm-sr-only">{t('adm.ev.select')}</span></th>
+                  <th scope="col">{t('adm.ev.runCol')}</th><th scope="col">{t('adm.kind')}</th><th scope="col">{t('adm.created')}</th>
                   <th scope="col" className="num">Recall@10</th><th scope="col" className="num">nDCG@10</th><th scope="col" className="num">MRR@10</th>
                 </tr>
               </thead>
@@ -121,7 +124,7 @@ export default function EvalPage() {
                   return (
                     <tr key={r.id} className={checked ? 'selected' : undefined}>
                       <td>
-                        <input type="checkbox" checked={checked} onChange={() => setSelected((s) => toggleSelection(s, r.id))} aria-label={`Compare ${r.name}`} />
+                        <input type="checkbox" checked={checked} onChange={() => setSelected((s) => toggleSelection(s, r.id))} aria-label={t('adm.ev.compareRun', { name: r.name })} />
                       </td>
                       <td><Link to={`/admin/eval/${encodeURIComponent(r.id)}`}>{r.name}</Link></td>
                       <td><Pill value={r.kind} /></td>
@@ -137,8 +140,8 @@ export default function EvalPage() {
           </div>
         )}
         <p className="adm-muted adm-small" aria-live="polite">
-          {selected.length} selected{selected.length > 0 && selected.length < MIN_COMPARE ? `, pick at least ${MIN_COMPARE}` : ''} (max {MAX_COMPARE}; the first selected is the baseline).
-          {selected.length > 0 && <> <button type="button" className="adm-btn adm-btn-small adm-btn-ghost" onClick={() => setSelected([])}>Clear</button></>}
+          {t('adm.ev.selected', { count: selected.length })}{selected.length > 0 && selected.length < MIN_COMPARE ? t('adm.ev.pickMore', { min: MIN_COMPARE }) : ''}{t('adm.ev.selectHint', { max: MAX_COMPARE })}
+          {selected.length > 0 && <> <button type="button" className="adm-btn adm-btn-small adm-btn-ghost" onClick={() => setSelected([])}>{t('adm.ev.clear')}</button></>}
         </p>
       </Card>
       {selectedRuns.length >= MIN_COMPARE && <CompareView runs={selectedRuns} />}
