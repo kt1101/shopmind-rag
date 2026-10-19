@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { ragPlan, resolveImageUrl } from '../../api.js'
 import { formatPrice } from '../../lib/format.js'
@@ -193,6 +193,8 @@ export default function PlanPage() {
   const [state, setState] = useState({ plan: null, loading: false, error: null })
   const [reload, setReload] = useState(0)
   const [showTrace, setShowTrace] = useState(false)
+  const resultRef = useRef(null)
+  const submitted = useRef(false)
 
   useEffect(() => {
     setDraft(query)
@@ -217,13 +219,24 @@ export default function PlanPage() {
     // the language is sent as a hint; switching it should not re-plan
   }, [query, budget, reload, staff.active]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // After the shopper asks for a plan (not on a shared link), bring the result into view when
+  // it starts below the fold (on phones the form and examples fill the first screen).
+  useEffect(() => {
+    if (!submitted.current || state.loading || (!state.plan && !state.error)) return
+    submitted.current = false
+    const el = resultRef.current
+    if (el && el.getBoundingClientRect().top > window.innerHeight * 0.6) el.scrollIntoView({ block: 'start', behavior: 'smooth' })
+  }, [state])
+
   function submit(event) {
     event.preventDefault()
     if (!canPlan(draft)) return
+    submitted.current = true
     navigate(buildPlanUrl({ query: draft, budget: budgetDraft }))
   }
 
   function runExample(text) {
+    submitted.current = true
     navigate(buildPlanUrl({ query: text }))
   }
 
@@ -274,6 +287,7 @@ export default function PlanPage() {
         </div>
       </section>
 
+      <div ref={resultRef} className="plan-result-anchor" />
       {state.loading && !plan ? <ResultSkeleton /> : state.error ? (
         <ErrorBlock error={state.error} context={t('plan.failed')} onRetry={() => setReload((n) => n + 1)} />
       ) : plan ? (

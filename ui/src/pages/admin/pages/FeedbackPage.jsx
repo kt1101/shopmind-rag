@@ -63,7 +63,7 @@ export default function FeedbackPage() {
                   <tr key={f.id}>
                     <td className="nowrap">{formatDateTime(f.created_at)}</td>
                     <td><span role="img" aria-label={f.rating > 0 ? t('adm.fb.isPositive') : t('adm.fb.isNegative')}>{f.rating > 0 ? '👍' : '👎'}</span></td>
-                    <td><Pill value={f.target} /></td>
+                    <td><Pill value={f.target}>{f.target === 'search' ? t('adm.fb.targetSearch') : f.target === 'answer' ? t('adm.fb.targetAnswer') : f.target}</Pill></td>
                     <td>{f.query || <span className="adm-muted">—</span>}</td>
                     <td>{f.product_id ? <code className="adm-small">{f.product_id}</code> : <span className="adm-muted">—</span>}</td>
                     <td className="adm-ellipsis">{f.comment || <span className="adm-muted">—</span>}</td>

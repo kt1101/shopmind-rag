@@ -213,6 +213,7 @@ export default function SearchPage() {
         onChange={(filters) => go({ filters })}
         query={search.type === 'text' ? search.query : null}
         showColor={search.type === 'text'}
+        catalogCounts={search.type !== 'text'}
       />
 
       <div className="search-content">

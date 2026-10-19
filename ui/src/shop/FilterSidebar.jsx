@@ -13,7 +13,9 @@ function asList(value) {
 
 // Facet counts come from POST /search/facets (ES aggregations). If that endpoint fails,
 // the sidebar falls back to filter-options (categories) and the brand autocomplete.
-export default function FilterSidebar({ filters = {}, onChange, query = null, showColor = false }) {
+// `catalogCounts`: the counts describe the whole catalog (image / compose search has no
+// keyword query to count against), so the hint must not claim they follow the results.
+export default function FilterSidebar({ filters = {}, onChange, query = null, showColor = false, catalogCounts = false }) {
   const { t, lang } = useI18n()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [facets, setFacets] = useState(null)
@@ -139,7 +141,7 @@ export default function FilterSidebar({ filters = {}, onChange, query = null, sh
           <h3 className="filter-drawer-title">{t('filters.title')}</h3>
           <button ref={closeRef} type="button" className="filter-drawer-close" aria-label={t('filters.close')} onClick={() => setDrawerOpen(false)}>×</button>
         </div>
-        {facets && !facetsEmpty && <p className="filter-facets-hint">{t('filters.facetsHint')}</p>}
+        {facets && !facetsEmpty && <p className="filter-facets-hint">{t(catalogCounts ? 'filters.facetsHintCatalog' : 'filters.facetsHint')}</p>}
         {facetsEmpty && <p className="filter-empty" role="note">{t('filters.none')}</p>}
 
         {!(facets && categoryList.length === 0) && (

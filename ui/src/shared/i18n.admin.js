@@ -67,8 +67,6 @@ export const ADMIN = {
     'adm.pill.draft': 'nháp',
     'adm.pill.published': 'đã publish',
     'adm.pill.active': 'đang dùng',
-    'adm.pill.search': 'tìm kiếm',
-    'adm.pill.answer': 'câu trả lời',
 
     // login
     'adm.login.title': 'ShopMind · Quản trị',
@@ -445,8 +443,6 @@ export const ADMIN = {
     'adm.pill.draft': 'draft',
     'adm.pill.published': 'published',
     'adm.pill.active': 'active',
-    'adm.pill.search': 'search',
-    'adm.pill.answer': 'answer',
 
     'adm.login.title': 'ShopMind Admin',
     'adm.login.intro': 'Sign in to manage pipelines, policies and evaluation.',
