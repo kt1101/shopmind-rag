@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { resolveImageUrl } from '../../api.js'
 import { useI18n } from '../../shared/ui/I18nProvider.jsx'
+import { displayTitle } from '../../entities/product/product.js'
 import { useShopLists } from '../shop-lists/ShopListsProvider.jsx'
 import { COMPARE_MAX, buildCompareUrl } from '../shop-lists/shopLists.js'
 import './compare.css'
@@ -23,8 +24,8 @@ export default function CompareTray() {
             {item ? (
               <>
                 {resolveImageUrl(item.image_url) ? <img src={resolveImageUrl(item.image_url)} alt="" /> : <span aria-hidden="true">◇</span>}
-                <span className="compare-tray-title" title={item.title}>{item.title}</span>
-                <button type="button" className="compare-tray-remove" aria-label={t('compare.remove', { title: item.title })} onClick={() => removeFromCompare(item.product_id)}>×</button>
+                <span className="compare-tray-title" title={displayTitle(item.title)}>{displayTitle(item.title)}</span>
+                <button type="button" className="compare-tray-remove" aria-label={t('compare.remove', { title: displayTitle(item.title) })} onClick={() => removeFromCompare(item.product_id)}>×</button>
               </>
             ) : <span aria-hidden="true">+</span>}
           </li>

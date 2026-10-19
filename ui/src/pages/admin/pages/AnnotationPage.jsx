@@ -2,23 +2,26 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { exportJudgments, getAgreement, listJudgments, saveJudgment, searchForAnnotation } from '../../../shared/api/admin.js'
 import { useAsync } from '../lib/useAsync.js'
-import { GRADE_LABELS, GRADES, annotationReducer, gradesFromJudgments, initialAnnotationState, keyToAction, progress } from '../lib/annotation.js'
+import { GRADES, annotationReducer, gradesFromJudgments, initialAnnotationState, keyToAction, progress } from '../lib/annotation.js'
 import { formatKappa } from '../lib/format.js'
 import { Banner, Card, EmptyState, ErrorState, PageHeader, Skeleton } from '../components/ui.jsx'
+import { useI18n } from '../../../shared/ui/I18nProvider.jsx'
 
 const TOP_K = 10
 
 function AgreementCard() {
+  const { t } = useI18n()
   const { data, error, loading, reload } = useAsync((signal) => getAgreement({ signal }), [])
   const k = formatKappa(data?.kappa, data?.pairs)
+  const detail = data?.pairs != null ? t('adm.kappa.pairs', { count: data.pairs }) : k.value === '—' ? t('adm.kappa.need') : ''
   return (
-    <Card title="Inter-annotator agreement" actions={<button type="button" className="adm-btn adm-btn-small adm-btn-ghost" onClick={reload}>Refresh</button>}>
+    <Card title={t('adm.an.agreement')} actions={<button type="button" className="adm-btn adm-btn-small adm-btn-ghost" onClick={reload}>{t('adm.refresh')}</button>}>
       {loading && !data ? <Skeleton lines={2} /> : error && !data ? <ErrorState error={error} onRetry={reload} /> : (
         <div className={`adm-kappa adm-kappa-${k.tone}`}>
           <span className="adm-kappa-value">{k.value}</span>
           <div>
-            <strong>Cohen's κ · {k.label}</strong>
-            <p className="adm-muted adm-small">{k.detail}</p>
+            <strong>Cohen's κ · {t(`adm.kappa.${k.label}`)}</strong>
+            <p className="adm-muted adm-small">{detail}</p>
           </div>
         </div>
       )}
@@ -50,6 +53,9 @@ export default function AnnotationPage() {
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState(null)
   const listRef = useRef(null)
+  const { t } = useI18n()
+  const tRef = useRef(t)
+  tRef.current = t
   const stateRef = useRef(state)
   stateRef.current = state
 
@@ -99,7 +105,7 @@ export default function AnnotationPage() {
     } catch (error) {
       dispatch({ type: 'revert', id: productId, previous })
       setSaveStatus((s) => ({ ...s, [productId]: 'error' }))
-      setSaveError(`Could not save grade for ${productId}: ${error.message}`)
+      setSaveError(tRef.current('adm.an.saveFailed', { id: productId, message: error.message }))
     }
   }, [query])
 
@@ -146,24 +152,24 @@ export default function AnnotationPage() {
   return (
     <>
       <PageHeader
-        title="Annotation"
-        description="Grade the current top-k for a query. Judgments are exported as qrels for the evaluation benchmark."
-        actions={<button type="button" className="adm-btn" onClick={onExport} disabled={exporting}>{exporting ? 'Exporting…' : 'Export qrels'}</button>}
+        title={t('adm.an.title')}
+        description={t('adm.an.intro')}
+        actions={<button type="button" className="adm-btn" onClick={onExport} disabled={exporting}>{exporting ? t('adm.an.exporting') : t('adm.an.export')}</button>}
       />
-      {exportError && <Banner tone="bad">Export failed: {exportError}</Banner>}
+      {exportError && <Banner tone="bad">{t('adm.an.exportFailed', { message: exportError })}</Banner>}
       <div className="adm-grid-annotate">
         <div>
           <Card>
             <form className="adm-toolbar" onSubmit={submit} role="search">
               <label className="adm-field adm-field-grow">
-                <span className="adm-sr-only">Query</span>
-                <input type="search" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Enter a query to annotate…" list="adm-recent-queries" />
+                <span className="adm-sr-only">{t('adm.an.query')}</span>
+                <input type="search" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={t('adm.an.placeholder')} list="adm-recent-queries" />
                 <datalist id="adm-recent-queries">{recentQueries.map((q) => <option key={q} value={q} />)}</datalist>
               </label>
-              <button type="submit" className="adm-btn adm-btn-primary" disabled={!draft.trim()}>Load top-{TOP_K}</button>
+              <button type="submit" className="adm-btn adm-btn-primary" disabled={!draft.trim()}>{t('adm.an.load', { k: TOP_K })}</button>
             </form>
             {recentQueries.length > 0 && (
-              <div className="adm-chips" aria-label="Recently annotated queries">
+              <div className="adm-chips" role="group" aria-label={t('adm.an.recent')}>
                 {recentQueries.map((q) => (
                   <button key={q} type="button" className={`adm-chip ${q === query ? 'active' : ''}`} onClick={() => setParams(new URLSearchParams({ q }))}>{q}</button>
                 ))}
@@ -171,12 +177,12 @@ export default function AnnotationPage() {
             )}
           </Card>
           <Card
-            title={query ? <>Results for “{query}”</> : 'Results'}
-            actions={total > 0 && <span className="adm-muted adm-small" aria-live="polite">{graded}/{total} graded</span>}
+            title={query ? t('adm.an.resultsFor', { query }) : t('adm.an.results')}
+            actions={total > 0 && <span className="adm-muted adm-small" aria-live="polite">{t('adm.an.graded', { graded, total })}</span>}
           >
             {saveError && <Banner tone="bad">{saveError}</Banner>}
-            {!query ? <EmptyState title="Pick a query" message="Enter a query, pick a recent one, or use “Label this” from Feedback." /> : load.loading ? <Skeleton lines={8} height={36} /> : load.error ? <ErrorState error={load.error} onRetry={() => setParams(new URLSearchParams(params))} /> : results.length === 0 ? <EmptyState title="No results for this query" message="Nothing to grade; consider adding it to the zero-result review." /> : (
-              <ol className="adm-annotate-list" ref={listRef} aria-label="Results to grade">
+            {!query ? <EmptyState title={t('adm.an.pick')} message={t('adm.an.pickText')} /> : load.loading ? <Skeleton lines={8} height={36} /> : load.error ? <ErrorState error={load.error} onRetry={() => setParams(new URLSearchParams(params))} /> : results.length === 0 ? <EmptyState title={t('adm.an.noResults')} message={t('adm.an.noResultsText')} /> : (
+              <ol className="adm-annotate-list" ref={listRef} aria-label={t('adm.an.list')}>
                 {results.map((r, index) => {
                   const g = state.grades[r.product_id]
                   const focused = index === state.cursor
@@ -194,14 +200,15 @@ export default function AnnotationPage() {
                         <strong>{r.title}</strong>
                         <span className="adm-muted adm-small">{[r.brand, r.category].filter(Boolean).join(' · ')} · <code>{r.product_id}</code></span>
                       </div>
-                      <div className="adm-grade-group" role="group" aria-label={`Grade ${r.title}`}>
+                      <div className="adm-grade-group" role="group" aria-label={t('adm.an.gradeOf', { title: r.title })}>
                         {GRADES.map((value) => (
                           <button
                             key={value}
                             type="button"
                             className={`adm-grade adm-grade-${value} ${g === value ? 'active' : ''}`}
                             aria-pressed={g === value}
-                            title={GRADE_LABELS[value]}
+                            title={t(`adm.grade.${value}`)}
+                            aria-label={`${value} · ${t(`adm.grade.${value}`)}`}
                             onClick={(e) => { e.stopPropagation(); grade(value, r.product_id) }}
                           >
                             {value}
@@ -209,7 +216,7 @@ export default function AnnotationPage() {
                         ))}
                       </div>
                       <span className={`adm-save-status ${status || ''}`} aria-live="polite">
-                        {status === 'saving' ? 'Saving…' : status === 'saved' ? 'Saved' : status === 'error' ? 'Failed' : ''}
+                        {status === 'saving' ? t('adm.saving') : status === 'saved' ? t('adm.an.saved') : status === 'error' ? t('adm.an.failed') : ''}
                       </span>
                     </li>
                   )
@@ -220,15 +227,15 @@ export default function AnnotationPage() {
         </div>
         <div>
           <AgreementCard />
-          <Card title="Shortcuts">
+          <Card title={t('adm.an.shortcuts')}>
             <dl className="adm-dl adm-shortcuts">
-              <dt><kbd>j</kbd> / <kbd>↓</kbd></dt><dd>Next result</dd>
-              <dt><kbd>k</kbd> / <kbd>↑</kbd></dt><dd>Previous result</dd>
-              <dt><kbd>0</kbd></dt><dd>{GRADE_LABELS[0]}</dd>
-              <dt><kbd>1</kbd></dt><dd>{GRADE_LABELS[1]}</dd>
-              <dt><kbd>2</kbd></dt><dd>{GRADE_LABELS[2]}</dd>
+              <dt><kbd>j</kbd> / <kbd>↓</kbd></dt><dd>{t('adm.an.nextResult')}</dd>
+              <dt><kbd>k</kbd> / <kbd>↑</kbd></dt><dd>{t('adm.an.prevResult')}</dd>
+              <dt><kbd>0</kbd></dt><dd>{t('adm.grade.0')}</dd>
+              <dt><kbd>1</kbd></dt><dd>{t('adm.grade.1')}</dd>
+              <dt><kbd>2</kbd></dt><dd>{t('adm.grade.2')}</dd>
             </dl>
-            <p className="adm-muted adm-small">Grading moves to the next result. Shortcuts are paused while typing in a field.</p>
+            <p className="adm-muted adm-small">{t('adm.an.shortcutsHint')}</p>
           </Card>
         </div>
       </div>

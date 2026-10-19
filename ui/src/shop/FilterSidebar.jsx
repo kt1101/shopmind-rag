@@ -1,14 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { getFacets, getFilterOptions } from '../api.js'
 import FilterField from '../components/FilterField.jsx'
 import { useFilterOptions } from '../components/useFilterOptions.js'
 import { categoryLabel, colorLabel } from '../shared/i18n.js'
 import { useI18n } from '../shared/ui/I18nProvider.jsx'
 import { mergeFacet } from '../features/facets/facets.js'
-
-const COLOR_SWATCH = {
-  black: '#22252b', brown: '#8a5a3b', blue: '#3b6fd8', green: '#3f8f5a', white: '#f4f5f7', grey: '#8b93a1', red: '#c8423b', beige: '#cdb68f',
-}
+import { COLOR_SWATCHES, catalogKey } from '../shared/catalogLabels.js'
 
 function asList(value) {
   return Array.isArray(value) ? value : value ? [value] : []
@@ -16,7 +13,9 @@ function asList(value) {
 
 // Facet counts come from POST /search/facets (ES aggregations). If that endpoint fails,
 // the sidebar falls back to filter-options (categories) and the brand autocomplete.
-export default function FilterSidebar({ filters = {}, onChange, query = null, showColor = false }) {
+// `catalogCounts`: the counts describe the whole catalog (image / compose search has no
+// keyword query to count against), so the hint must not claim they follow the results.
+export default function FilterSidebar({ filters = {}, onChange, query = null, showColor = false, catalogCounts = false }) {
   const { t, lang } = useI18n()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [facets, setFacets] = useState(null)
@@ -27,6 +26,9 @@ export default function FilterSidebar({ filters = {}, onChange, query = null, sh
   const [categoryReloadIndex, setCategoryReloadIndex] = useState(0)
   const [brandDraft, setBrandDraft] = useState('')
   const [brandFocused, setBrandFocused] = useState(false)
+  const toggleRef = useRef(null)
+  const closeRef = useRef(null)
+  const wasOpen = useRef(false)
 
   const selected = {
     category: asList(filters?.category),
@@ -80,6 +82,13 @@ export default function FilterSidebar({ filters = {}, onChange, query = null, sh
 
   const { options: brandOptions, loading: brandLoading, error: brandError } = useFilterOptions('brand', brandDraft, facetsFailed && brandFocused)
 
+  // Mobile drawer: focus the close button on open, return focus to the toggle on close.
+  useEffect(() => {
+    if (drawerOpen) closeRef.current?.focus()
+    else if (wasOpen.current) toggleRef.current?.focus()
+    wasOpen.current = drawerOpen
+  }, [drawerOpen])
+
   useEffect(() => {
     if (!drawerOpen) return undefined
     function handleKeyDown(event) {
@@ -101,6 +110,8 @@ export default function FilterSidebar({ filters = {}, onChange, query = null, sh
   )
   const brandList = useMemo(() => (facets ? mergeFacet(facets.brand, selected.brand) : []), [facets, facetKey])
   const colorList = useMemo(() => (facets ? mergeFacet(facets.color, selected.color) : []), [facets, facetKey])
+  // A query with no keyword match (dense-only results) has no facet counts at all.
+  const facetsEmpty = Boolean(facets) && categoryList.length === 0 && brandList.length === 0 && (!showColor || colorList.length === 0)
 
   function checkboxList(field, list, labelFor, groupLabel) {
     return (
@@ -108,8 +119,8 @@ export default function FilterSidebar({ filters = {}, onChange, query = null, sh
         {list.map((opt) => (
           <label key={opt.value} className={`filter-checkbox-label ${opt.count === 0 ? 'is-zero' : ''}`}>
             <input type="checkbox" checked={selected[field].includes(opt.value)} onChange={() => toggle(field, opt.value)} />
-            {field === 'color' && <span className="filter-swatch" style={{ background: COLOR_SWATCH[opt.value] || 'var(--color-surface-3)' }} aria-hidden="true" />}
-            <span className="filter-checkbox-name">{labelFor(opt.value)}</span>
+            {field === 'color' && <span className="filter-swatch" style={{ background: COLOR_SWATCHES[catalogKey(opt.value)] || 'var(--color-surface-3)' }} aria-hidden="true" />}
+            <span className="filter-checkbox-name" title={labelFor(opt.value)}>{labelFor(opt.value)}</span>
             {opt.count != null && <span className="filter-count">{opt.count}</span>}
           </label>
         ))}
@@ -119,7 +130,7 @@ export default function FilterSidebar({ filters = {}, onChange, query = null, sh
 
   return (
     <aside className="filter-sidebar">
-      <button type="button" className="filter-drawer-toggle" aria-expanded={drawerOpen} aria-controls="shop-filter-drawer" onClick={() => setDrawerOpen((prev) => !prev)}>
+      <button ref={toggleRef} type="button" className="filter-drawer-toggle" aria-expanded={drawerOpen} aria-controls="shop-filter-drawer" onClick={() => setDrawerOpen((prev) => !prev)}>
         {t('filters.title')}{activeCount > 0 ? ` (${activeCount})` : ''}
       </button>
 
@@ -128,10 +139,12 @@ export default function FilterSidebar({ filters = {}, onChange, query = null, sh
       <div className={`filter-drawer-panel ${drawerOpen ? 'open' : ''}`} id="shop-filter-drawer" aria-label={t('filters.title')}>
         <div className="filter-drawer-header">
           <h3 className="filter-drawer-title">{t('filters.title')}</h3>
-          <button type="button" className="filter-drawer-close" aria-label={t('filters.close')} onClick={() => setDrawerOpen(false)}>×</button>
+          <button ref={closeRef} type="button" className="filter-drawer-close" aria-label={t('filters.close')} onClick={() => setDrawerOpen(false)}>×</button>
         </div>
-        {facets && <p className="filter-facets-hint">{t('filters.facetsHint')}</p>}
+        {facets && !facetsEmpty && <p className="filter-facets-hint">{t(catalogCounts ? 'filters.facetsHintCatalog' : 'filters.facetsHint')}</p>}
+        {facetsEmpty && <p className="filter-empty" role="note">{t('filters.none')}</p>}
 
+        {!(facets && categoryList.length === 0) && (
         <div className="filter-section filter-section-category">
           <span className="filter-section-title">{t('filters.category')}</span>
           {!facets && !facetsFailed && <span className="filter-loading">{t('filters.loading')}</span>}
@@ -144,7 +157,9 @@ export default function FilterSidebar({ filters = {}, onChange, query = null, sh
           )}
           {checkboxList('category', categoryList, (v) => categoryLabel(lang, v), t('filters.category'))}
         </div>
+        )}
 
+        {!(facets && brandList.length === 0) && (
         <div className="filter-section filter-section-brand">
           {facets ? (
             <>
@@ -170,6 +185,7 @@ export default function FilterSidebar({ filters = {}, onChange, query = null, sh
             />
           ) : null}
         </div>
+        )}
 
         {showColor && facets && colorList.length > 0 && (
           <div className="filter-section filter-section-color">

@@ -1,18 +1,19 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { ragPlan, resolveImageUrl } from '../../api.js'
 import { formatPrice } from '../../lib/format.js'
 import { buildSearchUrl, productPath } from '../../lib/urlState.js'
 import AnswerText from '../../entities/citation/AnswerText.jsx'
+import { displayTitle } from '../../entities/product/product.js'
 import {
-  PLAN_MAX_CHARS, buildPlanUrl, canPlan, chosenProducts, citationsFor, normalizePlan, parseBudget, parsePlanParams, removeChoice, swapChoice,
+  PLAN_MAX_CHARS, buildPlanUrl, canPlan, chosenProducts, citationsFor, isEdited, normalizePlan, parseBudget, parsePlanParams, removeChoice, swapChoice,
 } from '../../features/planner/plan.js'
 import { useShopLists } from '../../features/shop-lists/ShopListsProvider.jsx'
 import { categoryLabel } from '../../shared/i18n.js'
 import { useStaffMode } from '../../shared/lib/useStaffMode.js'
 import { useI18n } from '../../shared/ui/I18nProvider.jsx'
 import { SkeletonBlock } from '../../shared/ui/Skeleton.jsx'
-import StatusBlock from '../../shop/StatusBlock.jsx'
+import StatusBlock, { ErrorBlock } from '../../shop/StatusBlock.jsx'
 import InspectorDrawer from '../../widgets/inspector/InspectorDrawer.jsx'
 import '../../entities/citation/citation.css'
 import './plan.css'
@@ -91,9 +92,9 @@ function Alternatives({ need, onPick, label }) {
       <ul>
         {need.alternatives.map((item) => (
           <li key={item.product_id}>
-            <button type="button" className="plan-alt" onClick={() => onPick(need.id, item.product_id)} aria-label={t('plan.pick', { title: item.title, price: item.price ? money(item.price.amount, item.price.currency) : '—' })} title={item.title}>
+            <button type="button" className="plan-alt" onClick={() => onPick(need.id, item.product_id)} aria-label={t('plan.pick', { title: displayTitle(item.title), price: item.price ? money(item.price.amount, item.price.currency) : '—' })} title={displayTitle(item.title)}>
               <Thumb item={item} className="plan-alt-thumb" />
-              <span className="plan-alt-title">{item.title}</span>
+              <span className="plan-alt-title">{displayTitle(item.title)}</span>
               <span className="plan-alt-price">{item.price ? money(item.price.amount, item.price.currency) : '—'}</span>
             </button>
           </li>
@@ -119,11 +120,11 @@ function NeedCard({ need, sources, onPick, onRemove }) {
 
       {item ? (
         <div className="plan-item">
-          <Link to={productPath(item.product_id)} className="plan-item-link">
+          <Link to={productPath(item.product_id)} className="plan-item-link" tabIndex={-1} aria-hidden="true">
             <Thumb item={item} />
           </Link>
           <div className="plan-item-info">
-            <Link to={productPath(item.product_id)} className="plan-item-title">{item.title}</Link>
+            <Link to={productPath(item.product_id)} className="plan-item-title">{displayTitle(item.title)}</Link>
             <span className="sm-muted sm-small">{[item.brand, categoryLabel(lang, item.category)].filter(Boolean).join(' · ')}</span>
             <span className="plan-item-price">
               {item.price ? money(item.price.amount, item.price.currency) : t('plan.noPrice')}
@@ -192,6 +193,8 @@ export default function PlanPage() {
   const [state, setState] = useState({ plan: null, loading: false, error: null })
   const [reload, setReload] = useState(0)
   const [showTrace, setShowTrace] = useState(false)
+  const resultRef = useRef(null)
+  const submitted = useRef(false)
 
   useEffect(() => {
     setDraft(query)
@@ -216,13 +219,24 @@ export default function PlanPage() {
     // the language is sent as a hint; switching it should not re-plan
   }, [query, budget, reload, staff.active]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // After the shopper asks for a plan (not on a shared link), bring the result into view when
+  // it starts below the fold (on phones the form and examples fill the first screen).
+  useEffect(() => {
+    if (!submitted.current || state.loading || (!state.plan && !state.error)) return
+    submitted.current = false
+    const el = resultRef.current
+    if (el && el.getBoundingClientRect().top > window.innerHeight * 0.6) el.scrollIntoView({ block: 'start', behavior: 'smooth' })
+  }, [state])
+
   function submit(event) {
     event.preventDefault()
     if (!canPlan(draft)) return
+    submitted.current = true
     navigate(buildPlanUrl({ query: draft, budget: budgetDraft }))
   }
 
   function runExample(text) {
+    submitted.current = true
     navigate(buildPlanUrl({ query: text }))
   }
 
@@ -273,8 +287,9 @@ export default function PlanPage() {
         </div>
       </section>
 
+      <div ref={resultRef} className="plan-result-anchor" />
       {state.loading && !plan ? <ResultSkeleton /> : state.error ? (
-        <StatusBlock tone="error" title={t('plan.failed')} message={state.error.message} action={{ label: t('state.retry'), onClick: () => setReload((n) => n + 1) }} />
+        <ErrorBlock error={state.error} context={t('plan.failed')} onRetry={() => setReload((n) => n + 1)} />
       ) : plan ? (
         <section className={`plan-result ${state.loading ? 'is-refreshing' : ''}`} aria-labelledby="plan-result-title" aria-busy={state.loading}>
           <header className="plan-result-head">
@@ -289,7 +304,7 @@ export default function PlanPage() {
               </div>
             )}
           </header>
-          {plan.summary && <p className="plan-summary">{plan.summary}</p>}
+          {plan.summary && <p className="plan-summary">{plan.summary}{isEdited(plan) && <span className="plan-summary-stale"> {t('plan.summaryStale')}</span>}</p>}
           <BudgetBar plan={plan} />
           {plan.insufficientEvidence && <p className="plan-warning" role="note">{t('plan.insufficient')}</p>}
 

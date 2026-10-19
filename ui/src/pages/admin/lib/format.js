@@ -46,11 +46,13 @@ export function formatMs(ms) {
   return v >= 1000 ? `${(v / 1000).toFixed(2)} s` : `${v.toFixed(v < 10 ? 1 : 0)} ms`
 }
 
+// "YYYY-MM-DD HH:mm" in the viewer's local time (the API sends UTC ISO timestamps).
 export function formatDateTime(iso) {
   if (!iso) return '—'
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return String(iso)
-  return d.toISOString().replace('T', ' ').slice(0, 16)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 export function formatMetric(value) {

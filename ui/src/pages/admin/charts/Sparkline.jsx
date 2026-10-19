@@ -10,7 +10,7 @@ export default function Sparkline({ values = [], width = 96, height = 28, label 
   const y = linearScale([min, max], [height - 3, 3])
   const last = values[values.length - 1]
   return (
-    <svg width={width} height={height} className="adm-sparkline" role="img" aria-label={label || `Trend: ${finite.length} points, last ${last}`}>
+    <svg width={width} height={height} className="adm-sparkline" role="img" aria-label={label || `${finite.length} · ${last}`}>
       <path d={linePath(values.map((v, i) => [x(i), y(v)]))} fill="none" stroke="var(--chart-1)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
       <circle cx={x(values.length - 1)} cy={y(last)} r={2.5} fill="var(--chart-1)" />
     </svg>

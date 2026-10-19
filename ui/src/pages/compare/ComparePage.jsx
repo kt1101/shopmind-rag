@@ -3,16 +3,17 @@ import { Link, useNavigate, useSearchParams } from 'react-router'
 import { ragCompare, resolveImageUrl } from '../../api.js'
 import { productPath } from '../../lib/urlState.js'
 import AnswerText from '../../entities/citation/AnswerText.jsx'
-import { compareTable, pointAsAnswer, withoutId } from '../../features/compare/compareView.js'
+import { compareTable, localizeCompareValue, pointAsAnswer, withoutId } from '../../features/compare/compareView.js'
+import { displayTitle } from '../../entities/product/product.js'
 import FeedbackWidget from '../../features/feedback/FeedbackWidget.jsx'
 import { useShopLists } from '../../features/shop-lists/ShopListsProvider.jsx'
 import { buildCompareUrl, parseCompareIds } from '../../features/shop-lists/shopLists.js'
-import { categoryLabel } from '../../shared/i18n.js'
+import { attributeLabel, categoryLabel } from '../../shared/i18n.js'
 import { useStaffMode } from '../../shared/lib/useStaffMode.js'
 import { useI18n } from '../../shared/ui/I18nProvider.jsx'
 import { Skeleton } from '../../shared/ui/Skeleton.jsx'
 import RagInspector from '../../widgets/inspector/RagInspector.jsx'
-import StatusBlock from '../../shop/StatusBlock.jsx'
+import StatusBlock, { ErrorBlock } from '../../shop/StatusBlock.jsx'
 import '../../features/compare/compare.css'
 import '../../entities/citation/citation.css'
 import './compare-page.css'
@@ -49,7 +50,15 @@ export default function ComparePage() {
     return () => controller.abort()
   }, [idsKey, asked, reload, staff.active]) // ids is derived from idsKey
 
-  const table = useMemo(() => compareTable(state.data, t('compare.noData')), [state.data, t])
+  const table = useMemo(() => {
+    const labels = {
+      synthetic: t('common.synthetic'),
+      inStock: (quantity) => t('compare.inStock', { quantity }),
+      outOfStock: t('compare.outOfStock'),
+      category: (value) => categoryLabel(lang, value),
+    }
+    return compareTable(state.data, t('compare.noData'), (name, raw) => localizeCompareValue(name, raw, labels))
+  }, [state.data, t, lang])
 
   function remove(id) {
     removeFromCompare(id)
@@ -78,7 +87,7 @@ export default function ComparePage() {
       <h1>{t('compare.title')}</h1>
 
       {error ? (
-        <StatusBlock tone="error" title={t('compare.failed')} message={error.message} action={{ label: t('state.retry'), onClick: () => setReload((n) => n + 1) }} />
+        <ErrorBlock error={error} context={t('compare.failed')} onRetry={() => setReload((n) => n + 1)} />
       ) : !data && loading ? (
         <div role="status" aria-live="polite">
           <p className="sm-muted">{t('compare.loading')}</p>
@@ -98,10 +107,10 @@ export default function ComparePage() {
                       const img = resolveImageUrl(p.image_url)
                       return (
                         <th key={p.product_id} scope="col" className="compare-product">
+                          <button type="button" className="compare-product-remove" onClick={() => remove(p.product_id)} aria-label={t('compare.remove', { title: displayTitle(p.title) })} title={t('compare.remove', { title: '' }).trim()}>×</button>
                           <span className="compare-product-thumb">{img ? <img src={img} alt="" /> : <span aria-hidden="true">◇</span>}</span>
-                          <Link to={productPath(p.product_id)}>{p.title}</Link>
-                          <span className="sm-muted sm-small">{p.brand} · {categoryLabel(lang, p.category)}</span>
-                          <button type="button" className="sm-button sm-button--ghost sm-button--small" onClick={() => remove(p.product_id)} aria-label={t('compare.remove', { title: p.title })}>×</button>
+                          <Link to={productPath(p.product_id)}>{displayTitle(p.title)}</Link>
+                          <span className="sm-muted sm-small">{[p.brand, categoryLabel(lang, p.category)].filter(Boolean).join(' · ')}</span>
                         </th>
                       )
                     })}
@@ -110,7 +119,7 @@ export default function ComparePage() {
                 <tbody>
                   {table.rows.map((row) => (
                     <tr key={row.name} className={row.differs ? 'is-different' : ''}>
-                      <th scope="row">{row.name}</th>
+                      <th scope="row">{attributeLabel(lang, row.name)}</th>
                       {row.cells.map((cell) => (
                         <td key={cell.productId} className={cell.missing ? 'is-missing' : ''}>{cell.value}</td>
                       ))}
@@ -153,7 +162,7 @@ export default function ComparePage() {
                   <span aria-hidden="true">🔍</span> {showTrace ? t('answer.hideTrace') : t('answer.showTrace')}
                 </button>
               )}
-              <FeedbackWidget target="answer" traceId={data.trace_id} query={asked || `compare:${idsKey}`} compact />
+              {data.llm_available !== false && <FeedbackWidget target="answer" traceId={data.trace_id} query={asked || `compare:${idsKey}`} compact />}
             </div>
             {staff.active && showTrace && data.trace && <RagInspector trace={data.trace} />}
           </section>

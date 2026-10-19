@@ -57,7 +57,7 @@ export default function InspectorDrawer({ open, onClose, trace, loading = false,
     <>
       <span>{t('inspector.pipeline')}: <code>{summary.pipeline ?? '—'}</code>{pipeline?.description ? ` — ${pipeline.description}` : ''}</span>
       <span>{t('inspector.duration')}: <strong>{formatMs(summary.durationMs)}</strong></span>
-      <span>{summary.stepCount} steps</span>
+      <span>{t('inspector.stepCount', { count: summary.stepCount })}</span>
       <span>{t('inspector.traceId')}: <code>{summary.traceId}</code></span>
     </>
   ) : null

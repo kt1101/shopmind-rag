@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { humanizeCategory } from '../lib/format.js'
+import { useI18n } from '../shared/ui/I18nProvider.jsx'
 
 export default function FilterField({
   field,
@@ -14,6 +15,7 @@ export default function FilterField({
   onSelect,
   onRemove,
 }) {
+  const { t } = useI18n()
   const fieldRef = useRef(null)
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
@@ -95,10 +97,10 @@ export default function FilterField({
       )}
       {open && (
         <div className="filter-options" id={`${field}-filter-options`} role="listbox">
-          {loading && <span className="filter-status">Loading options…</span>}
+          {loading && <span className="filter-status">{t('filters.loadingOptions')}</span>}
           {!loading && error && <span className="filter-status error">{error}</span>}
           {!loading && !error && visibleOptions.length === 0 && (
-            <span className="filter-status">No suggestions</span>
+            <span className="filter-status">{t('filters.noSuggestions')}</span>
           )}
           {!loading && !error && visibleOptions.map((option, index) => (
             <button

@@ -71,6 +71,12 @@ export function cartCount(cart) {
   return cart.reduce((sum, item) => sum + (item.quantity || 1), 0)
 }
 
+// Price x quantity for one cart row ({amount, currency} or null when the item has no price).
+export function lineTotal(item) {
+  if (!item?.price || typeof item.price.amount !== 'number') return null
+  return { amount: Math.round(item.price.amount * (item.quantity || 1) * 100) / 100, currency: item.price.currency || 'USD' }
+}
+
 export function cartTotal(cart) {
   let amount = 0
   let currency = null

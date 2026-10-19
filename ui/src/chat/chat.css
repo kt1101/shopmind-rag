@@ -592,3 +592,10 @@
 }
 .chat-attach-button:hover:not(:disabled) { color: var(--color-accent); border-color: var(--color-accent); }
 .chat-bubble--assistant .fb { font-size: 11.5px; }
+
+/* A switched-off LLM is not the shopper's fault: neutral tone, no retry, point at what works. */
+.chat-bubble--error.chat-error--llm_unavailable { background: var(--color-warning-soft); border-color: var(--color-border); color: var(--color-text); }
+.chat-error-links { margin: 4px 0 0; font-size: 13px; }
+.chat-error-links a { color: var(--color-accent); font-weight: 600; }
+.chat-launcher:focus-visible, .chat-panel button:focus-visible, .chat-panel a:focus-visible, .chat-input:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.chat-citations-title, .chat-citation-type { font-family: var(--font-sans); letter-spacing: .04em; }

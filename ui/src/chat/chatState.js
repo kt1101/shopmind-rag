@@ -123,7 +123,7 @@ export function chatReducer(state = initialChatState, action = {}) {
         ...state,
         pending: false,
         live: null,
-        messages: [...state.messages, { id: state.nextId, role: 'error', content: action.message ?? '' }],
+        messages: [...state.messages, { id: state.nextId, role: 'error', content: action.message ?? '', error: { code: action.code ?? null, status: action.status ?? null, name: action.name ?? null } }],
         nextId: state.nextId + 1,
       }
     }
